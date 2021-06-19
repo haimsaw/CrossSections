@@ -14,6 +14,7 @@ def main():
 
 
 def OnInit(self):
+	pass
 
 
 def parse_file(filename):
