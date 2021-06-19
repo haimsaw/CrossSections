@@ -1,88 +1,45 @@
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
 from parse import parse
-from OpenGLContext import testingcontext
-from OpenGL.arrays import vbo
-from OpenGLContext.arrays import *
-from OpenGL.GL import shaders
+
+
+class ConnectedComponent:
+	def __init__(self, csl_file):
+			compnent = map(int, csl_file.readline().strip().split(" "))  # todo holes
+			self.n_vertecies_in_component = next(compnent)
+			self.label = next(compnent)
+			self.vertices_in_component = list(compnent)
+			assert len(self.vertices_in_component) == self.n_vertecies_in_component
+
+
+class Plane:
+	def __init__(self, csl_file):
+		self.plane_id, self.n_verticies, self.n_connected_components, A, B, C, D = \
+			parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", csl_file.readline().strip())
+		self.plane_params = (A, B, C, D)
+		csl_file.readline()
+		self.vertices = [tuple(parse("{:f} {:f} {:f}", csl_file.readline().strip())) for _ in range(self.n_verticies)]
+		assert len(self.vertices) == self.n_verticies
+		csl_file.readline()
+		self.connected_components = [ConnectedComponent(csl_file) for _ in range(self.n_connected_components)]
+
+
+class CSL:
+	def __init__(self, filename):
+		with open(filename, 'r') as csl_file:
+			assert csl_file.readline().strip() == "CSLC"
+			self.n_planes, self.n_labels = parse("{:d} {:d}", csl_file.readline().strip())
+			csl_file.readline()
+			self.planes = [Plane(csl_file) for _ in range(self.n_planes)]
 
 
 def main():
-	BaseContext = testingcontext.getInteractive()
-	parse_file("csl-files/SideBishop-simplified.csl")
+	# BaseContext = testingcontext.getInteractive()
+	# cs = CSL("csl-files/SideBishop.csl")
+	# cs = CSL("csl-files/Brain.csl")
 
-
-def OnInit(self):
+	cs = CSL("csl-files/SideBishop-simplified.csl")
 	pass
-
-
-def parse_file(filename):
-	with open(filename, 'r') as csl_file:
-		assert csl_file.readline().strip() == "CSLC"
-		n_planes, lable_num = parse("{:d} {:d}", csl_file.readline().strip())
-		csl_file.readline()
-		for _ in range(n_planes):
-			plane_id, n_verticies, n_connected_components, A, B, C, D = parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", csl_file.readline().strip())
-			csl_file.readline()
-			vertices = [tuple(parse("{:f} {:f} {:f}", csl_file.readline().strip())) for _ in range(n_verticies)]
-			assert len(vertices) == n_verticies
-			csl_file.readline()
-			for _ in range(n_connected_components):
-				compnent = map(int, csl_file.readline().strip().split(" "))  # todo holes
-				n_vertecies_in_component = next(compnent)
-				label = next(compnent)
-				vertices_in_component = list(compnent)
-				assert len(vertices_in_component) == n_vertecies_in_component
-			pass
-
-
-
 
 
 if __name__ == "__main__":
 	main()
 
-	#main("csl-files/SideBishop.csl")
-	#main("csl-files/Brain.csl")
-
-
-
-
-
-
-''' 
-w,h= 500,500
-def square():
-    glBegin(GL_QUADS)
-    glVertex2f(100, 100)
-    glVertex2f(200, 100)
-    glVertex2f(200, 200)
-    glVertex2f(100, 200)
-    glEnd()
-
-def iterate():
-    glViewport(0, 0, 500, 500)
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    glOrtho(0.0, 500, 0.0, 500, 0.0, 1.0)
-    glMatrixMode (GL_MODELVIEW)
-    glLoadIdentity()
-
-def showScreen():
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glLoadIdentity()
-    iterate()
-    glColor3f(1.0, 0.0, 3.0)
-    square()
-    glutSwapBuffers()
-
-glutInit()
-glutInitDisplayMode(GLUT_RGBA)
-glutInitWindowSize(500, 500)
-glutInitWindowPosition(0, 0)
-wind = glutCreateWindow("OpenGL Coding Practice")
-glutDisplayFunc(showScreen)
-glutIdleFunc(showScreen)
-glutMainLoop()
-'''
