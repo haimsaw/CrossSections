@@ -10,10 +10,10 @@ from random import random
 class ConnectedComponent:
 	def __init__(self, csl_file):
 		component = map(int, csl_file.readline().strip().split(" "))  # todo holes
-		self.n_vertecies_in_component = next(component)
+		self.n_vertices_in_component = next(component)
 		self.label = next(component)
 		self.vertices_in_component = list(component)
-		assert len(self.vertices_in_component) == self.n_vertecies_in_component
+		assert len(self.vertices_in_component) == self.n_vertices_in_component
 
 
 class Plane:
@@ -43,6 +43,48 @@ class CSL:
 		return max(ver)
 
 
+def draw_scene(cs, scale_factor, colors):
+	for plane in cs.planes:
+		for connected_component in plane.connected_components:
+			vertices = plane.vertices[connected_component.vertices_in_component]
+			vertices /= scale_factor
+
+			v = np.array(vertices.flatten(), dtype=np.float32)
+			glVertexPointer(3, GL_FLOAT, 0, v)
+
+			color = colors[connected_component.label] * len(vertices)
+			color = np.array(color, dtype=np.float32)
+			glColorPointer(3, GL_FLOAT, 0, color)
+
+			glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
+
+
+class Camera:
+	def __init__(self):
+		self.theta = 0
+		self.phi = 0
+		self.radius = 1
+		self.target = 0
+
+	def rotate(self, d_theta, d_phi):
+		self.theta += d_theta
+		self.phi += d_phi
+
+	def zoom(self, distance):
+		self.radius -= distance
+
+	def get_on_scroll(self):
+		def on_scroll(window, dx, dy):
+			self.radius += dy * 0.1
+		return on_scroll
+
+	def reset(self):
+		self.theta = 0
+		self.phi = 0
+		self.radius = 1
+		self.target = 0
+
+
 def main():
 
 	glfw.init()
@@ -52,6 +94,8 @@ def main():
 
 	glEnableClientState(GL_VERTEX_ARRAY)
 	glEnableClientState(GL_COLOR_ARRAY)
+
+	camera = Camera()
 
 	#cs = CSL("csl-files/SideBishop.csl")
 	# cs = CSL("csl-files/SideBishop-simplified.csl")
@@ -68,34 +112,26 @@ def main():
 	# setting color for background
 	glClearColor(0, 0.1, 0.1, 1)
 
+	#glfw.set_mouse_button_callback(window, mouse_callback2)
+	glfw.set_scroll_callback(window, camera.get_on_scroll())
+
 	while not glfw.window_should_close(window):
 		glfw.poll_events()
 		glClear(GL_COLOR_BUFFER_BIT)
 
-		add_planes(cs, scale_factor, colors)
+		draw_scene(cs, scale_factor, colors)
+
+		glScalef(camera.radius, camera.radius, camera.radius)
+		camera.reset()
+
 		glRotatef(0.1, 1.0, 0.0, 0.0)
 		glRotatef(0.1, 0.0, 1.0, 0.0)
 		glRotatef(0.1, 0.0, 0.0, 1.0)
 
+
 		glfw.swap_buffers(window)
 
 	glfw.terminate()
-
-
-def add_planes(cs, scale_factor, colors):
-	for plane in cs.planes:
-		for connected_component in plane.connected_components:
-			vertices = plane.vertices[connected_component.vertices_in_component]
-			vertices /= scale_factor
-
-			v = np.array(vertices.flatten(), dtype=np.float32)
-			glVertexPointer(3, GL_FLOAT, 0, v)
-
-			color = colors[connected_component.label] * len(vertices)
-			color = np.array(color, dtype=np.float32)
-			glColorPointer(3, GL_FLOAT, 0, color)
-
-			glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
 
 
 if __name__ == "__main__":
