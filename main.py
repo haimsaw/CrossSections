@@ -1,6 +1,5 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
-from OpenGL.GLU import *
 from parse import parse
 import numpy as np
 import glfw
@@ -45,92 +44,85 @@ class CSL:
 		return max(ver)
 
 
-def draw_scene(cs, scale_factor, colors):
-	for plane in cs.planes:
-		for connected_component in plane.connected_components:
-			vertices = plane.vertices[connected_component.vertices_in_component]
-			vertices /= scale_factor
+class Renderer:
+	def __init__(self, csl_file):
+		self.cs = CSL(csl_file)
 
-			v = np.array(vertices.flatten(), dtype=np.float32)
-			glVertexPointer(3, GL_FLOAT, 0, v)
+		self.zoom = 1
+		self.origin_x = 0
+		self.origin_y = 0
 
-			color = colors[connected_component.label] * len(vertices)
-			color = np.array(color, dtype=np.float32)
-			glColorPointer(3, GL_FLOAT, 0, color)
+		self.colors = [[random(), random(), random()] for _ in range(self.cs.n_labels)]
+		self.scale_factor = self.cs.get_scale_factor()
 
-			glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
+		glfw.init()
+		self.window = glfw.create_window(800, 600, "Cross Sections", None, None)
+		glfw.set_window_pos(self.window, 400, 200)
+		glfw.make_context_current(self.window)
 
+		glEnableClientState(GL_VERTEX_ARRAY)
+		glEnableClientState(GL_COLOR_ARRAY)
+		glMatrixMode(GL_MODELVIEW)
 
-class Trackball:
-	def __init__(self):
-		self.radius = 1
-
-	def zoom(self, distance):
-		self.radius += distance
+		glfw.set_scroll_callback(self.window, self.get_on_scroll())
+		glClearColor(0, 0.1, 0.1, 1)
 
 	def get_on_scroll(self):
 		def on_scroll(window, dx, dy):
-			self.zoom(dy * 0.1)
+			self.zoom += dy * 0.1
 		return on_scroll
 
-	def reset(self):
-		self.radius = 1
+	def draw_scene(self):
+		for plane in self.cs.planes:
+			for connected_component in plane.connected_components:
+				vertices = plane.vertices[connected_component.vertices_in_component]
+				vertices /= self.scale_factor
 
+				v = np.array(vertices.flatten(), dtype=np.float32)
+				glVertexPointer(3, GL_FLOAT, 0, v)
+
+				color = self.colors[connected_component.label] * len(vertices)
+				color = np.array(color, dtype=np.float32)
+				glColorPointer(3, GL_FLOAT, 0, color)
+
+				glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
+
+	def event_loop(self):
+		while not glfw.window_should_close(self.window):
+			glfw.poll_events()
+			glClear(GL_COLOR_BUFFER_BIT)
+
+			x, y = glfw.get_cursor_pos(self.window)
+
+			if glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS:
+				glRotatef((self.origin_x - x) / 10, 0.0, 1.0, 0.0)
+				glRotatef(-(self.origin_y - y) / 10, 1.0, 0.0, 0.0)
+
+			elif glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS:
+				glTranslate(-(self.origin_x - x) / 100, (self.origin_y - y) / 100, 0)
+
+			if self.zoom != 1:
+				glScalef(self.zoom, self.zoom, self.zoom)
+
+			self.draw_scene()
+			glfw.swap_buffers(self.window)
+
+			self.origin_x = x
+			self.origin_y = y
+
+			self.zoom = 1
+
+		glfw.terminate()
 
 
 def main():
-	glfw.init()
-	window = glfw.create_window(800, 600, "Cross Sections", None, None)
-	glfw.set_window_pos(window, 400, 200)
-	glfw.make_context_current(window)
+	renderer = Renderer("csl-files/Heart-25-even-better.csl")
 
-	glEnableClientState(GL_VERTEX_ARRAY)
-	glEnableClientState(GL_COLOR_ARRAY)
-	glMatrixMode(GL_PROJECTION)
+	# renderer = Renderer("csl-files/SideBishop.csl")
+	# renderer = Renderer("csl-files/ParallelEight.csl")
+	# renderer = Renderer("csl-files/ParallelEightMore.csl")
 
-	trackball = Trackball()  # todo remove Trackball
-
-	# cs = CSL("csl-files/SideBishop.csl")
-	cs = CSL("csl-files/Heart-25-even-better.csl")
-
-	# cs = CSL("csl-files/ParallelEight.csl")
-	# cs = CSL("csl-files/ParallelEightMore.csl")
-
-	colors = [[random(), random(), random()] for _ in range(cs.n_labels)]
-	scale_factor = cs.get_scale_factor()
-
-	# setting color for background
-	glClearColor(0, 0.1, 0.1, 1)
-
-	glfw.set_scroll_callback(window, trackball.get_on_scroll())
-
-	origin_x = 0
-	origin_y = 0
-
-	while not glfw.window_should_close(window):
-		glfw.poll_events()
-		glClear(GL_COLOR_BUFFER_BIT)
-
-		glScalef(trackball.radius, trackball.radius, trackball.radius)
-
-		x, y = glfw.get_cursor_pos(window)
-
-		if glfw.get_mouse_button(window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS:
-			glRotatef((origin_x - x) / 10, 0.0, 1.0, 0.0)
-			glRotatef(-(origin_y - y) / 10, 1.0, 0.0, 0.0)
-
-		elif glfw.get_mouse_button(window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS:
-			glTranslate(-(origin_x - x) / 100, (origin_y - y) / 100, 0)
-
-		origin_x = x
-		origin_y = y
-
-		draw_scene(cs, scale_factor, colors)
-
-		trackball.reset()
-		glfw.swap_buffers(window)
-
-	glfw.terminate()
+	renderer.event_loop()
 
 
 if __name__ == "__main__":
