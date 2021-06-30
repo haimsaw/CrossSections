@@ -4,7 +4,8 @@ from OpenGL.GLU import *
 from parse import parse
 import numpy as np
 import glfw
-from random import random
+from random import random, randint
+import math
 
 
 class ConnectedComponent:
@@ -12,6 +13,7 @@ class ConnectedComponent:
 		component = map(int, csl_file.readline().strip().split(" "))  # todo holes
 		self.n_vertices_in_component = next(component)
 		self.label = next(component)
+		#self.label = randint(0,19)
 		self.vertices_in_component = list(component)
 		assert len(self.vertices_in_component) == self.n_vertices_in_component
 
@@ -59,51 +61,39 @@ def draw_scene(cs, scale_factor, colors):
 			glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
 
 
-class Camera:
+class Trackball:
 	def __init__(self):
-		self.theta = 0
-		self.phi = 0
 		self.radius = 1
-		self.target = 0
-
-	def rotate(self, d_theta, d_phi):
-		self.theta += d_theta
-		self.phi += d_phi
 
 	def zoom(self, distance):
-		self.radius -= distance
+		self.radius += distance
 
 	def get_on_scroll(self):
 		def on_scroll(window, dx, dy):
-			self.radius += dy * 0.1
+			self.zoom(dy * 0.1)
 		return on_scroll
 
 	def reset(self):
-		self.theta = 0
-		self.phi = 0
 		self.radius = 1
-		self.target = 0
+
 
 
 def main():
-
 	glfw.init()
-	window = glfw.create_window(800, 600, "PyOpenGL Triangle", None, None)
+	window = glfw.create_window(800, 600, "Cross Sections", None, None)
 	glfw.set_window_pos(window, 400, 200)
 	glfw.make_context_current(window)
 
 	glEnableClientState(GL_VERTEX_ARRAY)
 	glEnableClientState(GL_COLOR_ARRAY)
+	glMatrixMode(GL_PROJECTION)
 
-	camera = Camera()
+	trackball = Trackball()  # todo remove Trackball
 
-	#cs = CSL("csl-files/SideBishop.csl")
-	# cs = CSL("csl-files/SideBishop-simplified.csl")
-
-	#cs = CSL("csl-files/Heart-simplified.csl")
+	# cs = CSL("csl-files/SideBishop.csl")
 	cs = CSL("csl-files/Heart-25-even-better.csl")
 
-	#cs = CSL("csl-files/ParallelEight.csl")
+	# cs = CSL("csl-files/ParallelEight.csl")
 	# cs = CSL("csl-files/ParallelEightMore.csl")
 
 	colors = [[random(), random(), random()] for _ in range(cs.n_labels)]
@@ -112,23 +102,32 @@ def main():
 	# setting color for background
 	glClearColor(0, 0.1, 0.1, 1)
 
-	#glfw.set_mouse_button_callback(window, mouse_callback2)
-	glfw.set_scroll_callback(window, camera.get_on_scroll())
+	glfw.set_scroll_callback(window, trackball.get_on_scroll())
+
+	origin_x = 0
+	origin_y = 0
 
 	while not glfw.window_should_close(window):
 		glfw.poll_events()
 		glClear(GL_COLOR_BUFFER_BIT)
 
+		glScalef(trackball.radius, trackball.radius, trackball.radius)
+
+		x, y = glfw.get_cursor_pos(window)
+
+		if glfw.get_mouse_button(window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS:
+			glRotatef((origin_x - x) / 10, 0.0, 1.0, 0.0)
+			glRotatef(-(origin_y - y) / 10, 1.0, 0.0, 0.0)
+
+		elif glfw.get_mouse_button(window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS:
+			glTranslate(-(origin_x - x) / 100, (origin_y - y) / 100, 0)
+
+		origin_x = x
+		origin_y = y
+
 		draw_scene(cs, scale_factor, colors)
 
-		glScalef(camera.radius, camera.radius, camera.radius)
-		camera.reset()
-
-		glRotatef(0.1, 1.0, 0.0, 0.0)
-		glRotatef(0.1, 0.0, 1.0, 0.0)
-		glRotatef(0.1, 0.0, 0.0, 1.0)
-
-
+		trackball.reset()
 		glfw.swap_buffers(window)
 
 	glfw.terminate()
