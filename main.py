@@ -5,42 +5,52 @@ import numpy as np
 import glfw
 from random import random, randint
 import math
+import progressbar
 
 
 class ConnectedComponent:
 	def __init__(self, csl_file):
-		component = map(int, csl_file.readline().strip().split(" "))  # todo holes
-		self.n_vertices_in_component = next(component)
+		component = iter(next(csl_file).strip().split(" "))  # todo holes
+		sizes = next(component).split("h") + [0]
+
+		self.n_vertices_in_component, self.n_holes = int(sizes[0]), int(sizes[1])
+		component = map(int, component)
 		self.label = next(component)
-		#self.label = randint(0,19)
+		#self.label = 1 if self.n_holes> 0 else 0
 		self.vertices_in_component = list(component)
 		assert len(self.vertices_in_component) == self.n_vertices_in_component
 
 
 class Plane:
-	def __init__(self, csl_file):
+	def __init__(self, csl_file, bar):
+		l = next(csl_file).strip()
 		self.plane_id, self.n_vertices, self.n_connected_components, A, B, C, D = \
-			parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", csl_file.readline().strip())
+			parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", l)
 		self.plane_params = (A, B, C, D)
 		self.plane_normal = np.array([A, B, C])  # todo is normalized?
 		self.plane_origin = -D * self.plane_normal
-		csl_file.readline()
-		self.vertices = np.array([parse("{:f} {:f} {:f}", csl_file.readline().strip()).fixed for _ in range(self.n_vertices)])
+		self.vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(self.n_vertices)])
 		assert len(self.vertices) == self.n_vertices
-		csl_file.readline()
 		self.connected_components = [ConnectedComponent(csl_file) for _ in range(self.n_connected_components)]
+		bar.update(self.plane_id + 1)
 
 
 class CSL:
 	def __init__(self, filename):
 		with open(filename, 'r') as csl_file:
-			assert csl_file.readline().strip() == "CSLC"
-			self.n_planes, self.n_labels = parse("{:d} {:d}", csl_file.readline().strip())
-			csl_file.readline()
-			self.planes = [Plane(csl_file) for _ in range(self.n_planes)]
+			csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
+			assert next(csl_file).strip() == "CSLC"
+			self.n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
+
+			bar = progressbar.ProgressBar(maxval=self.n_planes+1, widgets=[progressbar.Percentage(), progressbar.Bar()])
+			bar.start()
+
+			self.planes = [Plane(csl_file, bar) for _ in range(self.n_planes)]
+
+			bar.finish()
 
 	def get_scale_factor(self):
-		ver = [abs(plane.vertices.max()) for plane in self.planes] + [abs(plane.vertices.min()) for plane in self.planes]
+		ver = [abs(plane.vertices.max()) for plane in self.planes if len(plane.vertices) > 0] + [abs(plane.vertices.min()) for plane in self.planes if len(plane.vertices) > 0]
 		return max(ver)
 
 
@@ -52,7 +62,7 @@ class Renderer:
 		self.origin_x = 0
 		self.origin_y = 0
 
-		self.colors = [[random(), random(), random()] for _ in range(self.cs.n_labels)]
+		self.colors = [[random(), random(), random()] for _ in range(self.cs.n_labels+1)]
 		self.scale_factor = self.cs.get_scale_factor()
 
 		glfw.init()
@@ -116,8 +126,12 @@ class Renderer:
 
 
 def main():
-	renderer = Renderer("csl-files/Heart-25-even-better.csl")
-
+	#renderer = Renderer("csl-files/Heart-25-even-better.csl")
+	#renderer = Renderer("csl-files/Horsers.csl")
+	# renderer = Renderer("csl-files/Brain.csl")
+	#renderer = Renderer("csl-files/Abdomen.csl")
+	renderer = Renderer("csl-files/Vetebrae.csl")
+	#renderer = Renderer("csl-files/rocker-arm.csl")
 	# renderer = Renderer("csl-files/SideBishop.csl")
 	# renderer = Renderer("csl-files/ParallelEight.csl")
 	# renderer = Renderer("csl-files/ParallelEightMore.csl")
