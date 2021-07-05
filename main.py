@@ -151,3 +151,14 @@ def main():
 
 if __name__ == "__main__":
 	main()
+'''
+todo:
+	0? draw the shape filled in the csl visualization()
+	1. determine if a point is inside the box or not (cgal or google it?)
+	2. add 6 empty planes on the bounding box (with +-20% margin)
+	3. rasterize the plane:
+		3.a pca on the points fox axis, origin in mean to get params for the plane
+		3.b take -+20% of empty space
+		3.c get color for reach pixel (256*256 pixels in each direction)
+	4. visualize raster of the planes
+'''
