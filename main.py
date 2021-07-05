@@ -59,8 +59,11 @@ class Renderer:
 		self.cs = CSL(csl_file)
 
 		self.zoom = 1
-		self.origin_x = 0
-		self.origin_y = 0
+
+		self.rho = 0
+		self.theta = 0
+		self.dx = 0
+		self.dy = 0
 
 		self.colors = [[random(), random(), random()] for _ in range(self.cs.n_labels+1)]
 		self.scale_factor = self.cs.get_scale_factor()
@@ -98,40 +101,47 @@ class Renderer:
 				glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
 
 	def event_loop(self):
+		origin_x = 0
+		origin_y = 0
+
 		while not glfw.window_should_close(self.window):
 			glfw.poll_events()
 			glClear(GL_COLOR_BUFFER_BIT)
+			glLoadIdentity()
 
 			x, y = glfw.get_cursor_pos(self.window)
 
 			if glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS:
-				glRotatef((self.origin_x - x) / 10, 0.0, 1.0, 0.0)
-				glRotatef(-(self.origin_y - y) / 10, 1.0, 0.0, 0.0)
+				self.rho -= (origin_x - x) / 10
+				self.theta -= (origin_y - y) / 10
 
 			elif glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS:
-				glTranslate(-(self.origin_x - x) / 100, (self.origin_y - y) / 100, 0)
+				self.dx -= (origin_x - x) / 100
+				self.dy += (origin_y - y) / 100
 
-			if self.zoom != 1:
-				glScalef(self.zoom, self.zoom, self.zoom)
+			glRotatef(self.rho, 0.0, 1.0, 0.0)
+			glRotatef(self.theta, 0.0, 0.0, 1.0)
+
+			glScalef(self.zoom, self.zoom, self.zoom)
+
+			glTranslate(self.dx, self.dy, 0)
 
 			self.draw_scene()
 			glfw.swap_buffers(self.window)
 
-			self.origin_x = x
-			self.origin_y = y
-
-			self.zoom = 1
+			origin_x = x
+			origin_y = y
 
 		glfw.terminate()
 
 
 def main():
-	#renderer = Renderer("csl-files/Heart-25-even-better.csl")
-	#renderer = Renderer("csl-files/Horsers.csl")
+	# renderer = Renderer("csl-files/Heart-25-even-better.csl")
+	renderer = Renderer("csl-files/Horsers.csl")
 	# renderer = Renderer("csl-files/Brain.csl")
-	#renderer = Renderer("csl-files/Abdomen.csl")
-	renderer = Renderer("csl-files/Vetebrae.csl")
-	#renderer = Renderer("csl-files/rocker-arm.csl")
+	# renderer = Renderer("csl-files/Abdomen.csl")
+	# renderer = Renderer("csl-files/Vetebrae.csl")
+	# renderer = Renderer("csl-files/rocker-arm.csl")
 	# renderer = Renderer("csl-files/SideBishop.csl")
 	# renderer = Renderer("csl-files/ParallelEight.csl")
 	# renderer = Renderer("csl-files/ParallelEightMore.csl")
