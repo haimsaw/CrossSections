@@ -1,3 +1,5 @@
+import itertools
+
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from parse import parse
@@ -6,6 +8,7 @@ import glfw
 from random import random, randint
 import math
 import progressbar
+from itertools import chain
 
 
 class ConnectedComponent:
@@ -13,26 +16,38 @@ class ConnectedComponent:
 		component = iter(next(csl_file).strip().split(" "))  # todo holes
 		sizes = next(component).split("h") + [0]
 
-		self.n_vertices_in_component, self.n_holes = int(sizes[0]), int(sizes[1])
+		self.n_vertices_in_component, self.n_holes = int(sizes[0]), int(sizes[1])  # todo what is n_holes?
 		component = map(int, component)
 		self.label = next(component)
-		#self.label = 1 if self.n_holes> 0 else 0
+		# self.label = 1 if self.n_holes> 0 else 0
 		self.vertices_in_component = list(component)
 		assert len(self.vertices_in_component) == self.n_vertices_in_component
 
 
 class Plane:
-	def __init__(self, csl_file, bar):
-		l = next(csl_file).strip()
-		self.plane_id, self.n_vertices, self.n_connected_components, A, B, C, D = \
-			parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", l)
-		self.plane_params = (A, B, C, D)
-		self.plane_normal = np.array([A, B, C])  # todo is normalized?
-		self.plane_origin = -D * self.plane_normal
-		self.vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(self.n_vertices)])
-		assert len(self.vertices) == self.n_vertices
-		self.connected_components = [ConnectedComponent(csl_file) for _ in range(self.n_connected_components)]
-		bar.update(self.plane_id + 1)
+	def __init__(self, plane_id: int, plane_params: tuple, vertices: np.array, connected_components: list):
+		assert len(plane_params) == 4
+
+		self.plane_id = plane_id
+		self.plane_params = plane_params  # Ax+By+Cz+D=0
+		self.vertices = vertices  # todo should be on the plane
+		self.connected_components = connected_components
+
+	@classmethod
+	def from_csl_file(cls, csl_file, bar):
+		line = next(csl_file).strip()
+		plane_id, n_vertices, n_connected_components, A, B, C, D = \
+			parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", line)
+		plane_params = (A, B, C, D)
+		vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(n_vertices)])
+		assert len(vertices) == n_vertices
+		connected_components = [ConnectedComponent(csl_file) for _ in range(n_connected_components)]
+		bar.update(plane_id + 1)
+		return cls(plane_id, plane_params, vertices, connected_components)
+
+	@classmethod
+	def empty_plane(cls, plane_id, plane_params):
+		return cls(plane_id, plane_params, np.array([]), [])
 
 
 class CSL:
@@ -40,23 +55,56 @@ class CSL:
 		with open(filename, 'r') as csl_file:
 			csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
 			assert next(csl_file).strip() == "CSLC"
-			self.n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
+			n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
 
-			bar = progressbar.ProgressBar(maxval=self.n_planes+1, widgets=[progressbar.Percentage(), progressbar.Bar()])
+			bar = progressbar.ProgressBar(maxval=n_planes+1, widgets=[progressbar.Percentage(), progressbar.Bar()])
 			bar.start()
 
-			self.planes = [Plane(csl_file, bar) for _ in range(self.n_planes)]
+			self.planes = [Plane.from_csl_file(csl_file, bar) for _ in range(n_planes)]
 
 			bar.finish()
 
-	def get_scale_factor(self):
-		ver = [abs(plane.vertices.max()) for plane in self.planes if len(plane.vertices) > 0] + [abs(plane.vertices.min()) for plane in self.planes if len(plane.vertices) > 0]
-		return max(ver)
+	@property
+	def all_vertices(self):
+		ver_list = (plane.vertices for plane in self.planes if len(plane.vertices) > 0)
+		return list(chain(*ver_list))
+
+	@property
+	def scale_factor(self):
+		return np.max(self.all_vertices)
+
+	@property
+	def vertices_boundaries(self):
+		vertices = self.all_vertices
+		top = np.amax(vertices, axis=0)
+		bottom = np.amin(vertices, axis=0)
+		return top, bottom
+
+	def __add_empty_plane(self, plane_params):
+		plane_id = len(self.planes) + 1
+		self.planes.append(Plane.empty_plane(plane_id, plane_params))
+
+	def add_boundary_planes(self, margin_percent):
+		top, bottom = self. vertices_boundaries
+		margin = margin_percent * (top - bottom)
+
+		top += margin
+		bottom -= margin
+
+		for i in range(3):
+			normal = [0] * 3
+			normal[i] = 1
+
+			self.__add_empty_plane(tuple(normal + [top[i]]))
+			self.__add_empty_plane(tuple(normal + [bottom[i]]))
+
+		stacked = np.stack((top, bottom))
+		return np.array([np.choose(choice, stacked) for choice in itertools.product([0, 1], repeat=3)])
 
 
 class Renderer:
-	def __init__(self, csl_file):
-		self.cs = CSL(csl_file)
+	def __init__(self, csl):
+		self.csl = csl
 
 		self.zoom = 1
 
@@ -65,8 +113,8 @@ class Renderer:
 		self.dx = 0
 		self.dy = 0
 
-		self.colors = [[random(), random(), random()] for _ in range(self.cs.n_labels+1)]
-		self.scale_factor = self.cs.get_scale_factor()
+		self.colors = [[random(), random(), random()] for _ in range(self.csl.n_labels + 1)]
+		self.scale_factor = self.csl.scale_factor
 
 		glfw.init()
 		self.window = glfw.create_window(800, 600, "Cross Sections", None, None)
@@ -86,7 +134,7 @@ class Renderer:
 		return on_scroll
 
 	def draw_scene(self):
-		for plane in self.cs.planes:
+		for plane in self.csl.planes:
 			for connected_component in plane.connected_components:
 				vertices = plane.vertices[connected_component.vertices_in_component]
 				vertices /= self.scale_factor
@@ -120,7 +168,7 @@ class Renderer:
 				self.dy += (origin_y - y) / 100
 
 			glRotatef(self.rho, 0.0, 1.0, 0.0)
-			glRotatef(self.theta, 0.0, 0.0, 1.0)
+			glRotatef(self.theta, 1.0, 0.0, 0.0)  # todo axis of rotation
 
 			glScalef(self.zoom, self.zoom, self.zoom)
 
@@ -136,16 +184,20 @@ class Renderer:
 
 
 def main():
-	# renderer = Renderer("csl-files/Heart-25-even-better.csl")
-	renderer = Renderer("csl-files/Horsers.csl")
-	# renderer = Renderer("csl-files/Brain.csl")
-	# renderer = Renderer("csl-files/Abdomen.csl")
-	# renderer = Renderer("csl-files/Vetebrae.csl")
-	# renderer = Renderer("csl-files/rocker-arm.csl")
-	# renderer = Renderer("csl-files/SideBishop.csl")
-	# renderer = Renderer("csl-files/ParallelEight.csl")
-	# renderer = Renderer("csl-files/ParallelEightMore.csl")
 
+	# csl = CSL("csl-files/Heart-25-even-better.csl")
+	csl = CSL("csl-files/Horsers.csl")
+	# csl = CSL("csl-files/Brain.csl")
+	# csl = CSL("csl-files/Abdomen.csl")
+	# csl = CSL("csl-files/Vetebrae.csl")
+	# csl = CSL("csl-files/rocker-arm.csl")
+	# csl = CSL("csl-files/SideBishop.csl")
+	# csl = CSL("csl-files/ParallelEight.csl")
+	# csl = CSL("csl-files/ParallelEightMore.csl")
+
+	box = csl.add_boundary_planes(0.2)
+
+	renderer = Renderer(csl)
 	renderer.event_loop()
 
 
@@ -155,7 +207,6 @@ if __name__ == "__main__":
 todo:
 	0? draw the shape filled in the csl visualization()
 	1. determine if a point is inside the box or not (cgal or google it?)
-	2. add 6 empty planes on the bounding box (with +-20% margin)
 	3. rasterize the plane:
 		3.a pca on the points fox axis, origin in mean to get params for the plane
 		3.b take -+20% of empty space
