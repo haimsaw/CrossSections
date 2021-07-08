@@ -166,13 +166,13 @@ class Renderer:
 			elif glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS:
 				self.dx -= (origin_x - x) / 100
 				self.dy += (origin_y - y) / 100
+			glTranslate(self.dx, self.dy, 0)
 
 			glRotatef(self.rho, 0.0, 1.0, 0.0)
 			glRotatef(self.theta, 1.0, 0.0, 0.0)  # todo axis of rotation
 
 			glScalef(self.zoom, self.zoom, self.zoom)
 
-			glTranslate(self.dx, self.dy, 0)
 
 			self.draw_scene()
 			glfw.swap_buffers(self.window)
@@ -186,11 +186,11 @@ class Renderer:
 def main():
 
 	# csl = CSL("csl-files/Heart-25-even-better.csl")
-	csl = CSL("csl-files/Horsers.csl")
+	# csl = CSL("csl-files/Horsers.csl")
 	# csl = CSL("csl-files/Brain.csl")
-	# csl = CSL("csl-files/Abdomen.csl")
+	#csl = CSL("csl-files/Abdomen.csl")
 	# csl = CSL("csl-files/Vetebrae.csl")
-	# csl = CSL("csl-files/rocker-arm.csl")
+	csl = CSL("csl-files/rocker-arm.csl")
 	# csl = CSL("csl-files/SideBishop.csl")
 	# csl = CSL("csl-files/ParallelEight.csl")
 	# csl = CSL("csl-files/ParallelEightMore.csl")
