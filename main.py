@@ -9,6 +9,7 @@ from random import random, randint
 import math
 import progressbar
 from itertools import chain
+import quaternion
 
 
 class ConnectedComponent:
@@ -118,12 +119,13 @@ class Renderer:
 	def __init__(self, csl, box):
 		self.csl = csl
 
-		self.zoom = 1
-
 		self.rho = 0
 		self.theta = 0
+
+		self.rotation = np.quaternion(1, 0, 0, 0)
 		self.dx = 0
 		self.dy = 0
+		self.zoom = 0.5
 
 		self.colors = [[random(), random(), random()] for _ in range(self.csl.n_labels + 1)]
 		self.scale_factor = self.csl.scale_factor
@@ -154,7 +156,7 @@ class Renderer:
 				self.draw_vertices(vertices, connected_component.label)
 		self.draw_vertices(self.box, self.csl.n_labels )
 
-	def draw_vertices(self, vertices, label):
+	def draw_vertices(self, vertices: np.array, label):
 		v = np.array(vertices.flatten(), dtype=np.float32)
 		glVertexPointer(3, GL_FLOAT, 0, v)
 		color = self.colors[label] * len(vertices)
@@ -169,35 +171,53 @@ class Renderer:
 		while not glfw.window_should_close(self.window):
 			glfw.poll_events()
 			glClear(GL_COLOR_BUFFER_BIT)
-			x, y = self.handle_transformations(origin_x, origin_y)
+			origin_x, origin_y = self.handle_transformations(origin_x, origin_y)
 
 			self.draw_scene()
 			glfw.swap_buffers(self.window)
-
-			origin_x = x
-			origin_y = y
 
 		glfw.terminate()
 
 	def handle_transformations(self, origin_x, origin_y):
 		glLoadIdentity()
 		x, y = glfw.get_cursor_pos(self.window)
+		d_theta = 0.0
+		d_rho = 0.0
+
 		if glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS:
 			self.rho -= (origin_x - x) / 10
 			self.theta -= (origin_y - y) / 10
+			d_theta = (origin_x - x) / 10
+			d_rho = (origin_y - y) / 10
 
 		elif glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS:
 			self.dx -= (origin_x - x) / 200
 			self.dy += (origin_y - y) / 200
 
-		glTranslate(self.dx, self.dy, 0)
+		# glRotatef(self.rho, 0.0, 1.0, 0.0)
+		# glRotatef(self.theta,  math.cos(math.radians(self.rho)), 0.0, math.sin(math.radians(self.rho)))  # todo axis of rotation
 
-		print(f'rho={self.rho:.3f} theta={self.theta:.3f}')
+		self.rotation = self.rotation * quaternion.from_spherical_coords(math.radians(d_theta), math.radians(d_rho))
 
-		glRotatef(self.rho, 0.0, 1.0, 0.0)
-		glRotatef(self.theta,  math.cos(math.radians(self.rho)), 0.0, math.sin(math.radians(self.rho)))  # todo axis of rotation
+		rot = self.rotation
+		# rot.y, rot.z = rot.z, rot.y
+
+		rot_axies = quaternion.as_vector_part(rot)
+
+
+		print(f'd_theta={d_theta:.3f} d_rho={d_rho:.3f} cos angel={self.rotation.w} rotation={rot_axies}')
+
+		self.draw_vertices(np.array([rot_axies, -rot_axies]), -2)
+
+		if rot.w > 1:
+			rot.w = 1
+		elif rot.w < -1:
+			rot.w = -1
 
 		glScalef(self.zoom, self.zoom, self.zoom)
+		glTranslate(self.dx, self.dy, 0)
+		glRotatef(2*math.degrees(math.acos(rot.w)), *rot_axies)
+
 		return x, y
 
 
