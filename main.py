@@ -15,7 +15,7 @@ import progressbar
 
 class ConnectedComponent:
     def __init__(self, csl_file):
-        component = iter(next(csl_file).strip().split(" "))  # todo holes
+        component = iter(next(csl_file).strip().split(" "))
         sizes = next(component).split("h") + [0]
 
         n_vertices_in_component, self.n_holes = int(sizes[0]), int(sizes[1])  # todo what is n_holes?
