@@ -3,14 +3,14 @@ import itertools
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from parse import parse
-from random import random, randint
-from math import radians, degrees, acos, cos, sin
+from math import radians
+from random import random
 from itertools import chain
-# from quaternion import as_vector_part, from_float_array
 from pyquaternion import Quaternion
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 import numpy as np
 import glfw
-import progressbar
 
 
 class ConnectedComponent:
@@ -35,8 +35,15 @@ class Plane:
         self.vertices = vertices  # todo should be on the plane
         self.connected_components = connected_components
 
+    def __isub__(self, other: np.array):
+        assert len(other) == 3
+        self.vertices -= other
+        new_D = self.plane_params[3] + np.dot(self.plane_params[:3], other)  # normal*(x-x_0)=0
+        self.plane_params = self.plane_params[:3] + (new_D,)
+        return self
+
     @classmethod
-    def from_csl_file(cls, csl_file, bar):
+    def from_csl_file(cls, csl_file):
         line = next(csl_file).strip()
         plane_id, n_vertices, n_connected_components, A, B, C, D = \
             parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", line)
@@ -44,19 +51,30 @@ class Plane:
         vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(n_vertices)])
         assert len(vertices) == n_vertices
         connected_components = [ConnectedComponent(csl_file) for _ in range(n_connected_components)]
-        bar.update(plane_id + 1)
         return cls(plane_id, plane_params, vertices, connected_components)
 
     @classmethod
     def empty_plane(cls, plane_id, plane_params):
         return cls(plane_id, plane_params, np.array([]), [])
 
-    def __isub__(self, other: np.array):
-        assert len(other) == 3
-        self.vertices -= other
-        new_D = self.plane_params[3] + np.dot(self.plane_params[:3], other)  # normal*(x-x_0)=0
-        self.plane_params = self.plane_params[:3] + (new_D,)
-        return self
+    def get_rasterized(self):
+        # todo - project to plane?
+        # todo - zero mean
+        mean = np.mean(self.vertices, axis=0)
+        pca = PCA(n_components=2, svd_solver="full")
+        pca.fit(self.vertices)
+        x = pca.transform(self.vertices)
+
+        plt.scatter(x[:, 0], x[:, 1])
+        #plt.scatter(pca.components_[:, 0],  pca.components_[:, 1], color='green')
+        plt.scatter([0],  [0], color='red')
+
+        plt.show()
+        """
+        3.a pca on the points fox axis, origin in mean to get params for the plane
+		3.b take -+20% of empty space
+		3.c get color for reach pixel (256*256 pixels in each direction) """
+
 
 
 class CSL:
@@ -65,13 +83,7 @@ class CSL:
             csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
             assert next(csl_file).strip() == "CSLC"
             n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
-
-            bar = progressbar.ProgressBar(maxval=n_planes + 1, widgets=[progressbar.Percentage(), progressbar.Bar()])
-            bar.start()
-
-            self.planes = [Plane.from_csl_file(csl_file, bar) for _ in range(n_planes)]
-
-            bar.finish()
+            self.planes = [Plane.from_csl_file(csl_file) for _ in range(n_planes)]
 
     @property
     def all_vertices(self):
@@ -132,7 +144,7 @@ class Renderer:
 
         glfw.init()
         self.window = glfw.create_window(1600, 1200, "Cross Sections", None, None)
-        glfw.set_window_pos(self.window, 400, 200)
+        glfw.set_window_pos(self.window, 400, 100)
         glfw.make_context_current(self.window)
 
         glEnableClientState(GL_VERTEX_ARRAY)
@@ -159,9 +171,11 @@ class Renderer:
     def __draw_vertices(self, vertices: np.array, label):
         v = np.array(vertices.flatten(), dtype=np.float32)
         glVertexPointer(3, GL_FLOAT, 0, v)
+
         color = self.colors[label] * len(vertices)
         color = np.array(color, dtype=np.float32)
         glColorPointer(3, GL_FLOAT, 0, color)
+
         glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
 
     def __handle_mouse_events(self):
@@ -206,25 +220,26 @@ class Renderer:
 
 
 def main():
-    csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/Brain.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
 
     csl.centralize()
     box = csl.add_boundary_planes(0.2)
-
-    renderer = Renderer(csl, box)
-    renderer.event_loop()
+    csl.planes[3].get_rasterized()
+    #renderer = Renderer(csl, box)
+    #renderer.event_loop()
 
 
 if __name__ == "__main__":
     main()
+
 '''
 todo:
 	0? draw the shape filled in the csl visualization()
