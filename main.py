@@ -24,8 +24,8 @@ class ConnectedComponent:
         component = map(int, component)
         self.label = next(component)
         # self.label = 1 if self.n_holes> 0 else 0
-        self.vertices_in_component = list(component)
-        assert len(self.vertices_in_component) == n_vertices_in_component
+        self.vertices_indeces_in_component = list(component)
+        assert len(self.vertices_indeces_in_component) == n_vertices_in_component
 
     @property
     def is_hole(self):
@@ -70,19 +70,17 @@ class Plane:
         adjusted_verteces = self.vertices - mean
         pca = PCA(n_components=2, svd_solver="full")
         pca.fit(adjusted_verteces)
-        return ((pca.transform(adjusted_verteces[component.vertices_in_component]), component.is_hole)
+        return ((pca.transform(adjusted_verteces[component.vertices_indeces_in_component]), component.is_hole, component.label)
                 for component in self.connected_components)
 
     def show_plane(self):
-        for component, is_hole in self.__get_pca_projected_components():
+        for component, is_hole, label in self.__get_pca_projected_components():
             plt.plot(*component.T)
             #plt.scatter(pca.components_[:, 0],  pca.components_[:, 1], color='green')
         plt.scatter([0],  [0], color='red')
-
         plt.show()
-
-    def get_rasterized(self):
-        fig, ax = plt.subplots()
+        '''
+                fig, ax = plt.subplots()
         for component, is_hole in self.__get_pca_projected_components():
 
             # last vertex is ignored
@@ -92,6 +90,42 @@ class Plane:
             patch = patches.PathPatch(path, facecolor=color, lw=2)
 
             ax.add_patch(patch)
+        ax.set_xlim(-100, 100)
+        ax.set_ylim(-100, 100)
+        plt.show()
+        '''
+
+    def get_rasterized(self):
+        verts = []
+        codes = []
+
+        hole_verts = []
+        hole_codes = []
+        for component, is_hole, label in self.__get_pca_projected_components():
+
+            if not is_hole:
+                # last vertex is ignored
+                verts += list(component) + [[0, 0]]  # todo better way?
+                # todo iter
+                codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
+            else:
+                # last vertex is ignored
+                hole_verts += list(component) + [[0, 0]]  # todo better way?
+                # todo iter
+                hole_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
+
+            # last vertex is ignored
+        path = Path(verts, codes)
+        patch = patches.PathPatch(path, facecolor='orange', lw=2)
+
+        hole_path = Path(hole_verts, hole_codes)
+        hole_patch = patches.PathPatch(hole_path, facecolor='white', lw=2)
+
+        fig, ax = plt.subplots()
+
+        ax.add_patch(patch)
+        ax.add_patch(hole_patch)
+
         ax.set_xlim(-100, 100)
         ax.set_ylim(-100, 100)
         plt.show()
@@ -190,7 +224,7 @@ class Renderer:
     def __draw_scene(self):
         for plane in self.csl.planes:
             for connected_component in plane.connected_components:
-                vertices = plane.vertices[connected_component.vertices_in_component]
+                vertices = plane.vertices[connected_component.vertices_indeces_in_component]
                 vertices /= self.scale_factor
                 self.__draw_vertices(vertices, connected_component.label)
         self.__draw_vertices(self.box, self.csl.n_labels)
@@ -247,21 +281,24 @@ class Renderer:
 
 
 def main():
-    # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
-    csl = CSL("csl-files/Brain.csl")
-    # csl = CSL("csl-files/Abdomen.csl")
-    # csl = CSL("csl-files/Vetebrae.csl")
-    # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
+
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
+
+    # csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Abdomen.csl")
+    # csl = CSL("csl-files/Vetebrae.csl")
+    # csl = CSL("csl-files/rocker-arm.csl")
+
+    # csl = CSL("csl-files/Brain.csl")
 
     csl.centralize()
     box = csl.add_boundary_planes(margin=0.2)
 
     csl.planes[27].get_rasterized()
-    csl.planes[27].show_plane()
+    #csl.planes[27].show_plane()
 
     #renderer = Renderer(csl, box)
     #renderer.event_loop()
