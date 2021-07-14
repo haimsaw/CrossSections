@@ -79,55 +79,42 @@ class Plane3d:
 class Plane2d:
     def __init__(self, plane: Plane3d, pca):
         self.plane_id = plane.plane_id
-        self.pca = pca
         self.vertices = pca.transform(plane.vertices)  # todo should be on the plane
         self.connected_components = plane.connected_components
 
     def show_plane(self):
         for component in self.connected_components:
             plt.plot(*self.vertices[component.vertices_indeces_in_component].T)
-            #plt.scatter(pca.components_[:, 0],  pca.components_[:, 1], color='green')
         plt.scatter([0],  [0], color='red')
         plt.show()
-        '''
-                fig, ax = plt.subplots()
-        for component, is_hole in self.__get_pca_projected_components():
 
-            # last vertex is ignored
-            path = Path(component + [(0, 0)], closed=True)
-
-            color = 'white' if is_hole else 'orange'
-            patch = patches.PathPatch(path, facecolor=color, lw=2)
-
-            ax.add_patch(patch)
-        ax.set_xlim(-100, 100)
-        ax.set_ylim(-100, 100)
+    def show_rasterized(self, shape):
+        plt.imshow(self.__get_rasterized(shape))
         plt.show()
-        '''
 
-    def get_rasterized(self, shape):
-        verts = []
-        codes = []
+    def __get_rasterized(self, shape):
+        shape_vertices = []
+        shape_codes = []
 
-        hole_verts = []
+        hole_vertices = []
         hole_codes = []
         for component in self.connected_components:
 
             if not component.is_hole:
                 # last vertex is ignored
-                verts += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
+                shape_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
                 # todo iter
-                codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
+                shape_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
 
             else:
                 # last vertex is ignored
-                hole_verts += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
+                hole_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
                 # todo iter
                 hole_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
 
             # last vertex is ignored
-        shape_path = Path(verts, codes)
-        hole_path = Path(hole_verts, hole_codes)
+        shape_path = Path(shape_vertices, shape_codes)
+        hole_path = Path(hole_vertices, hole_codes)
 
         # todo: 3.b take -+20% of empty space
         xs = np.linspace(-100, 100, shape[0])
@@ -291,19 +278,17 @@ def main():
 
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/Abdomen.csl")
-    # csl = CSL("csl-files/Vetebrae.csl")
+    csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
 
-    csl = CSL("csl-files/Brain.csl")
+    # csl = CSL("csl-files/Brain.csl")
 
     csl.centralize()
     box = csl.add_boundary_planes(margin=0.2)
 
-    rasterized = csl.planes[27].get_pca_projected_plane().get_rasterized(shape=(256, 256))
-    plt.imshow(rasterized)
-    plt.show()
+    csl.planes[27].get_pca_projected_plane().show_rasterized(shape=(256, 256))
 
-    csl.planes[27].get_pca_projected_plane.show_plane()
+    csl.planes[27].get_pca_projected_plane().show_plane()
 
     #renderer = Renderer(csl, box)
     #renderer.event_loop()
