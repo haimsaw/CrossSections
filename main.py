@@ -27,12 +27,15 @@ class ConnectedComponent:
         self.vertices_indeces_in_component = list(component)
         assert len(self.vertices_indeces_in_component) == n_vertices_in_component
 
+    def __len__(self):
+        return len(self.vertices_indeces_in_component)
+
     @property
     def is_hole(self):
         return self.n_holes >= 0
 
 
-class Plane:
+class Plane3d:
     def __init__(self, plane_id: int, plane_params: tuple, vertices: np.array, connected_components: list):
         assert len(plane_params) == 4
 
@@ -63,19 +66,26 @@ class Plane:
         self.plane_params = self.plane_params[:3] + (new_D,)
         return self
 
-    def __get_pca_projected_components(self):
+    def get_pca_projected_plane(self):
         # todo - project to plane?
         # todo - zero mean
         mean = np.mean(self.vertices, axis=0)
         adjusted_verteces = self.vertices - mean
         pca = PCA(n_components=2, svd_solver="full")
         pca.fit(adjusted_verteces)
-        return ((pca.transform(adjusted_verteces[component.vertices_indeces_in_component]), component.is_hole, component.label)
-                for component in self.connected_components)
+        return Plane2d(self, pca)
+
+
+class Plane2d:
+    def __init__(self, plane: Plane3d, pca):
+        self.plane_id = plane.plane_id
+        self.pca = pca
+        self.vertices = pca.transform(plane.vertices)  # todo should be on the plane
+        self.connected_components = plane.connected_components
 
     def show_plane(self):
-        for component, is_hole, label in self.__get_pca_projected_components():
-            plt.plot(*component.T)
+        for component in self.connected_components:
+            plt.plot(*self.vertices[component.vertices_indeces_in_component].T)
             #plt.scatter(pca.components_[:, 0],  pca.components_[:, 1], color='green')
         plt.scatter([0],  [0], color='red')
         plt.show()
@@ -95,47 +105,39 @@ class Plane:
         plt.show()
         '''
 
-    def get_rasterized(self):
+    def get_rasterized(self, shape):
         verts = []
         codes = []
 
         hole_verts = []
         hole_codes = []
-        for component, is_hole, label in self.__get_pca_projected_components():
+        for component in self.connected_components:
 
-            if not is_hole:
+            if not component.is_hole:
                 # last vertex is ignored
-                verts += list(component) + [[0, 0]]  # todo better way?
+                verts += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
                 # todo iter
                 codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
+
             else:
                 # last vertex is ignored
-                hole_verts += list(component) + [[0, 0]]  # todo better way?
+                hole_verts += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
                 # todo iter
                 hole_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
 
             # last vertex is ignored
-        path = Path(verts, codes)
-        patch = patches.PathPatch(path, facecolor='orange', lw=2)
-
+        shape_path = Path(verts, codes)
         hole_path = Path(hole_verts, hole_codes)
-        hole_patch = patches.PathPatch(hole_path, facecolor='white', lw=2)
 
-        fig, ax = plt.subplots()
+        # todo: 3.b take -+20% of empty space
+        xs = np.linspace(-100, 100, shape[0])
+        ys = np.linspace(-100, 100, shape[1])
+        pixels = np.array([[[x, y] for x in xs] for y in ys]).reshape((shape[0]*shape[1], 2))
 
-        ax.add_patch(patch)
-        ax.add_patch(hole_patch)
+        pixels_in_shape = shape_path.contains_points(pixels).reshape(shape)
+        pixels_in_hole = hole_path.contains_points(pixels).reshape(shape)
 
-        ax.set_xlim(-100, 100)
-        ax.set_ylim(-100, 100)
-        plt.show()
-
-
-        """
-        3.a pca on the points fox axis, origin in mean to get params for the plane
-        3.b take -+20% of empty space
-        3.c get color for reach pixel (256*256 pixels in each direction) 
-        """
+        return pixels_in_shape & np.logical_not(pixels_in_hole)
 
 
 class CSL:
@@ -144,7 +146,7 @@ class CSL:
             csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
             assert next(csl_file).strip() == "CSLC"
             n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
-            self.planes = [Plane.from_csl_file(csl_file) for _ in range(n_planes)]
+            self.planes = [Plane3d.from_csl_file(csl_file) for _ in range(n_planes)]
 
     @property
     def all_vertices(self):
@@ -164,7 +166,7 @@ class CSL:
 
     def __add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1
-        self.planes.append(Plane.empty_plane(plane_id, plane_params))
+        self.planes.append(Plane3d.empty_plane(plane_id, plane_params))
 
     def centralize(self):
         mean = np.mean(self.all_vertices, axis=0)
@@ -292,13 +294,16 @@ def main():
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
 
-    # csl = CSL("csl-files/Brain.csl")
+    csl = CSL("csl-files/Brain.csl")
 
     csl.centralize()
     box = csl.add_boundary_planes(margin=0.2)
 
-    csl.planes[27].get_rasterized()
-    #csl.planes[27].show_plane()
+    rasterized = csl.planes[27].get_pca_projected_plane().get_rasterized(shape=(256, 256))
+    plt.imshow(rasterized)
+    plt.show()
+
+    csl.planes[27].get_pca_projected_plane.show_plane()
 
     #renderer = Renderer(csl, box)
     #renderer.event_loop()
