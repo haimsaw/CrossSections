@@ -3,13 +3,9 @@ from random import random
 
 import glfw
 import numpy as np
-from OpenGL.GL import glVertexPointer, glColorPointer, glTranslate
-from OpenGL.raw.GL.KHR.debug import GL_VERTEX_ARRAY
-from OpenGL.raw.GL.VERSION.GL_1_0 import glMatrixMode, GL_MODELVIEW, glClearColor, GL_LINE_LOOP, glLoadIdentity, \
-    glScalef, glRotatef, glClear, GL_COLOR_BUFFER_BIT
-from OpenGL.raw.GL.VERSION.GL_1_1 import glEnableClientState, GL_COLOR_ARRAY, glDrawArrays
-from OpenGL.raw.GL._types import GL_FLOAT
+from OpenGL.GL import *
 from pyquaternion import Quaternion
+import matplotlib.pyplot as plt
 
 
 class Renderer:
@@ -49,10 +45,10 @@ class Renderer:
             for connected_component in plane.connected_components:
                 vertices = plane.vertices[connected_component.vertices_indeces_in_component]
                 vertices /= self.scale_factor
-                self.__draw_vertices(vertices, connected_component.label)
-        self.__draw_vertices(self.box, self.csl.n_labels)
+                self.__draw_vertices(vertices, connected_component.label, GL_LINE_LOOP)
+        self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
-    def __draw_vertices(self, vertices: np.array, label):
+    def __draw_vertices(self, vertices: np.array, label, mode):
         v = np.array(vertices.flatten(), dtype=np.float32)
         glVertexPointer(3, GL_FLOAT, 0, v)
 
@@ -60,7 +56,7 @@ class Renderer:
         color = np.array(color, dtype=np.float32)
         glColorPointer(3, GL_FLOAT, 0, color)
 
-        glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
+        glDrawArrays(mode, 0, len(vertices))
 
     def __handle_mouse_events(self):
         cur_cursor_pos = np.array(glfw.get_cursor_pos(self.window), dtype='float64')
@@ -101,3 +97,29 @@ class Renderer:
             glfw.swap_buffers(self.window)
 
         glfw.terminate()
+
+
+class Renderer2:
+    def __init__(self, csl, box):
+        self.csl = csl
+
+        self.colors = [[random(), random(), random()] for _ in range(self.csl.n_labels + 1)]
+        self.scale_factor = self.csl.scale_factor
+        self.box = box / self.scale_factor
+
+        self.fig = plt.figure(figsize=(10, 10))
+        self.ax = plt.axes(projection='3d')
+
+    def draw_scene(self):
+        for plane in self.csl.planes:
+            for connected_component in plane.connected_components:
+                vertices = plane.vertices[connected_component.vertices_indeces_in_component]
+                vertices += vertices[0]
+                vertices /= self.csl.scale_factor
+                self.ax.plot(*vertices.T, color=self.colors[connected_component.label])
+        # todo show box
+
+        self.ax.plot(*self.box.T, color=self.colors[-1])
+
+        plt.show()
+        # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)

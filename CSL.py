@@ -117,7 +117,6 @@ class Projected2dPlane:
 
             # last vertex is ignored
 
-        # todo: 3.b take -+20% of empty space
         top, bottom = self.vertices_boundaries
         top += margin * (top - bottom)
         bottom -= margin * (top - bottom)
