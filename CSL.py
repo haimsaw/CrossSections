@@ -53,18 +53,18 @@ class Plane:
     def empty_plane(cls, plane_id, plane_params):
         return cls(plane_id, plane_params, np.array([]), [])
 
+    @property
+    def vertices_boundaries(self):
+        top = np.amax(self.vertices, axis=0)
+        bottom = np.amin(self.vertices, axis=0)
+        return top, bottom
+
     def __isub__(self, other: np.array):
         assert len(other) == 3
         self.vertices -= other
         new_D = self.plane_params[3] + np.dot(self.plane_params[:3], other)  # normal*(x-x_0)=0
         self.plane_params = self.plane_params[:3] + (new_D,)
         return self
-
-    @property
-    def vertices_boundaries(self):
-        top = np.amax(self.vertices, axis=0)
-        bottom = np.amin(self.vertices, axis=0)
-        return top, bottom
 
     def get_pca_projected_plane(self):
         # todo - project to plane?
@@ -91,11 +91,11 @@ class Projected2dPlane:
         plt.scatter([0],  [0], color='red')
         plt.show()
 
-    def show_rasterized(self, shape, margin):
-        plt.imshow(self.__get_rasterized(shape, margin), cmap='cool', origin='lower')
+    def show_rasterized(self, resolution, margin):
+        plt.imshow(self.get_rasterized(resolution, margin), cmap='cool', origin='lower')
         plt.show()
 
-    def __get_rasterized(self, shape, margin):
+    def get_rasterized(self, resolution, margin):
         shape_vertices = []
         shape_codes = []
 
@@ -121,14 +121,14 @@ class Projected2dPlane:
         top += margin * (top - bottom)
         bottom -= margin * (top - bottom)
 
-        xs = np.linspace(bottom[0], top[0], shape[0])
-        ys = np.linspace(bottom[1], top[1], shape[1])
-        pixels = np.array([[[x, y] for x in xs] for y in ys]).reshape((shape[0]*shape[1], 2))
+        xs = np.linspace(bottom[0], top[0], resolution[0])
+        ys = np.linspace(bottom[1], top[1], resolution[1])
+        pixels = np.array([[[x, y] for x in xs] for y in ys]).reshape((resolution[0]*resolution[1], 2))
 
-        pixels_in_shape = Path(shape_vertices, shape_codes).contains_points(pixels).reshape(shape)
+        pixels_in_shape = Path(shape_vertices, shape_codes).contains_points(pixels).reshape(resolution)
 
         if len(hole_vertices) > 0:
-            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(pixels).reshape(shape)
+            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(pixels).reshape(resolution)
             return pixels_in_shape & np.logical_not(pixels_in_hole)
         else:
             return pixels_in_shape
@@ -182,3 +182,10 @@ class CSL:
 
         stacked = np.stack((top, bottom))
         return np.array([np.choose(choice, stacked) for choice in itertools.product([0, 1], repeat=3)])
+
+    def rotate_by_pca(self):
+        all_vertices = self.all_vertices
+        pca = PCA(n_components=3, svd_solver="full")
+        pca.fit(all_vertices)
+        for plane in self.planes:
+            plane.vertices = pca.transform(plane.vertices)

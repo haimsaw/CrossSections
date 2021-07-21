@@ -3,11 +3,11 @@ from random import random
 
 import glfw
 import numpy as np
-from OpenGL.GL import *
+#from OpenGL.GL import *
 from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
 
-
+'''
 class Renderer:
     def __init__(self, csl, box):
         self.csl = csl
@@ -97,7 +97,7 @@ class Renderer:
             glfw.swap_buffers(self.window)
 
         glfw.terminate()
-
+'''
 
 class Renderer2:
     def __init__(self, csl, box):
@@ -114,12 +114,25 @@ class Renderer2:
         for plane in self.csl.planes:
             for connected_component in plane.connected_components:
                 vertices = plane.vertices[connected_component.vertices_indeces_in_component]
-                vertices += vertices[0]
                 vertices /= self.csl.scale_factor
-                self.ax.plot(*vertices.T, color=self.colors[connected_component.label])
+                alpha = 1 if connected_component.is_hole else 0.1
+                self.ax.plot_trisurf(*vertices.T, color=self.colors[connected_component.label], alpha=alpha)
         # todo show box
-
-        self.ax.plot(*self.box.T, color=self.colors[-1])
+        self.ax.plot_trisurf(*self.box.T, color=self.colors[-1])
 
         plt.show()
         # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
+
+    def draw_rasterized_scene(self, resolution, margin):
+        top, bottom = self.csl.vertices_boundaries
+        plane = self.csl.planes[0]
+        conncted_component = plane.connected_components[0]
+        xx, yy = np.meshgrid(np.linspace(bottom[0], bottom[1], resolution[0]), np.linspace(top[0], top[1], resolution[1]))
+        data = plane.get_pca_projected_plane().get_rasterized(resolution[0:2], margin)
+        # create vertices for a rotated mesh (3D rotation matrix)
+        X = np.sqrt(1. / 3) * xx + np.sqrt(1. / 3) * yy
+        Y = -np.sqrt(1. / 3) * xx + np.sqrt(1. / 3) * yy
+        Z = np.sqrt(1. / 3) * xx - np.sqrt(1. / 3) * yy
+
+        self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=data, shade=False)
+        plt.show()
