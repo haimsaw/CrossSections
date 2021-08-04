@@ -72,32 +72,7 @@ class Plane:
         pca.fit(self.vertices)
         return Projected2dPlane(self, pca)
 
-
-class Projected2dPlane:
-    def __init__(self, plane: Plane, pca):
-        self.plane_id = plane.plane_id
-        self.vertices = pca.transform(plane.vertices)  # todo should be on the plane
-        self.connected_components = plane.connected_components
-
-    @property
-    def vertices_boundaries(self):
-        top = np.amax(self.vertices, axis=0)
-        bottom = np.amin(self.vertices, axis=0)
-        return top, bottom
-
-    def show_plane(self):
-        for component in self.connected_components:
-            plt.plot(*self.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black' )
-        plt.scatter([0],  [0], color='red')
-        plt.show()
-
-    def show_rasterized(self, resolution, margin):
-        plt.imshow(self.get_rasterized(resolution, margin), cmap='cool', origin='lower')
-        plt.show()
-
-    def get_rasterized(self, resolution, margin):
-        shape_vertices = []
-        shape_codes = []
+    def is_inside_shape(self):
 
         hole_vertices = []
         hole_codes = []
@@ -132,6 +107,73 @@ class Projected2dPlane:
             return pixels_in_shape & np.logical_not(pixels_in_hole)
         else:
             return pixels_in_shape
+
+
+class Projected2dPlane:
+    def __init__(self, plane: Plane, pca):
+        self.plane_id = plane.plane_id
+        self.vertices = pca.transform(plane.vertices)  # todo should be on the plane
+        self.connected_components = plane.connected_components
+        self.pca = pca
+
+    @property
+    def vertices_boundaries(self):
+        top = np.amax(self.vertices, axis=0)
+        bottom = np.amin(self.vertices, axis=0)
+        return top, bottom
+
+    def show_plane(self):
+        for component in self.connected_components:
+            plt.plot(*self.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black' )
+        plt.scatter([0],  [0], color='red')
+        plt.show()
+
+    def show_rasterized(self, resolution, margin):
+        plt.imshow(self.get_rasterized(resolution, margin)[0], cmap='cool', origin='lower')
+        plt.show()
+
+    def get_rasterized(self, resolution, margin):
+        shape_vertices = []
+        shape_codes = []
+
+        hole_vertices = []
+        hole_codes = []
+
+        for component in self.connected_components:
+
+            if not component.is_hole:
+                # last vertex is ignored
+                shape_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
+                # todo iter
+                shape_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
+
+            else:
+                # last vertex is ignored
+                hole_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
+                # todo iter
+                hole_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
+
+            # last vertex is ignored
+
+        top, bottom = self.vertices_boundaries
+        top += margin * (top - bottom)
+        bottom -= margin * (top - bottom)
+
+        xvalues = np.linspace(bottom[0], top[0], resolution[0])
+        yvalues = np.linspace(bottom[1], top[1], resolution[1])
+        # pixels = np.array([[[x, y] for x in xs] for y in ys]).reshape((resolution[0]*resolution[1], 2))
+
+        xy = np.dstack(np.meshgrid(xvalues, yvalues))
+        XY_flat = xy.reshape((-1, 2))
+        xyz = self.pca.inverse_transform(xy)
+
+        mask = Path(shape_vertices, shape_codes).contains_points(XY_flat).reshape(resolution)
+
+        if len(hole_vertices) > 0:
+            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(XY_flat).reshape(resolution)
+            mask &= np.logical_not(pixels_in_hole)
+
+        return mask, xyz
 
 
 class CSL:
@@ -188,4 +230,5 @@ class CSL:
         pca = PCA(n_components=3, svd_solver="full")
         pca.fit(all_vertices)
         for plane in self.planes:
+            # todo not rotating plane params
             plane.vertices = pca.transform(plane.vertices)

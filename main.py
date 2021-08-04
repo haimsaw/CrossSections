@@ -8,26 +8,26 @@ def main():
     # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
 
-    csl = CSL("csl-files/Heart-25-even-better.csl")
 
-    #ccsl = CSL("csl-files/Horsers.csl")
-    csl = CSL("csl-files/Abdomen.csl")
+    #csl = CSL("csl-files/Heart-25-even-better.csl")
+
+    csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
 
     # csl = CSL("csl-files/Brain.csl")
 
     csl.centralize()
-    csl.rotate_by_pca()
+    csl.rotate_by_pca() # todo not rotating plane coordinates
 
     box = csl.add_boundary_planes(margin=0.2)
 
     # csl.planes[27].get_pca_projected_plane().show_rasterized(resolution=(256, 256), margin=0.2)
     # csl.planes[27].get_pca_projected_plane().show_plane()
 
-    renderer = Renderer2(csl, box)
-    renderer.draw_scene()
-    #renderer.draw_rasterized_scene(resolution=(256, 256, 256), margin=0.2)
+    Renderer2(csl, box).draw_scene()
+    #Renderer2(csl, box).draw_rasterized_scene(resolution=(256, 256, 256), margin=0.2)
 
 
     #renderer = Renderer(csl, box)

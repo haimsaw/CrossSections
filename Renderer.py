@@ -125,14 +125,9 @@ class Renderer2:
 
     def draw_rasterized_scene(self, resolution, margin):
         top, bottom = self.csl.vertices_boundaries
-        plane = self.csl.planes[0]
-        conncted_component = plane.connected_components[0]
-        xx, yy = np.meshgrid(np.linspace(bottom[0], bottom[1], resolution[0]), np.linspace(top[0], top[1], resolution[1]))
-        data = plane.get_pca_projected_plane().get_rasterized(resolution[0:2], margin)
-        # create vertices for a rotated mesh (3D rotation matrix)
-        X = np.sqrt(1. / 3) * xx + np.sqrt(1. / 3) * yy
-        Y = -np.sqrt(1. / 3) * xx + np.sqrt(1. / 3) * yy
-        Z = np.sqrt(1. / 3) * xx - np.sqrt(1. / 3) * yy
 
-        self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=data, shade=False)
+        for plane in self.csl.planes:
+            if len(plane.vertices) > 0:
+                mask, xyz = plane.get_pca_projected_plane().get_rasterized(resolution[0:2], margin)
+                self.ax.scatter(*xyz[mask].T)
         plt.show()
