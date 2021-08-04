@@ -45,19 +45,25 @@ class Plane:
             parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", line)
         plane_params = (A, B, C, D)
         vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(n_vertices)])
+        if (n_vertices == 0):
+            vertices = np.empty(shape=(0, 3))
         assert len(vertices) == n_vertices
         connected_components = [ConnectedComponent(csl_file) for _ in range(n_connected_components)]
         return cls(plane_id, plane_params, vertices, connected_components)
 
     @classmethod
     def empty_plane(cls, plane_id, plane_params):
-        return cls(plane_id, plane_params, np.array([]), [])
+        return cls(plane_id, plane_params, np.empty(shape=(0, 3)), [])
 
     @property
     def vertices_boundaries(self):
         top = np.amax(self.vertices, axis=0)
         bottom = np.amin(self.vertices, axis=0)
         return top, bottom
+
+    @property
+    def rasterizer(self):
+        return PlaneRasterizer(self)
 
     def __isub__(self, other: np.array):
         assert len(other) == 3
@@ -66,55 +72,14 @@ class Plane:
         self.plane_params = self.plane_params[:3] + (new_D,)
         return self
 
-    def get_pca_projected_plane(self):
-        # todo - project to plane?
-        pca = PCA(n_components=2, svd_solver="full")
-        pca.fit(self.vertices)
-        return Projected2dPlane(self, pca)
 
-    def is_inside_shape(self):
+class PlaneRasterizer:
+    def __init__(self, plane: Plane):
+        self.pca = PCA(n_components=2, svd_solver="full")
+        self.pca.fit(plane.vertices)
 
-        hole_vertices = []
-        hole_codes = []
-        for component in self.connected_components:
-
-            if not component.is_hole:
-                # last vertex is ignored
-                shape_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
-                # todo iter
-                shape_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
-
-            else:
-                # last vertex is ignored
-                hole_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
-                # todo iter
-                hole_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
-
-            # last vertex is ignored
-
-        top, bottom = self.vertices_boundaries
-        top += margin * (top - bottom)
-        bottom -= margin * (top - bottom)
-
-        xs = np.linspace(bottom[0], top[0], resolution[0])
-        ys = np.linspace(bottom[1], top[1], resolution[1])
-        pixels = np.array([[[x, y] for x in xs] for y in ys]).reshape((resolution[0]*resolution[1], 2))
-
-        pixels_in_shape = Path(shape_vertices, shape_codes).contains_points(pixels).reshape(resolution)
-
-        if len(hole_vertices) > 0:
-            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(pixels).reshape(resolution)
-            return pixels_in_shape & np.logical_not(pixels_in_hole)
-        else:
-            return pixels_in_shape
-
-
-class Projected2dPlane:
-    def __init__(self, plane: Plane, pca):
-        self.plane_id = plane.plane_id
-        self.vertices = pca.transform(plane.vertices)  # todo should be on the plane
-        self.connected_components = plane.connected_components
-        self.pca = pca
+        self.vertices = self.pca.transform(plane.vertices)  # todo should be on the plane
+        self.plane = plane
 
     @property
     def vertices_boundaries(self):
@@ -123,7 +88,7 @@ class Projected2dPlane:
         return top, bottom
 
     def show_plane(self):
-        for component in self.connected_components:
+        for component in self.plane.connected_components:
             plt.plot(*self.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black' )
         plt.scatter([0],  [0], color='red')
         plt.show()
@@ -133,47 +98,44 @@ class Projected2dPlane:
         plt.show()
 
     def get_rasterized(self, resolution, margin):
+        xy_flat, xyz_flat = self.get_points_to_sample(margin, resolution)
+        mask_flat = self.get_rasterazation_mask(xy_flat)
+
+        return mask_flat, xyz_flat
+
+    def get_rasterazation_mask(self,  xy_flat):
         shape_vertices = []
         shape_codes = []
-
         hole_vertices = []
         hole_codes = []
-
-        for component in self.connected_components:
-
+        for component in self.plane.connected_components:
             if not component.is_hole:
                 # last vertex is ignored
-                shape_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
-                # todo iter
-                shape_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
-
+                shape_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [
+                    [0, 0]]  # todo better way?
+                shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
             else:
                 # last vertex is ignored
-                hole_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [[0, 0]]  # todo better way?
-                # todo iter
-                hole_codes += [Path.MOVETO] + [Path.LINETO]*(len(component) - 1) + [Path.CLOSEPOLY]
+                hole_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [
+                    [0, 0]]  # todo better way?
+                hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
 
-            # last vertex is ignored
+        mask = Path(shape_vertices, shape_codes).contains_points(xy_flat)
+        if len(hole_vertices) > 0:
+            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xy_flat)
+            mask &= np.logical_not(pixels_in_hole)
+        return mask
 
+    def get_points_to_sample(self, margin, resolution):
         top, bottom = self.vertices_boundaries
         top += margin * (top - bottom)
         bottom -= margin * (top - bottom)
 
         xvalues = np.linspace(bottom[0], top[0], resolution[0])
         yvalues = np.linspace(bottom[1], top[1], resolution[1])
-        # pixels = np.array([[[x, y] for x in xs] for y in ys]).reshape((resolution[0]*resolution[1], 2))
-
-        xy = np.dstack(np.meshgrid(xvalues, yvalues))
-        XY_flat = xy.reshape((-1, 2))
+        xy = np.dstack(np.meshgrid(xvalues, yvalues)).reshape((-1, 2))
         xyz = self.pca.inverse_transform(xy)
-
-        mask = Path(shape_vertices, shape_codes).contains_points(XY_flat).reshape(resolution)
-
-        if len(hole_vertices) > 0:
-            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(XY_flat).reshape(resolution)
-            mask &= np.logical_not(pixels_in_hole)
-
-        return mask, xyz
+        return xy, xyz
 
 
 class CSL:

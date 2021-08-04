@@ -99,6 +99,7 @@ class Renderer:
         glfw.terminate()
 '''
 
+
 class Renderer2:
     def __init__(self, csl, box):
         self.csl = csl
@@ -123,11 +124,11 @@ class Renderer2:
         plt.show()
         # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
-    def draw_rasterized_scene(self, resolution, margin):
+    def draw_rasterized_scene(self, sampling_resolution, margin):
         top, bottom = self.csl.vertices_boundaries
 
         for plane in self.csl.planes:
             if len(plane.vertices) > 0:
-                mask, xyz = plane.get_pca_projected_plane().get_rasterized(resolution[0:2], margin)
-                self.ax.scatter(*xyz[mask].T)
+                mask, xyz = plane.rasterizer.get_rasterized(sampling_resolution, margin)
+                self.ax.scatter(*xyz[mask].T, color=self.colors[0])
         plt.show()
