@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from CSL import CSL
@@ -46,22 +47,25 @@ class NaiveNetwork(nn.Module):
 
 
 def train(dataloader, model, loss_fn, optimizer, device):
+    running_loss = 0.0
     size = len(dataloader.dataset)
     for batch, (x, y) in enumerate(dataloader):
         x, y = x.to(device), y.to(device)
 
         # Compute prediction error
         y_pred = model(x)
-        loss = loss_fn(y_pred, y)
+        loss = loss_fn(y_pred, y.view(-1, 1))
 
         # Backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if batch % 100 == 0:
+        running_loss += loss.item() * batch * len(x)
+        if batch % 500 == 0:
             loss, current = loss.item(), batch * len(x)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+    return running_loss
 
 
 def run_naive_network(csl, sampling_resolution=(255, 255), margin=0.2):
@@ -79,12 +83,17 @@ def run_naive_network(csl, sampling_resolution=(255, 255), margin=0.2):
     model.double()
     print(model)
 
-    loss_fn = nn.CrossEntropyLoss()
+    # loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.L1Loss()
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-    for t in range(50):
+    losses = []
+
+    for t in range(5):
         print(f"Epoch {t + 1}\n-------------------------------")
-        train(dataloader, model, loss_fn, optimizer, device)
+        losses.append(train(dataloader, model, loss_fn, optimizer, device))
+    plt.plot(losses)
+    plt.show()
     print("Done!")
 
 
