@@ -72,6 +72,12 @@ class Plane:
         self.plane_params = self.plane_params[:3] + (new_D,)
         return self
 
+    def show_plane(self):
+        for component in self.connected_components:
+            plt.plot(*self.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black' )
+        plt.scatter([0],  [0], color='red')
+        plt.show()
+
 
 class PlaneRasterizer:
     def __init__(self, plane: Plane):
@@ -87,23 +93,7 @@ class PlaneRasterizer:
         bottom = np.amin(self.vertices, axis=0)
         return top, bottom
 
-    def show_plane(self):
-        for component in self.plane.connected_components:
-            plt.plot(*self.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black' )
-        plt.scatter([0],  [0], color='red')
-        plt.show()
-
-    def show_rasterized(self, resolution, margin):
-        plt.imshow(self.get_rasterized(resolution, margin)[0], cmap='cool', origin='lower')
-        plt.show()
-
-    def get_rasterized(self, resolution, margin):
-        xy_flat, xyz_flat = self.get_points_to_sample(margin, resolution)
-        mask_flat = self.get_rasterazation_mask(xy_flat)
-
-        return mask_flat, xyz_flat
-
-    def get_rasterazation_mask(self,  xy_flat):
+    def _get_rasterazation_mask(self, xy_flat):
         shape_vertices = []
         shape_codes = []
         hole_vertices = []
@@ -126,7 +116,7 @@ class PlaneRasterizer:
             mask &= np.logical_not(pixels_in_hole)
         return mask
 
-    def get_points_to_sample(self, margin, resolution):
+    def _get_points_to_sample(self, margin, resolution):
         top, bottom = self.vertices_boundaries
         top += margin * (top - bottom)
         bottom -= margin * (top - bottom)
@@ -136,6 +126,16 @@ class PlaneRasterizer:
         xy = np.dstack(np.meshgrid(xvalues, yvalues)).reshape((-1, 2))
         xyz = self.pca.inverse_transform(xy)
         return xy, xyz
+
+    def show_rasterized(self, resolution, margin):
+        plt.imshow(self.get_rasterized(resolution, margin)[0], cmap='cool', origin='lower')
+        plt.show()
+
+    def get_rasterized(self, resolution, margin):
+        xy_flat, xyz_flat = self._get_points_to_sample(margin, resolution)
+        mask_flat = self._get_rasterazation_mask(xy_flat)
+
+        return mask_flat, xyz_flat
 
 
 class CSL:
@@ -194,3 +194,8 @@ class CSL:
         for plane in self.planes:
             # todo not rotating plane params
             plane.vertices = pca.transform(plane.vertices)
+
+    def scale(self):
+        scale_factor = self.scale_factor
+        for plane in self.planes:
+            plane.vertices /= scale_factor

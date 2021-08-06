@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
-from CSL import CSL
 from torch.utils.data import Dataset, DataLoader, BatchSampler, RandomSampler
 from torch import nn
 
@@ -68,7 +66,7 @@ def train(dataloader, model, loss_fn, optimizer, device):
     return running_loss
 
 
-def run_naive_network(csl, sampling_resolution=(255, 255), margin=0.2):
+def run_naive_network(csl, sampling_resolution=(255, 255), margin=0.2, epoches=30):
     dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin)
     dataloader = DataLoader(dataset, batch_size=128)
     for X1, y in dataloader:
@@ -89,13 +87,19 @@ def run_naive_network(csl, sampling_resolution=(255, 255), margin=0.2):
 
     losses = []
 
-    for t in range(5):
-        print(f"Epoch {t + 1}\n-------------------------------")
+    for epoch in range(epoches):
+        print(f"Epoch {epoch + 1}\n-------------------------------")
         losses.append(train(dataloader, model, loss_fn, optimizer, device))
+    torch.save(model.state_dict(), "traind_model.pt")
     plt.plot(losses)
     plt.show()
     print("Done!")
+    return model
 
 
-
+def get_saved_model():
+    model = NaiveNetwork()
+    model.load_state_dict(torch.load("traind_model.pt"))
+    model.eval()
+    return model
 

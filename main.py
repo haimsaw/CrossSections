@@ -1,7 +1,7 @@
 from CSL import CSL
-from Renderer import Renderer2 #Renderer
-import torch
+from Renderer import Renderer2, Renderer
 from NaiveNetwork import *
+
 
 def main():
     # csl = CSL("csl-files/SideBishop.csl")
@@ -19,19 +19,26 @@ def main():
 
     csl.centralize()
     csl.rotate_by_pca()  # todo not rotating plane coordinates
+    csl.scale()
 
-    box = csl.add_boundary_planes(margin=0.2)
-    run_naive_network(csl)
+    box = csl.add_boundary_planes(margin=0.2)  # todo show and sample empty planes
+
+
 
 
     # csl.planes[27].get_pca_projected_plane().show_rasterized(resolution=(256, 256), margin=0.2)
     # csl.planes[27].get_pca_projected_plane().show_plane()
 
-    #Renderer2(csl, box).draw_scene()
-    #Renderer2(csl, box).draw_rasterized_scene(sampling_resolution=(256, 256), margin=0.2)
+    # Renderer2().draw_scene(csl, box)
+    # Renderer2().draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
 
-    #renderer = Renderer(csl, box)
-    #renderer.event_loop(is_resterized=False)
+    #model = run_naive_network(csl, epoches=1)
+    model = get_saved_model()
+
+    Renderer2().draw_model(model)
+
+    # renderer = Renderer(csl, box)
+    # renderer.event_loop()
 
 
 if __name__ == "__main__":

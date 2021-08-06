@@ -3,11 +3,11 @@ from random import random
 
 import glfw
 import numpy as np
-#from OpenGL.GL import *
+from OpenGL.GL import *
 from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
 
-'''
+
 class Renderer:
     def __init__(self, csl, box):
         self.csl = csl
@@ -19,8 +19,7 @@ class Renderer:
         self.zoom = 0.5
 
         self.colors = [[random(), random(), random()] for _ in range(self.csl.n_labels + 1)]
-        self.scale_factor = self.csl.scale_factor
-        self.box = box / self.scale_factor
+        self.box = box
 
         glfw.init()
         self.window = glfw.create_window(1600, 1200, "Cross Sections", None, None)
@@ -44,7 +43,6 @@ class Renderer:
         for plane in self.csl.planes:
             for connected_component in plane.connected_components:
                 vertices = plane.vertices[connected_component.vertices_indeces_in_component]
-                vertices /= self.scale_factor
                 self.__draw_vertices(vertices, connected_component.label, GL_LINE_LOOP)
         self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
@@ -97,38 +95,41 @@ class Renderer:
             glfw.swap_buffers(self.window)
 
         glfw.terminate()
-'''
 
 
 class Renderer2:
-    def __init__(self, csl, box):
-        self.csl = csl
-
-        self.colors = [[random(), random(), random()] for _ in range(self.csl.n_labels + 1)]
-        self.scale_factor = self.csl.scale_factor
-        self.box = box / self.scale_factor
+    def __init__(self):
 
         self.fig = plt.figure(figsize=(10, 10))
         self.ax = plt.axes(projection='3d')
 
-    def draw_scene(self):
-        for plane in self.csl.planes:
+    def draw_scene(self, csl, box):
+        self.colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
+
+        for plane in csl.planes:
             for connected_component in plane.connected_components:
                 vertices = plane.vertices[connected_component.vertices_indeces_in_component]
-                vertices /= self.csl.scale_factor
                 alpha = 1 if connected_component.is_hole else 0.1
                 self.ax.plot_trisurf(*vertices.T, color=self.colors[connected_component.label], alpha=alpha)
         # todo show box
-        self.ax.plot_trisurf(*self.box.T, color=self.colors[-1])
+        self.ax.plot_trisurf(*box.T, color=self.colors[-1])
 
         plt.show()
         # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
-    def draw_rasterized_scene(self, sampling_resolution, margin):
-        top, bottom = self.csl.vertices_boundaries
-
-        for plane in self.csl.planes:
+    def draw_rasterized_scene(self, csl, box, sampling_resolution, margin):
+        # todo draw box
+        for plane in csl.planes:
             if len(plane.vertices) > 0:
                 mask, xyz = plane.rasterizer.get_rasterized(sampling_resolution, margin)
-                self.ax.scatter(*xyz[mask].T, color=self.colors[0])
+                self.ax.scatter(*xyz[mask].T)
         plt.show()
+
+    def draw_model(self, model, sampling_resolution=(255, 255, 255)):
+        x = np.linspace(-1, 1, sampling_resolution[0])
+        y = np.linspace(-1, 1, sampling_resolution[1])
+        z = np.linspace(-1, 1, sampling_resolution[2])
+
+        xyz = np.dstack(np.meshgrid(x, y, z)).reshape((-1, 2))
+        a=1
+
