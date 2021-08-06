@@ -4,25 +4,24 @@ from NaiveNetwork import *
 
 
 def main():
-    # csl = CSL("csl-files/SideBishop.csl")
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
+    # csl = CSL("csl-files/SideBishop.csl")
 
     # csl = CSL("csl-files/Heart-25-even-better.csl")
 
-    csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
 
     # csl = CSL("csl-files/Brain.csl")
-
+    '''
     csl.centralize()
     csl.rotate_by_pca()  # todo not rotating plane coordinates
     csl.scale()
-
     box = csl.add_boundary_planes(margin=0.2)  # todo show and sample empty planes
-
+    '''
 
 
 
@@ -32,10 +31,11 @@ def main():
     # Renderer2().draw_scene(csl, box)
     # Renderer2().draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
 
-    #model = run_naive_network(csl, epoches=1)
-    model = get_saved_model()
+    network_manager = NetworkManager()
+    network_manager.train_network(csl, epochs=1)
+    network_manager.load_from_disk()
 
-    Renderer2().draw_model(model)
+    Renderer2().draw_model(network_manager)
 
     # renderer = Renderer(csl, box)
     # renderer.event_loop()

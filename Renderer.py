@@ -125,11 +125,11 @@ class Renderer2:
                 self.ax.scatter(*xyz[mask].T)
         plt.show()
 
-    def draw_model(self, model, sampling_resolution=(255, 255, 255)):
+    def draw_model(self, network_manager, sampling_resolution=(255, 255, 255)):
         x = np.linspace(-1, 1, sampling_resolution[0])
         y = np.linspace(-1, 1, sampling_resolution[1])
         z = np.linspace(-1, 1, sampling_resolution[2])
 
-        xyz = np.dstack(np.meshgrid(x, y, z)).reshape((-1, 2))
-        a=1
+        xyz = np.dstack(np.meshgrid(x, y, z)).reshape((-1, 3))
+        y = network_manager.predict(xyz)
 

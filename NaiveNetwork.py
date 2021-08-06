@@ -5,22 +5,32 @@ from torch import nn
 
 
 class RasterizedCslDataset(Dataset):
-    def __init__(self, csl, sampling_resolution=(255, 255), margin=0.2):
+    def __init__(self, csl, sampling_resolution=(255, 255), margin=0.2, transform=None, target_transform=None):
         self.csl = csl
         samples = [plane.rasterizer.get_rasterized(sampling_resolution, margin) for plane in self.csl.planes
-                                 if len(plane.vertices) > 0]  # todo add rasteresation to empty planes
+                   if len(plane.vertices) > 0]  # todo add rasteresation to empty planes
 
         self.labels_per_plane, self.xyz_per_plane = zip(*samples)
+
+        self.transform = transform
+        self.target_transform = target_transform
 
     def __len__(self):
         return len(self.labels_per_plane) * len(self.labels_per_plane[0])
 
     def __getitem__(self, idx):
-
         i = idx % len(self.labels_per_plane)
         j = int(idx / len(self.labels_per_plane))
 
-        return self.xyz_per_plane[i][j], int(self.labels_per_plane[i][j])
+        xyz = self.xyz_per_plane[i][j]
+        label = [int(self.labels_per_plane[i][j])]
+
+        if self.transform:
+            xyz = self.transform(xyz)
+        if self.target_transform:
+            label = self.target_transform(label)
+
+        return xyz, label
 
 
 class NaiveNetwork(nn.Module):
@@ -44,62 +54,69 @@ class NaiveNetwork(nn.Module):
         return x
 
 
-def train(dataloader, model, loss_fn, optimizer, device):
-    running_loss = 0.0
-    size = len(dataloader.dataset)
-    for batch, (x, y) in enumerate(dataloader):
-        x, y = x.to(device), y.to(device)
+class NetworkManager:
+    def __init__(self):
+        self.save_path = "traind_model.pt"
 
-        # Compute prediction error
-        y_pred = model(x)
-        loss = loss_fn(y_pred, y.view(-1, 1))
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print("Using {} device".format(self.device))
 
-        # Backpropagation
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        self.model = NaiveNetwork().to(self.device)
+        self.model.double()
+        print(self.model)
 
-        running_loss += loss.item() * batch * len(x)
-        if batch % 500 == 0:
-            loss, current = loss.item(), batch * len(x)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-    return running_loss
+        # loss_fn = nn.CrossEntropyLoss()
+        self.loss_fn = nn.L1Loss()
 
+    def _train_epoch(self, data_loader, optimizer):
+        running_loss = 0.0
+        size = len(data_loader.dataset)
+        for batch, (xyz, label) in enumerate(data_loader):
+            xyz, label = xyz.to(self.device), label.to(self.device)
 
-def run_naive_network(csl, sampling_resolution=(255, 255), margin=0.2, epoches=30):
-    dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin)
-    dataloader = DataLoader(dataset, batch_size=128)
-    for X1, y in dataloader:
-        print("Shape of X [N, C, H, W]: ", X1.shape)
-        print("Shape of y: ", y.shape, y.dtype)
-        break
+            # Compute prediction error
+            label_pred = self.model(xyz)
+            loss = self.loss_fn(label_pred, label)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print("Using {} device".format(device))
+            # Backpropagation
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-    model = NaiveNetwork().to(device)
-    model.double()
-    print(model)
+            running_loss += loss.item() * batch * len(xyz)
+            if batch % 500 == 0:
+                loss, current = loss.item(), batch * len(xyz)
+                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+        return running_loss
 
-    # loss_fn = nn.CrossEntropyLoss()
-    loss_fn = nn.L1Loss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    def train_network(self, csl, sampling_resolution=(255, 255), margin=0.2, epochs=30):
+        dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin,
+                                       target_transform=torch.tensor, transform=torch.tensor)
+        data_loader = DataLoader(dataset, batch_size=128)
 
-    losses = []
+        for xyz, label in data_loader:
+            print("Shape of X [N, C, H, W]: ", xyz.shape)
+            print("Shape of label: ", label.shape, label.dtype)
+            break
 
-    for epoch in range(epoches):
-        print(f"Epoch {epoch + 1}\n-------------------------------")
-        losses.append(train(dataloader, model, loss_fn, optimizer, device))
-    torch.save(model.state_dict(), "traind_model.pt")
-    plt.plot(losses)
-    plt.show()
-    print("Done!")
-    return model
+        optimizer = torch.optim.SGD(self.model.parameters(), lr=1e-3)
 
+        losses = []
 
-def get_saved_model():
-    model = NaiveNetwork()
-    model.load_state_dict(torch.load("traind_model.pt"))
-    model.eval()
-    return model
+        for epoch in range(epochs):
+            print(f"Epoch {epoch + 1}\n-------------------------------")
+            losses.append(self._train_epoch(data_loader, optimizer))
+        torch.save(self.model.state_dict(), self.save_path)
+        plt.plot(losses)
+        plt.show()
+        print("Done!")
+        return self
 
+    def load_from_disk(self):
+        self.model.load_state_dict(torch.load("traind_model.pt"))
+        self.model.eval()
+        return self
+
+    def predict(self, xyz):
+        xyz = torch.from_numpy(xyz).to(self.device)
+        lable_pred = self.model(xyz)
