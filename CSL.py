@@ -6,8 +6,6 @@ from matplotlib import pyplot as plt
 from matplotlib.path import Path
 from parse import parse
 from sklearn.decomposition import PCA
-
-
 class ConnectedComponent:
     def __init__(self, csl_file):
         component = iter(next(csl_file).strip().split(" "))
@@ -45,7 +43,7 @@ class Plane:
             parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", line)
         plane_params = (A, B, C, D)
         vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(n_vertices)])
-        if (n_vertices == 0):
+        if n_vertices == 0:
             vertices = np.empty(shape=(0, 3))
         assert len(vertices) == n_vertices
         connected_components = [ConnectedComponent(csl_file) for _ in range(n_connected_components)]
@@ -123,12 +121,12 @@ class PlaneRasterizer:
 
         xvalues = np.linspace(bottom[0], top[0], resolution[0])
         yvalues = np.linspace(bottom[1], top[1], resolution[1])
-        xy = np.dstack(np.meshgrid(xvalues, yvalues)).reshape((-1, 2))
+        xy = np.stack(np.meshgrid(xvalues, yvalues), axies=-1).reshape((-1, 2))
         xyz = self.pca.inverse_transform(xy)
         return xy, xyz
 
-    def show_rasterized(self, resolution, margin):
-        plt.imshow(self.get_rasterized(resolution, margin)[0], cmap='cool', origin='lower')
+    def show_rasterized(self, resolution=(256, 256), margin=0.2):
+        plt.imshow(self.get_rasterized(resolution, margin)[0].reshape(resolution), cmap='cool', origin='lower')
         plt.show()
 
     def get_rasterized(self, resolution, margin):

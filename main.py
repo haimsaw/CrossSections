@@ -22,6 +22,8 @@ def main():
     csl.scale()
     box = csl.add_boundary_planes(margin=0.2)  # todo show and sample empty planes
 
+
+
     # csl.planes[27].get_pca_projected_plane().show_rasterized(resolution=(256, 256), margin=0.2)
     # csl.planes[27].get_pca_projected_plane().show_plane()
 
@@ -29,8 +31,8 @@ def main():
     # Renderer2().draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
 
     network_manager = NetworkManager().prepere_for_training(csl, lr=1e-2)
-    network_manager.train_network(epochs=50)
-    network_manager.show_train_losses()
+    network_manager.train_network(epochs=0)
+    # network_manager.show_train_losses()
 
     Renderer2().draw_model(network_manager, sampling_resolution=(64, 64, 64))
     x = 1

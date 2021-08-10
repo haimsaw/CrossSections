@@ -97,45 +97,49 @@ class Renderer:
         glfw.terminate()
 '''
 
+
 class Renderer2:
     def __init__(self):
-
-        self.fig = plt.figure(figsize=(10, 10))
-        self.ax = plt.axes(projection='3d')
+        pass
 
     def draw_scene(self, csl, box):
-        self.colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
+        fig = plt.figure(figsize=(10, 10))
+        ax = plt.axes(projection='3d')
+        colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
 
         for plane in csl.planes:
             for connected_component in plane.connected_components:
                 vertices = plane.vertices[connected_component.vertices_indeces_in_component]
                 alpha = 1 if connected_component.is_hole else 0.1
-                self.ax.plot_trisurf(*vertices.T, color=self.colors[connected_component.label], alpha=alpha)
+                ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
         # todo show box
-        self.ax.plot_trisurf(*box.T, color=self.colors[-1])
-        self.fig.suptitle("draw_scene")
+        ax.plot_trisurf(*box.T, color=colors[-1])
+        fig.suptitle("draw_scene")
         plt.show()
         # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
     def draw_rasterized_scene(self, csl, box, sampling_resolution, margin):
+        fig = plt.figure(figsize=(10, 10))
+        ax = plt.axes(projection='3d')
         # todo draw box
         for plane in csl.planes:
             if len(plane.vertices) > 0:
                 mask, xyz = plane.rasterizer.get_rasterized(sampling_resolution, margin)
-                self.ax.scatter(*xyz[mask].T)
-        self.fig.suptitle("draw_rasterized_scene")
+                ax.scatter(*xyz[mask].T)
+        fig.suptitle("draw_rasterized_scene")
         plt.show()
 
-    def draw_model(self, network_manager, sampling_resolution=(64, 64, 64)):
+    def draw_model(self, network_manager, sampling_resolution=(64, 64, 64), threshold=0.5):
+        fig = plt.figure(figsize=(10, 10))
+        ax = plt.axes(projection='3d')
         x = np.linspace(-1, 1, sampling_resolution[0])
         y = np.linspace(-1, 1, sampling_resolution[1])
         z = np.linspace(-1, 1, sampling_resolution[2])
 
-        xyz = np.dstack(np.meshgrid(x, y, z)).reshape((-1, 3))
+        xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
         pred = network_manager.predict(xyz)
-        label = pred > 0.5
+        label = pred > threshold
         print(f"num of dots: {len(xyz[label])} / {len(xyz)}")
-        self.ax.scatter(*xyz[label].T)
-        self.fig.suptitle("draw_model")
+        ax.scatter(*xyz[label].T)
+        fig.suptitle("draw_model")
         plt.show()
-

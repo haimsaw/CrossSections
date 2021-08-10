@@ -35,7 +35,6 @@ class RasterizedCslDataset(Dataset):
         return xyz, label
 
 
-
 class NaiveNetwork(nn.Module):
     def __init__(self):
         super(NaiveNetwork, self).__init__()
@@ -56,8 +55,8 @@ class NaiveNetwork(nn.Module):
         self.linear_relu.apply(initializer)
 
     def forward(self, x):
-        x = self.linear_relu(x)
-        return x
+        return self.linear_relu(x)
+
 
 class NetworkManager:
     def __init__(self):
@@ -89,6 +88,7 @@ class NetworkManager:
 
             # Compute prediction error
             label_pred = self.model(xyz)
+            #print(f"{label_pred.shape}, {label.shape}")
             loss = self.loss_fn(label_pred, label)
 
             # Backpropagation
@@ -110,6 +110,7 @@ class NetworkManager:
         self.model.init_weights()
         # self.loss_fn = nn.L1Loss()
         self.loss_fn = nn.BCEWithLogitsLoss()
+        # self.loss_fn = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.traning_ready = True
 
@@ -119,9 +120,11 @@ class NetworkManager:
             break
         return self
 
+
     def train_network(self, epochs=30):
+        self.model.train()
         for epoch in range(epochs):
-            print(f"\n\nEpoch {self.total_epoches}\n-------------------------------")
+            print(f"\n\nEpoch {self.total_epoches} [{epoch}/{epochs}]\n-------------------------------")
             self._train_epoch()
             self.total_epoches += 1
         print("Done!")
@@ -144,6 +147,7 @@ class NetworkManager:
 
     @torch.no_grad()
     def predict(self, xyz):
+        self.model.eval()
         xyz = torch.from_numpy(xyz).to(self.device)
         label_pred = self.model(xyz)
         return label_pred.detach().cpu().numpy().reshape(-1)
