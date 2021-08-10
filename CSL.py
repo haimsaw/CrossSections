@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 from matplotlib.path import Path
 from parse import parse
 from sklearn.decomposition import PCA
+
+
 class ConnectedComponent:
     def __init__(self, csl_file):
         component = iter(next(csl_file).strip().split(" "))
@@ -27,9 +29,10 @@ class ConnectedComponent:
 
 
 class Plane:
-    def __init__(self, plane_id: int, plane_params: tuple, vertices: np.array, connected_components: list):
+    def __init__(self, plane_id: int, plane_params: tuple, vertices: np.array, connected_components: list, csl):
         assert len(plane_params) == 4
 
+        self.csl = csl
         self.plane_id = plane_id
         self.plane_params = plane_params  # Ax+By+Cz+D=0
         self.vertices = vertices  # todo should be on the plane
@@ -37,7 +40,7 @@ class Plane:
         self.mean = np.mean(self.vertices, axis=0) if len(self.vertices) > 0 else np.zeros((3,))
 
     @classmethod
-    def from_csl_file(cls, csl_file):
+    def from_csl_file(cls, csl_file, csl):
         line = next(csl_file).strip()
         plane_id, n_vertices, n_connected_components, A, B, C, D = \
             parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", line)
@@ -47,11 +50,11 @@ class Plane:
             vertices = np.empty(shape=(0, 3))
         assert len(vertices) == n_vertices
         connected_components = [ConnectedComponent(csl_file) for _ in range(n_connected_components)]
-        return cls(plane_id, plane_params, vertices, connected_components)
+        return cls(plane_id, plane_params, vertices, connected_components, csl)
 
     @classmethod
-    def empty_plane(cls, plane_id, plane_params):
-        return cls(plane_id, plane_params, np.empty(shape=(0, 3)), [])
+    def empty_plane(cls, plane_id, plane_params, csl):
+        return cls(plane_id, plane_params, np.empty(shape=(0, 3)), [], csl)
 
     @property
     def vertices_boundaries(self):
@@ -61,7 +64,11 @@ class Plane:
 
     @property
     def rasterizer(self):
-        return PlaneRasterizer(self)
+        return PlaneRasterizer(self) if self.is_empty else EmptyPlaneRasterizer(self)
+
+    @property
+    def is_empty(self):
+        return len(self.vertices) > 0
 
     def __isub__(self, other: np.array):
         assert len(other) == 3
@@ -76,9 +83,38 @@ class Plane:
         plt.scatter([0],  [0], color='red')
         plt.show()
 
+    def show_rasterized(self, resolution=(256, 256), margin=0.2):
+        plt.imshow(self.get_rasterized(resolution, margin)[0].reshape(resolution), cmap='cool', origin='lower')
+        plt.show()
+
+    def get_rasterized(self, resolution, margin):
+        rasterizer = self.rasterizer
+        xy, xyz = rasterizer.get_points_to_sample(margin, resolution)
+        mask = rasterizer.get_rasterazation_mask(xy)
+        return mask, xyz
+
+
+class EmptyPlaneRasterizer:
+    def __init__(self, plane: Plane):
+        assert plane.is_empty
+        pass
+
+    @property
+    def vertices_boundaries(self):
+        pass
+
+    def get_rasterazation_mask(self, xy_flat):
+        pass
+        return mask
+
+    def get_points_to_sample(self, margin, resolution):
+        pass
+        return xy, xyz
+
 
 class PlaneRasterizer:
     def __init__(self, plane: Plane):
+        assert not plane.is_empty
         self.pca = PCA(n_components=2, svd_solver="full")
         self.pca.fit(plane.vertices)
 
@@ -91,7 +127,7 @@ class PlaneRasterizer:
         bottom = np.amin(self.vertices, axis=0)
         return top, bottom
 
-    def _get_rasterazation_mask(self, xy_flat):
+    def get_rasterazation_mask(self, xy_flat):
         shape_vertices = []
         shape_codes = []
         hole_vertices = []
@@ -114,7 +150,7 @@ class PlaneRasterizer:
             mask &= np.logical_not(pixels_in_hole)
         return mask
 
-    def _get_points_to_sample(self, margin, resolution):
+    def get_points_to_sample(self, margin, resolution):
         top, bottom = self.vertices_boundaries
         top += margin * (top - bottom)
         bottom -= margin * (top - bottom)
@@ -125,16 +161,6 @@ class PlaneRasterizer:
         xyz = self.pca.inverse_transform(xy)
         return xy, xyz
 
-    def show_rasterized(self, resolution=(256, 256), margin=0.2):
-        plt.imshow(self.get_rasterized(resolution, margin)[0].reshape(resolution), cmap='cool', origin='lower')
-        plt.show()
-
-    def get_rasterized(self, resolution, margin):
-        xy_flat, xyz_flat = self._get_points_to_sample(margin, resolution)
-        mask_flat = self._get_rasterazation_mask(xy_flat)
-
-        return mask_flat, xyz_flat
-
 
 class CSL:
     def __init__(self, filename):
@@ -142,11 +168,11 @@ class CSL:
             csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
             assert next(csl_file).strip() == "CSLC"
             n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
-            self.planes = [Plane.from_csl_file(csl_file) for _ in range(n_planes)]
+            self.planes = [Plane.from_csl_file(csl_file, self) for _ in range(n_planes)]
 
     @property
     def all_vertices(self):
-        ver_list = (plane.vertices for plane in self.planes if len(plane.vertices) > 0)
+        ver_list = (plane.vertices for plane in self.planes if not plane.is_empty)
         return list(chain(*ver_list))
 
     @property
@@ -162,7 +188,7 @@ class CSL:
 
     def __add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1
-        self.planes.append(Plane.empty_plane(plane_id, plane_params))
+        self.planes.append(Plane.empty_plane(plane_id, plane_params, self))
 
     def centralize(self):
         mean = np.mean(self.all_vertices, axis=0)

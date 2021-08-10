@@ -123,8 +123,8 @@ class Renderer2:
         ax = plt.axes(projection='3d')
         # todo draw box
         for plane in csl.planes:
-            if len(plane.vertices) > 0:
-                mask, xyz = plane.rasterizer.get_rasterized(sampling_resolution, margin)
+            if not plane.is_empty:
+                mask, xyz = plane.get_rasterized(sampling_resolution, margin)
                 ax.scatter(*xyz[mask].T)
         fig.suptitle("draw_rasterized_scene")
         plt.show()

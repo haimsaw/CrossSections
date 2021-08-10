@@ -24,8 +24,8 @@ def main():
 
 
 
-    # csl.planes[27].get_pca_projected_plane().show_rasterized(resolution=(256, 256), margin=0.2)
-    # csl.planes[27].get_pca_projected_plane().show_plane()
+    # csl.planes[27].show_rasterized(resolution=(256, 256), margin=0.2)
+    # csl.planes[27].show_plane()
 
     # Renderer2().draw_scene(csl, box)
     # Renderer2().draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)

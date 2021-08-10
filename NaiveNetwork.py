@@ -8,8 +8,10 @@ from Renderer import Renderer2
 class RasterizedCslDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), margin=0.2, transform=None, target_transform=None):
         self.csl = csl
-        samples = [plane.rasterizer.get_rasterized(sampling_resolution, margin) for plane in self.csl.planes
-                   if len(plane.vertices) > 0]  # todo add rasteresation to empty planes
+        samples = []
+        for plane in csl.planes:
+            if not plane.is_empty:  # todo add rasteresation to empty planes
+                samples += plane.get_rasterized(sampling_resolution, margin)
 
         self.labels_per_plane, self.xyz_per_plane = zip(*samples)
 
