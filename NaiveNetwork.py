@@ -120,7 +120,6 @@ class NetworkManager:
             break
         return self
 
-
     def train_network(self, epochs=30):
         self.model.train()
         for epoch in range(epochs):
@@ -130,14 +129,13 @@ class NetworkManager:
         print("Done!")
         return self
 
-
     def show_train_losses(self):
         plt.bar(range(len(self.train_losses)), self.train_losses)
         plt.show()
         return self
 
     def load_from_disk(self):
-        self.model.load_state_dict(torch.load("traind_model.pt"))
+        self.model.load_state_dict(torch.load(self.save_path, map_location=torch.device('cpu')) )
         self.model.eval()
         return self
 

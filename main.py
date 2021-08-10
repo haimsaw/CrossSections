@@ -30,8 +30,10 @@ def main():
     # Renderer2().draw_scene(csl, box)
     # Renderer2().draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
 
-    network_manager = NetworkManager().prepere_for_training(csl, lr=1e-2)
-    network_manager.train_network(epochs=0)
+    network_manager = NetworkManager()
+    network_manager.load_from_disk()
+    # network_manager.prepere_for_training(csl, lr=1e-2)
+    # network_manager.train_network(epochs=0)
     # network_manager.show_train_losses()
 
     Renderer2().draw_model(network_manager, sampling_resolution=(64, 64, 64))
@@ -47,5 +49,8 @@ if __name__ == "__main__":
 todo:
 	0.2 keep original proportions when resterizing
 	0.3 show empty slices
-	0.4 train basic network with 5 FC layars * 256 nurons -> test by eye and in between slices 
+	0.4 sample empty slices
+	visualization - show with original planes
+	    axis equal - show correct proprtions
+	reduce 2d sample 32*32 and over sample on errors (see chat)
 '''
