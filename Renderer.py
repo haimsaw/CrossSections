@@ -1,13 +1,13 @@
 from math import radians
 from random import random
 
-import glfw
+#import glfw
 import numpy as np
-from OpenGL.GL import *
-from pyquaternion import Quaternion
+#from OpenGL.GL import *
+#from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
 
-
+'''
 class Renderer:
     def __init__(self, csl, box):
         self.csl = csl
@@ -95,7 +95,7 @@ class Renderer:
             glfw.swap_buffers(self.window)
 
         glfw.terminate()
-
+'''
 
 class Renderer2:
     def __init__(self):
@@ -113,7 +113,7 @@ class Renderer2:
                 self.ax.plot_trisurf(*vertices.T, color=self.colors[connected_component.label], alpha=alpha)
         # todo show box
         self.ax.plot_trisurf(*box.T, color=self.colors[-1])
-
+        self.fig.suptitle("draw_scene")
         plt.show()
         # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
@@ -123,13 +123,19 @@ class Renderer2:
             if len(plane.vertices) > 0:
                 mask, xyz = plane.rasterizer.get_rasterized(sampling_resolution, margin)
                 self.ax.scatter(*xyz[mask].T)
+        self.fig.suptitle("draw_rasterized_scene")
         plt.show()
 
-    def draw_model(self, network_manager, sampling_resolution=(255, 255, 255)):
+    def draw_model(self, network_manager, sampling_resolution=(64, 64, 64)):
         x = np.linspace(-1, 1, sampling_resolution[0])
         y = np.linspace(-1, 1, sampling_resolution[1])
         z = np.linspace(-1, 1, sampling_resolution[2])
 
         xyz = np.dstack(np.meshgrid(x, y, z)).reshape((-1, 3))
-        y = network_manager.predict(xyz)
+        pred = network_manager.predict(xyz)
+        label = pred > 0.5
+        print(f"num of dots: {len(xyz[label])} / {len(xyz)}")
+        self.ax.scatter(*xyz[label].T)
+        self.fig.suptitle("draw_model")
+        plt.show()
 

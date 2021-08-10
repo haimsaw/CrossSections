@@ -1,5 +1,5 @@
 from CSL import CSL
-from Renderer import Renderer2, Renderer
+from Renderer import Renderer2 #, Renderer
 from NaiveNetwork import *
 
 
@@ -16,14 +16,11 @@ def main():
     # csl = CSL("csl-files/rocker-arm.csl")
 
     # csl = CSL("csl-files/Brain.csl")
-    '''
+
     csl.centralize()
     csl.rotate_by_pca()  # todo not rotating plane coordinates
     csl.scale()
     box = csl.add_boundary_planes(margin=0.2)  # todo show and sample empty planes
-    '''
-
-
 
     # csl.planes[27].get_pca_projected_plane().show_rasterized(resolution=(256, 256), margin=0.2)
     # csl.planes[27].get_pca_projected_plane().show_plane()
@@ -31,12 +28,12 @@ def main():
     # Renderer2().draw_scene(csl, box)
     # Renderer2().draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
 
-    network_manager = NetworkManager()
-    network_manager.train_network(csl, epochs=1)
-    network_manager.load_from_disk()
+    network_manager = NetworkManager().prepere_for_training(csl, lr=1e-2)
+    network_manager.train_network(epochs=50)
+    network_manager.show_train_losses()
 
-    Renderer2().draw_model(network_manager)
-
+    Renderer2().draw_model(network_manager, sampling_resolution=(64, 64, 64))
+    x = 1
     # renderer = Renderer(csl, box)
     # renderer.event_loop()
 

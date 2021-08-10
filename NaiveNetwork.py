@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
 import torch
-from torch.utils.data import Dataset, DataLoader, BatchSampler, RandomSampler
+from torch.utils.data import Dataset, DataLoader
 from torch import nn
+from Renderer import Renderer2
 
 
 class RasterizedCslDataset(Dataset):
-    def __init__(self, csl, sampling_resolution=(255, 255), margin=0.2, transform=None, target_transform=None):
+    def __init__(self, csl, sampling_resolution=(256, 256), margin=0.2, transform=None, target_transform=None):
         self.csl = csl
         samples = [plane.rasterizer.get_rasterized(sampling_resolution, margin) for plane in self.csl.planes
                    if len(plane.vertices) > 0]  # todo add rasteresation to empty planes
@@ -23,7 +24,8 @@ class RasterizedCslDataset(Dataset):
         j = int(idx / len(self.labels_per_plane))
 
         xyz = self.xyz_per_plane[i][j]
-        label = [int(self.labels_per_plane[i][j])]
+        label = [1.0] if self.labels_per_plane[i][j] else [0.0]
+        #label = [1] if xyz[0]+xyz[1]+xyz[2] > 0 else [-1]
 
         if self.transform:
             xyz = self.transform(xyz)
@@ -33,26 +35,29 @@ class RasterizedCslDataset(Dataset):
         return xyz, label
 
 
+
 class NaiveNetwork(nn.Module):
     def __init__(self):
         super(NaiveNetwork, self).__init__()
         self.linear_relu = nn.Sequential(
-            nn.Linear(3, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, 1),
-            nn.ReLU()
+            nn.Linear(3, 128),   nn.LeakyReLU(),
+            nn.Linear(128, 256), nn.LeakyReLU(),
+            nn.Linear(256, 512), nn.LeakyReLU(),
+            nn.Linear(512, 512), nn.LeakyReLU(),
+            nn.Linear(512, 1),
         )
+
+    def init_weights(self):
+        def initializer(m):
+            if isinstance(m, nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight)
+                # torch.nn.init.constant_(m.weight, 1)
+                m.bias.data.fill_(0.1)
+        self.linear_relu.apply(initializer)
 
     def forward(self, x):
         x = self.linear_relu(x)
         return x
-
 
 class NetworkManager:
     def __init__(self):
@@ -63,15 +68,23 @@ class NetworkManager:
 
         self.model = NaiveNetwork().to(self.device)
         self.model.double()
+
         print(self.model)
 
-        # loss_fn = nn.CrossEntropyLoss()
-        self.loss_fn = nn.L1Loss()
+        self.loss_fn = None
+        self.train_losses = []
+        self.optimizer = None
+        self.data_loader = None
 
-    def _train_epoch(self, data_loader, optimizer):
+        self.traning_ready = False
+        self.total_epoches = 0
+
+    def _train_epoch(self):
+        assert self.traning_ready
+
         running_loss = 0.0
-        size = len(data_loader.dataset)
-        for batch, (xyz, label) in enumerate(data_loader):
+        size = len(self.data_loader.dataset)
+        for batch, (xyz, label) in enumerate(self.data_loader):
             xyz, label = xyz.to(self.device), label.to(self.device)
 
             # Compute prediction error
@@ -79,37 +92,45 @@ class NetworkManager:
             loss = self.loss_fn(label_pred, label)
 
             # Backpropagation
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
 
-            running_loss += loss.item() * batch * len(xyz)
-            if batch % 500 == 0:
+            running_loss += loss.item()
+            if batch % 1000 == 0:
                 loss, current = loss.item(), batch * len(xyz)
-                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-        return running_loss
+                print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
+        print(f"running loss for epoch: {running_loss}")
+        self.train_losses.append(running_loss)
 
-    def train_network(self, csl, sampling_resolution=(255, 255), margin=0.2, epochs=30):
+    def prepere_for_training(self, csl, sampling_resolution=(255, 255), margin=0.2, lr=1e-2):
         dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin,
                                        target_transform=torch.tensor, transform=torch.tensor)
-        data_loader = DataLoader(dataset, batch_size=128)
+        self.data_loader = DataLoader(dataset, batch_size=128, shuffle=True)
+        self.model.init_weights()
+        # self.loss_fn = nn.L1Loss()
+        self.loss_fn = nn.BCEWithLogitsLoss()
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
+        self.traning_ready = True
 
-        for xyz, label in data_loader:
+        for xyz, label in self.data_loader:
             print("Shape of X [N, C, H, W]: ", xyz.shape)
             print("Shape of label: ", label.shape, label.dtype)
             break
+        return self
 
-        optimizer = torch.optim.SGD(self.model.parameters(), lr=1e-3)
-
-        losses = []
-
+    def train_network(self, epochs=30):
         for epoch in range(epochs):
-            print(f"Epoch {epoch + 1}\n-------------------------------")
-            losses.append(self._train_epoch(data_loader, optimizer))
-        torch.save(self.model.state_dict(), self.save_path)
-        plt.plot(losses)
-        plt.show()
+            print(f"\n\nEpoch {self.total_epoches}\n-------------------------------")
+            self._train_epoch()
+            self.total_epoches += 1
         print("Done!")
+        return self
+
+
+    def show_train_losses(self):
+        plt.bar(range(len(self.train_losses)), self.train_losses)
+        plt.show()
         return self
 
     def load_from_disk(self):
@@ -117,6 +138,12 @@ class NetworkManager:
         self.model.eval()
         return self
 
+    def save_to_disk(self):
+        torch.save(self.model.state_dict(), self.save_path)
+        return self
+
+    @torch.no_grad()
     def predict(self, xyz):
         xyz = torch.from_numpy(xyz).to(self.device)
-        lable_pred = self.model(xyz)
+        label_pred = self.model(xyz)
+        return label_pred.detach().cpu().numpy().reshape(-1)
