@@ -79,7 +79,7 @@ class Plane:
 
     def show_plane(self):
         for component in self.connected_components:
-            plt.plot(*self.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black' )
+            plt.plot(*self.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black')
         plt.scatter([0],  [0], color='red')
         plt.show()
 
@@ -88,29 +88,39 @@ class Plane:
         plt.show()
 
     def get_rasterized(self, resolution, margin):
-        rasterizer = self.rasterizer
-        xy, xyz = rasterizer.get_points_to_sample(margin, resolution)
-        mask = rasterizer.get_rasterazation_mask(xy)
-        return mask, xyz
+        return self.rasterizer.get_rasterazation(margin, resolution)
 
 
 class EmptyPlaneRasterizer:
     def __init__(self, plane: Plane):
         assert plane.is_empty
-        pass
+        self.csl = plane.csl
+        self.plane_params = plane.plane_params
 
     @property
     def vertices_boundaries(self):
-        pass
+        return self.csl.vertices_boundaries
+
+    def get_rasterazation(self, margin, resolution):
+        xy, xyz = self._get_points_to_sample(margin, resolution)
+        mask = self.get_rasterazation_mask(xy)
+        return mask, xyz
 
     def get_rasterazation_mask(self, xy_flat):
-        pass
-        return mask
+        return np.full(len(xy_flat), False)
 
-    def get_points_to_sample(self, margin, resolution):
-        pass
-        return xy, xyz
+    def _get_points_to_sample(self, margin, resolution):
+        top, bottom = self.vertices_boundaries
+        top += margin * (top - bottom)
+        bottom -= margin * (top - bottom)
+          top and bottom should be on the plane
 
+        xx = np.linspace(bottom[0], top[0], resolution[0])
+        yy = np.linspace(bottom[1], top[1], resolution[1])
+        zz = np.linspace(bottom[2], top[2], resolution[1])
+
+        xyz = np.stack(np.meshgrid(xx, yy, zz), axis=-1).reshape((-1, 2))
+        return xyz
 
 class PlaneRasterizer:
     def __init__(self, plane: Plane):
@@ -126,6 +136,11 @@ class PlaneRasterizer:
         top = np.amax(self.vertices, axis=0)
         bottom = np.amin(self.vertices, axis=0)
         return top, bottom
+
+    def get_rasterazation(self, margin, resolution):
+        xy, xyz = self._get_points_to_sample(margin, resolution)
+        mask = self.get_rasterazation_mask(xy)
+        return mask, xyz
 
     def get_rasterazation_mask(self, xy_flat):
         shape_vertices = []
@@ -150,14 +165,14 @@ class PlaneRasterizer:
             mask &= np.logical_not(pixels_in_hole)
         return mask
 
-    def get_points_to_sample(self, margin, resolution):
+    def _get_points_to_sample(self, margin, resolution):
         top, bottom = self.vertices_boundaries
         top += margin * (top - bottom)
         bottom -= margin * (top - bottom)
 
         xvalues = np.linspace(bottom[0], top[0], resolution[0])
         yvalues = np.linspace(bottom[1], top[1], resolution[1])
-        xy = np.stack(np.meshgrid(xvalues, yvalues), axies=-1).reshape((-1, 2))
+        xy = np.stack(np.meshgrid(xvalues, yvalues), axis=-1).reshape((-1, 2))
         xyz = self.pca.inverse_transform(xy)
         return xy, xyz
 
