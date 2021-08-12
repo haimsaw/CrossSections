@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from Resterizer import rasterizer_factory
 
 
+# region OpenGL
+
 class Renderer:
     def __init__(self, csl, box):
         self.csl = csl
@@ -72,7 +74,7 @@ class Renderer:
             self.rotation = (rotation * self.rotation).normalised
 
         elif glfw.get_mouse_button(self.window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS:
-            d_translation = (self.cursor_origin - cur_cursor_pos)/200
+            d_translation = (self.cursor_origin - cur_cursor_pos) / 200
             d_translation[0] *= -1
             self.translation += d_translation
 
@@ -98,6 +100,10 @@ class Renderer:
 
         glfw.terminate()
 
+# endregion
+
+
+# region 3d
 
 def draw_scene(csl, box):
     fig = plt.figure(figsize=(10, 10))
@@ -116,19 +122,16 @@ def draw_scene(csl, box):
     # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
 
-def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
-    plt.imshow(rasterizer_factory(plane).get_rasterazation(resolution, margin)[0].reshape(resolution), cmap='cool', origin='lower')
-    plt.suptitle("draw_rasterized_plane")
-    plt.show()
-
-
-def draw_rasterized_scene(csl, box, sampling_resolution, margin):
+def draw_rasterized_scene(csl, sampling_resolution, margin):
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
     for plane in csl.planes:
+        mask, xyzs = rasterizer_factory(plane).get_rasterazation(sampling_resolution, margin)
         if not plane.is_empty:  # todo show empty planes
-            mask, xyz = rasterizer_factory(plane).get_rasterazation(sampling_resolution, margin)
-            ax.scatter(*xyz[mask].T)
+            ax.scatter(*xyzs[mask].T, color="blue")
+        else:
+            ax.scatter(*xyzs.T, color="green", alpha=0.1)
+
     fig.suptitle("draw_rasterized_scene")
     plt.show()
 
@@ -148,11 +151,24 @@ def draw_model(network_manager, sampling_resolution=(64, 64, 64), threshold=0.5)
     fig.suptitle("draw_model")
     plt.show()
 
+# endregion
+
+
+# region 2d
+
+def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
+    plt.imshow(rasterizer_factory(plane).get_rasterazation(resolution, margin)[0].reshape(resolution), cmap='cool',
+               origin='lower')
+    plt.suptitle("draw_rasterized_plane")
+    plt.show()
+
 
 def show_plane(plane):
     verts, _ = plane.pca_projected_vertices
     for component in plane.connected_components:
         plt.scatter(*verts[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black')
-    plt.scatter([0],  [0], color='red')
+    plt.scatter([0], [0], color='red')
     plt.suptitle("show_plane")
     plt.show()
+
+# endregion

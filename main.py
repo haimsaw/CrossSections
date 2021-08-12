@@ -19,8 +19,6 @@ def main():
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/Skull-20.csl")
 
-
-
     # csl = CSL("csl-files/Brain.csl")
 
     csl.centralize()
@@ -32,7 +30,7 @@ def main():
     # Renderer.show_plane(csl.planes[3])
 
     # Renderer.draw_scene(csl, box)
-    # Renderer.draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
+    Renderer.draw_rasterized_scene(csl, sampling_resolution=(32, 32), margin=0.2)
 
     network_manager = NetworkManager()
     # network_manager.load_from_disk()

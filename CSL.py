@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 from parse import parse
 from sklearn.decomposition import PCA
 
+import Helpers
+
 
 class ConnectedComponent:
     def __init__(self, csl_file):
@@ -39,11 +41,11 @@ class Plane:
         self.plane_normal /= np.linalg.norm(self.plane_normal)
 
         if plane_params[0] != 0:
-            self.point_on_plane = np.array([-plane_params[3]/plane_params[0], 0, 0])
+            self.plane_origin = np.array([-plane_params[3] / plane_params[0], 0, 0])
         elif plane_params[1] != 0:
-            self.point_on_plane = np.array([0, -plane_params[3] / plane_params[1], 0])
+            self.plane_origin = np.array([0, -plane_params[3] / plane_params[1], 0])
         else:
-            self.point_on_plane = np.array([0, 0, -plane_params[3] / plane_params[2]])
+            self.plane_origin = np.array([0, 0, -plane_params[3] / plane_params[2]])
 
         self.vertices = vertices  # should be on the plane
         self.connected_components = connected_components
@@ -67,19 +69,13 @@ class Plane:
         return cls(plane_id, plane_params, np.empty(shape=(0, 3)), [], csl)
 
     @property
-    def vertices_boundaries(self):
-        top = np.amax(self.vertices, axis=0)
-        bottom = np.amin(self.vertices, axis=0)
-        return top, bottom
-
-    @property
     def is_empty(self):
         return len(self.vertices) == 0
 
     @property
     def pca_projected_vertices(self):
         if self.is_empty:
-            return None, None
+            raise Exception("rotating empty plane")
 
         pca = PCA(n_components=2, svd_solver="full")
         pca.fit(self.vertices)
@@ -88,21 +84,39 @@ class Plane:
     def __isub__(self, point: np.array):
         assert point.shape == (3,)
         self.vertices -= point
-        self.point_on_plane -= point
+        self.plane_origin -= point
 
         # new_D = self.plane_params[3] + np.dot(self.plane_params[:3], point)  # normal*(x-x_0)=0
         # self.plane_params = self.plane_params[:3] + (new_D,)
 
-        return self
-
     def __itruediv__(self, scale: float):
         self.vertices /= scale
-        self.plane_normal = self.plane_normal
+        # todo change plane params?
 
     def __imatmul__(self, rotation: PCA):
         self.vertices = rotation.transform(self.vertices)
-        self.point_on_plane = rotation.transform([self.point_on_plane])[0]
+        self.plane_origin = rotation.transform([self.plane_origin])[0]
         self.plane_normal = rotation.transform([self.plane_normal])[0]
+
+    def project(self, points):
+        # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
+        dists = (points - self.plane_origin) @ self.plane_normal
+        return self.csl.all_vertices - np.outer(dists, self.plane_normal)
+
+    def get_xs(self, yzs):
+        xs = (self.plane_normal @ self.plane_origin - yzs @ self.plane_normal[1:3]) / self.plane_normal[0]
+        xyzs = np.concatenate((xs.reshape(1, -1).T, yzs), axis=1)
+        return xyzs
+
+    def get_ys(self, xzs):
+        ys = (self.plane_normal @ self.plane_origin - xzs @ self.plane_normal[0:3:2]) / self.plane_normal[1]
+        xyzs = np.concatenate((xzs[:, 0].reshape(1, -1).T, ys.reshape(1, -1).T, xzs[:, 1].reshape(1, -1).T), axis=1)
+        return xyzs
+
+    def get_zs(self, xys):
+        zs = (self.plane_normal @ self.plane_origin - xys @ self.plane_normal[0:2]) / self.plane_normal[2]
+        xyzs = np.concatenate((xys, zs.reshape(1, -1).T), axis=1)
+        return xyzs
 
 
 class CSL:
@@ -122,22 +136,13 @@ class CSL:
     def scale_factor(self):
         return np.max(self.all_vertices)
 
-    @property
-    def vertices_boundaries(self):
-        vertices = self.all_vertices
-        top = np.amax(vertices, axis=0)
-        bottom = np.amin(vertices, axis=0)
-        return top, bottom
-
     def _add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1
         self.planes.append(Plane.empty_plane(plane_id, plane_params, self))
 
     def add_boundary_planes(self, margin):
-        top, bottom = self.vertices_boundaries
 
-        top += margin * (top - bottom)
-        bottom -= margin * (top - bottom)
+        top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(self.all_vertices), margin)
 
         for i in range(3):
             normal = [0.0] * 3

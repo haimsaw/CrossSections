@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
 from CSL import Plane
+import Helpers
 
 
 def rasterizer_factory(plane: Plane):
@@ -14,40 +15,40 @@ class IRasterizer:
     @abstractmethod
     def get_rasterazation(self, resolution, margin): raise NotImplementedError
 
-    @abstractmethod
-    def get_rasterazation_mask(self, xy_flat): raise NotImplementedError
-
 
 class EmptyPlaneRasterizer(IRasterizer):
     def __init__(self, plane: Plane):
         assert plane.is_empty
         self.csl = plane.csl
+        self.plane = plane
 
     @property
     def vertices_boundaries(self):
         return self.csl.vertices_boundaries
 
     def _get_points_to_sample(self, resolution, margin):
-        top, bottom = self.vertices_boundaries
-        top += margin * (top - bottom)
-        bottom -= margin * (top - bottom)
+        projected_vertices = self.plane.project(self.csl.all_vertices)
+        top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(projected_vertices), margin)
 
-        # top and bottom should be on the plane
+        if self.plane.plane_normal[0] != 0:
+            ys = np.linspace(bottom[1], top[1], resolution[0])
+            zs = np.linspace(bottom[2], top[2], resolution[1])
+            xyzs = self.plane.get_xs(np.stack(np.meshgrid(ys, zs), axis=-1).reshape((-1, 2)))
 
-        xx = np.linspace(bottom[0], top[0], resolution[0])
-        yy = np.linspace(bottom[1], top[1], resolution[1])
-        zz = np.linspace(bottom[2], top[2], resolution[1])
+        elif self.plane.plane_normal[1] != 0:
+            xs = np.linspace(bottom[0], top[0], resolution[0])
+            zs = np.linspace(bottom[2], top[2], resolution[1])
+            xyzs = self.plane.get_ys(np.stack(np.meshgrid(xs, zs), axis=-1).reshape((-1, 2)))
 
-        xyz = np.stack(np.meshgrid(xx, yy, zz), axis=-1).reshape((-1, 2))
-        return xyz
+        elif self.plane.plane_normal[2] != 0:
+            xs = np.linspace(bottom[0], top[0], resolution[0])
+            ys = np.linspace(bottom[1], top[1], resolution[1])
+            xyzs = self.plane.get_zs(np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)))
+
+        return xyzs
 
     def get_rasterazation(self, resolution, margin):
-        xy, xyz = self._get_points_to_sample(resolution, margin)
-        mask = self.get_rasterazation_mask(xy)
-        return mask, xyz
-
-    def get_rasterazation_mask(self, xy_flat):
-        return np.full(len(xy_flat), False)
+        return np.full(resolution, False), self._get_points_to_sample(resolution, margin)
 
 
 class PlaneRasterizer(IRasterizer):
@@ -56,29 +57,16 @@ class PlaneRasterizer(IRasterizer):
         self.vertices, self.pca = plane.pca_projected_vertices  # todo should be on the plane
         self.plane = plane
 
-    @property
-    def vertices_boundaries(self):
-        top = np.amax(self.vertices, axis=0)
-        bottom = np.amin(self.vertices, axis=0)
-        return top, bottom
-
     def _get_points_to_sample(self, resolution, margin):
-        top, bottom = self.vertices_boundaries
-        top += margin * (top - bottom)
-        bottom -= margin * (top - bottom)
+        top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(self.vertices), margin)
 
-        xvalues = np.linspace(bottom[0], top[0], resolution[0])
-        yvalues = np.linspace(bottom[1], top[1], resolution[1])
-        xy = np.stack(np.meshgrid(xvalues, yvalues), axis=-1).reshape((-1, 2))
-        xyz = self.pca.inverse_transform(xy)
-        return xy, xyz
+        xs = np.linspace(bottom[0], top[0], resolution[0])
+        ys = np.linspace(bottom[1], top[1], resolution[1])
+        xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2))
+        xyzs = self.pca.inverse_transform(xys)
+        return xys, xyzs
 
-    def get_rasterazation(self, resolution, margin):
-        xy, xyz = self._get_points_to_sample(resolution, margin)
-        mask = self.get_rasterazation_mask(xy)
-        return mask, xyz
-
-    def get_rasterazation_mask(self, xy_flat):
+    def _get_rasterazation_mask(self, xys):
         shape_vertices = []
         shape_codes = []
         hole_vertices = []
@@ -95,8 +83,13 @@ class PlaneRasterizer(IRasterizer):
                     [0, 0]]  # todo better way?
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
 
-        mask = Path(shape_vertices, shape_codes).contains_points(xy_flat)
+        mask = Path(shape_vertices, shape_codes).contains_points(xys)
         if len(hole_vertices) > 0:
-            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xy_flat)
+            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xys)
             mask &= np.logical_not(pixels_in_hole)
         return mask
+
+    def get_rasterazation(self, resolution, margin):
+        xys, xyzs = self._get_points_to_sample(resolution, margin)
+        mask = self._get_rasterazation_mask(xys)
+        return mask, xyzs
