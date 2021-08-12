@@ -1,7 +1,6 @@
 import numpy as np
 from matplotlib.path import Path
-from sklearn.decomposition import PCA
-
+from abc import ABCMeta, abstractmethod
 from CSL import Plane
 
 
@@ -9,7 +8,17 @@ def rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
 
 
-class EmptyPlaneRasterizer:
+class IRasterizer:
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def get_rasterazation(self, resolution, margin): raise NotImplementedError
+
+    @abstractmethod
+    def get_rasterazation_mask(self, xy_flat): raise NotImplementedError
+
+
+class EmptyPlaneRasterizer(IRasterizer):
     def __init__(self, plane: Plane):
         assert plane.is_empty
         self.csl = plane.csl
@@ -41,13 +50,10 @@ class EmptyPlaneRasterizer:
         return np.full(len(xy_flat), False)
 
 
-class PlaneRasterizer:
+class PlaneRasterizer(IRasterizer):
     def __init__(self, plane: Plane):
         assert not plane.is_empty
-        self.pca = PCA(n_components=2, svd_solver="full")
-        self.pca.fit(plane.vertices)
-
-        self.vertices = self.pca.transform(plane.vertices)  # todo should be on the plane
+        self.vertices, self.pca = plane.pca_projected_vertices  # todo should be on the plane
         self.plane = plane
 
     @property

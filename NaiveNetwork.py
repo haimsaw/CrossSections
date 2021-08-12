@@ -2,19 +2,20 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
-from Renderer import Renderer2
 from Resterizer import rasterizer_factory
 
 
 class RasterizedCslDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), margin=0.2, transform=None, target_transform=None):
         self.csl = csl
-        samples = []
+        self.labels_per_plane = []
+        self.xyz_per_plane = []
+
         for plane in csl.planes:
             if not plane.is_empty:  # todo add rasteresation to empty planes
-                samples += rasterizer_factory(plane).get_rasterized(sampling_resolution, margin)
-
-        self.labels_per_plane, self.xyz_per_plane = zip(*samples)
+                labels, xyz = rasterizer_factory(plane).get_rasterazation(sampling_resolution, margin)
+                self.labels_per_plane.append(labels)
+                self.xyz_per_plane.append(xyz)
 
         self.transform = transform
         self.target_transform = target_transform
@@ -28,7 +29,6 @@ class RasterizedCslDataset(Dataset):
 
         xyz = self.xyz_per_plane[i][j]
         label = [1.0] if self.labels_per_plane[i][j] else [0.0]
-        #label = [1] if xyz[0]+xyz[1]+xyz[2] > 0 else [-1]
 
         if self.transform:
             xyz = self.transform(xyz)

@@ -117,17 +117,17 @@ def draw_scene(csl, box):
 
 
 def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
-    plt.imshow(rasterizer_factory(plane).get_rasterazation(margin, resolution)[0].reshape(resolution), cmap='cool', origin='lower')
+    plt.imshow(rasterizer_factory(plane).get_rasterazation(resolution, margin)[0].reshape(resolution), cmap='cool', origin='lower')
+    plt.suptitle("draw_rasterized_plane")
     plt.show()
 
 
 def draw_rasterized_scene(csl, box, sampling_resolution, margin):
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
-    # todo draw box
     for plane in csl.planes:
-        if not plane.is_empty:
-            mask, xyz = plane.get_rasterized(sampling_resolution, margin)
+        if not plane.is_empty:  # todo show empty planes
+            mask, xyz = rasterizer_factory(plane).get_rasterazation(sampling_resolution, margin)
             ax.scatter(*xyz[mask].T)
     fig.suptitle("draw_rasterized_scene")
     plt.show()
@@ -150,7 +150,9 @@ def draw_model(network_manager, sampling_resolution=(64, 64, 64), threshold=0.5)
 
 
 def show_plane(plane):
+    verts, _ = plane.pca_projected_vertices
     for component in plane.connected_components:
-        plt.plot(*plane.vertices[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black')
+        plt.scatter(*verts[component.vertices_indeces_in_component].T, color='orange' if component.is_hole else 'black')
     plt.scatter([0],  [0], color='red')
+    plt.suptitle("show_plane")
     plt.show()

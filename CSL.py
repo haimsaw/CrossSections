@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 from parse import parse
 from sklearn.decomposition import PCA
 
+
 class ConnectedComponent:
     def __init__(self, csl_file):
         component = iter(next(csl_file).strip().split(" "))
@@ -36,7 +37,13 @@ class Plane:
         # self.plane_params = plane_params  # Ax+By+Cz+D=0
         self.plane_normal = np.array(plane_params[0:3])
         self.plane_normal /= np.linalg.norm(self.plane_normal)
-        self.point_on_plane = np.array([-plane_params[3]/plane_params[0], 0, 0])
+
+        if plane_params[0] != 0:
+            self.point_on_plane = np.array([-plane_params[3]/plane_params[0], 0, 0])
+        elif plane_params[1] != 0:
+            self.point_on_plane = np.array([0, -plane_params[3] / plane_params[1], 0])
+        else:
+            self.point_on_plane = np.array([0, 0, -plane_params[3] / plane_params[2]])
 
         self.vertices = vertices  # should be on the plane
         self.connected_components = connected_components
@@ -69,6 +76,15 @@ class Plane:
     def is_empty(self):
         return len(self.vertices) == 0
 
+    @property
+    def pca_projected_vertices(self):
+        if self.is_empty:
+            return None, None
+
+        pca = PCA(n_components=2, svd_solver="full")
+        pca.fit(self.vertices)
+        return pca.transform(self.vertices), pca
+
     def __isub__(self, point: np.array):
         assert point.shape == (3,)
         self.vertices -= point
@@ -85,8 +101,8 @@ class Plane:
 
     def __imatmul__(self, rotation: PCA):
         self.vertices = rotation.transform(self.vertices)
-        self.point_on_plane = rotation.transform(self.point_on_plane)
-        self.plane_normal = rotation.transform(self.plane_normal)
+        self.point_on_plane = rotation.transform([self.point_on_plane])[0]
+        self.plane_normal = rotation.transform([self.plane_normal])[0]
 
 
 class CSL:
@@ -113,7 +129,7 @@ class CSL:
         bottom = np.amin(vertices, axis=0)
         return top, bottom
 
-    def __add_empty_plane(self, plane_params):
+    def _add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1
         self.planes.append(Plane.empty_plane(plane_id, plane_params, self))
 
@@ -124,11 +140,11 @@ class CSL:
         bottom -= margin * (top - bottom)
 
         for i in range(3):
-            normal = [0] * 3
-            normal[i] = 1
+            normal = [0.0] * 3
+            normal[i] = 1.0
 
-            self.__add_empty_plane(tuple(normal + [top[i]]))
-            self.__add_empty_plane(tuple(normal + [bottom[i]]))
+            self._add_empty_plane(tuple(normal + [top[i]]))
+            self._add_empty_plane(tuple(normal + [bottom[i]]))
 
         stacked = np.stack((top, bottom))
         return np.array([np.choose(choice, stacked) for choice in itertools.product([0, 1], repeat=3)])
