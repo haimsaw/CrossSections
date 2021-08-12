@@ -1,5 +1,5 @@
 from CSL import CSL
-from Renderer import Renderer2 #, Renderer
+import Renderer
 from NaiveNetwork import *
 
 
@@ -22,13 +22,11 @@ def main():
     csl.scale()
     box = csl.add_boundary_planes(margin=0.2)  # todo show and sample empty planes
 
-
-
-    # csl.planes[27].show_rasterized(resolution=(256, 256), margin=0.2)
+    csl.planes[27].show_rasterized(resolution=(256, 256), margin=0.2)
     # csl.planes[27].show_plane()
 
-    # Renderer2().draw_scene(csl, box)
-    # Renderer2().draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
+    Renderer.draw_scene(csl, box)
+    # Renderer.draw_rasterized_scene(csl, box, sampling_resolution=(256, 256), margin=0.2)
 
     network_manager = NetworkManager()
     network_manager.load_from_disk()
@@ -36,9 +34,9 @@ def main():
     # network_manager.train_network(epochs=0)
     # network_manager.show_train_losses()
 
-    Renderer2().draw_model(network_manager, sampling_resolution=(64, 64, 64))
-    x = 1
-    # renderer = Renderer(csl, box)
+    Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
+
+    # renderer = Renderer.Renderer(csl, box)
     # renderer.event_loop()
 
 

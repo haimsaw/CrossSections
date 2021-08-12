@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
 from Renderer import Renderer2
+from Resterizer import rasterizer_factory
 
 
 class RasterizedCslDataset(Dataset):
@@ -11,7 +12,7 @@ class RasterizedCslDataset(Dataset):
         samples = []
         for plane in csl.planes:
             if not plane.is_empty:  # todo add rasteresation to empty planes
-                samples += plane.get_rasterized(sampling_resolution, margin)
+                samples += rasterizer_factory(plane).get_rasterized(sampling_resolution, margin)
 
         self.labels_per_plane, self.xyz_per_plane = zip(*samples)
 
