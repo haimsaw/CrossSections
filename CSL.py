@@ -2,7 +2,6 @@ import itertools
 from itertools import chain
 
 import numpy as np
-from matplotlib import pyplot as plt
 from parse import parse
 from sklearn.decomposition import PCA
 
@@ -18,11 +17,11 @@ class ConnectedComponent:
         component = map(int, component)
         self.label = next(component)
         # self.label = 1 if self.n_holes> 0 else 0
-        self.vertices_indeces_in_component = list(component)
-        assert len(self.vertices_indeces_in_component) == n_vertices_in_component
+        self.vertices_indices_in_component = list(component)
+        assert len(self.vertices_indices_in_component) == n_vertices_in_component
 
     def __len__(self):
-        return len(self.vertices_indeces_in_component)
+        return len(self.vertices_indices_in_component)
 
     @property
     def is_hole(self):
@@ -54,9 +53,9 @@ class Plane:
     @classmethod
     def from_csl_file(cls, csl_file, csl):
         line = next(csl_file).strip()
-        plane_id, n_vertices, n_connected_components, A, B, C, D = \
+        plane_id, n_vertices, n_connected_components, a, b, c, d = \
             parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", line)
-        plane_params = (A, B, C, D)
+        plane_params = (a, b, c, d)
         vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(n_vertices)])
         if n_vertices == 0:
             vertices = np.empty(shape=(0, 3))
@@ -170,4 +169,3 @@ class CSL:
         scale_factor = self.scale_factor
         for plane in self.planes:
             plane.vertices /= scale_factor
-

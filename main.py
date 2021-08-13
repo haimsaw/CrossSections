@@ -51,7 +51,6 @@ if __name__ == "__main__":
 todo:
 	0.2 keep original proportions when resterizing
 	0.3 show empty slices
-	0.4 sample empty slices
 	visualization - show with original planes
 	    axis equal - show correct proprtions
 	reduce 2d sample 32*32 and over sample on errors (see chat)

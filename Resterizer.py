@@ -74,12 +74,12 @@ class PlaneRasterizer(IRasterizer):
         for component in self.plane.connected_components:
             if not component.is_hole:
                 # last vertex is ignored
-                shape_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [
+                shape_vertices += list(self.vertices[component.vertices_indices_in_component]) + [
                     [0, 0]]  # todo better way?
                 shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
             else:
                 # last vertex is ignored
-                hole_vertices += list(self.vertices[component.vertices_indeces_in_component]) + [
+                hole_vertices += list(self.vertices[component.vertices_indices_in_component]) + [
                     [0, 0]]  # todo better way?
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
 
