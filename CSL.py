@@ -147,8 +147,8 @@ class CSL:
             normal = [0.0] * 3
             normal[i] = 1.0
 
-            self._add_empty_plane(tuple(normal + [top[i]]))
-            self._add_empty_plane(tuple(normal + [bottom[i]]))
+            self._add_empty_plane(tuple(normal + [-top[i]]))
+            self._add_empty_plane(tuple(normal + [-bottom[i]]))
 
         stacked = np.stack((top, bottom))
         return np.array([np.choose(choice, stacked) for choice in itertools.product([0, 1], repeat=3)])

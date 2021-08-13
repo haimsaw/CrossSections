@@ -48,7 +48,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         return xyzs
 
     def get_rasterazation(self, resolution, margin):
-        return np.full(resolution, False), self._get_points_to_sample(resolution, margin)
+        return np.full(resolution, False).reshape(-1), self._get_points_to_sample(resolution, margin)
 
 
 class PlaneRasterizer(IRasterizer):
