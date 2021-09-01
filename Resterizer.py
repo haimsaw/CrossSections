@@ -12,12 +12,29 @@ def rasterizer_factory(plane: Plane):
 
 # todo - sample the btm left point of each cell (not the middle)
 class Cell:
-    def __init__(self, xy_btm_left, cell_size, label, xyz_transformer):
+    def __init__(self, xy_btm_left, label, cell_size, labeler, xyz_transformer):
+        assert min(cell_size) > 0
+
         self.xy_btm_left = xy_btm_left
-        self.cell_size = cell_size
         self.label = label
+
+        self.cell_size = cell_size
+
+        self.labeler = labeler
         self.xyz_transformer = xyz_transformer
         self.xyz = self.xyz_transformer([self.xy_btm_left])
+
+    def split_cell(self):
+        new_cell_size = self.cell_size / 2
+        new_xys = np.array([[0, 0],
+                            [1, 0],
+                            [0, 1],
+                            [1, 1]]) * new_cell_size + self.xy_btm_left
+
+        # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
+        labels = self.labeler(new_xys)
+
+        return [Cell(xy, label, new_cell_size, self.labeler, self.xyz_transformer) for xy, label in zip(new_xys, labels)]
 
 
 class IRasterizer:
@@ -66,7 +83,7 @@ class EmptyPlaneRasterizer(IRasterizer):
     def get_rasterazation(self, resolution, margin):
         return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
 
-    def get_rasterazation_cells(self,  resolution, margin):
+    def get_rasterazation_cells(self, resolution, margin):
         xyzs = self._get_voxels(resolution, margin)
 
         pca = PCA(n_components=2, svd_solver="full")
@@ -74,7 +91,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         xys = pca.transform(xyzs)
         # todo xys might not be alligned to the axes. should start with xys and find the xy -> xyz transformation and invert it
 
-        return [Cell(xy, cell_size, False, pca.inverse_transform) for xy in xys]
+        return [Cell(xy, False, cell_size, lambda x: False, pca.inverse_transform) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -95,7 +112,7 @@ class PlaneRasterizer(IRasterizer):
 
         return xys, xyzs, xy_diffs
 
-    def _get_rasterazation_mask(self, xys):
+    def _get_labeler(self):
         shape_vertices = []
         shape_codes = []
         hole_vertices = []
@@ -112,19 +129,23 @@ class PlaneRasterizer(IRasterizer):
                     [0, 0]]  # todo better way?
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
 
-        mask = Path(shape_vertices, shape_codes).contains_points(xys)
-        if len(hole_vertices) > 0:
-            pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xys)
-            mask &= np.logical_not(pixels_in_hole)
-        return mask
+        def masker(xys):
+            mask = Path(shape_vertices, shape_codes).contains_points(xys)
+            if len(hole_vertices) > 0:
+                pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xys)
+                mask &= np.logical_not(pixels_in_hole)
+            return mask
+
+        return masker
 
     def get_rasterazation(self, resolution, margin):
         xys, xyzs, _ = self._get_voxels(resolution, margin)
-        mask = self._get_rasterazation_mask(xys)
-        return mask, xyzs
+        labels = self._get_labeler()(xys)
+        return labels, xyzs
 
-    def get_rasterazation_cells(self,  resolution, margin):
+    def get_rasterazation_cells(self, resolution, margin):
         xys, _, xy_diffs = self._get_voxels(resolution, margin)
-        mask = self._get_rasterazation_mask(xys)
+        labeler = self._get_labeler()
+        labels = labeler(xys)
 
-        return [Cell(xy, xy_diffs, label, self.pca.inverse_transform) for xy, label in zip(xys, mask)]
+        return [Cell(xy, label, xy_diffs, labeler, self.pca.inverse_transform) for xy, label in zip(xys, labels)]
