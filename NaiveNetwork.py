@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
@@ -8,26 +9,22 @@ from Resterizer import rasterizer_factory
 class RasterizedCslDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), margin=0.2, transform=None, target_transform=None):
         self.csl = csl
-        self.labels_per_plane = []
-        self.xyz_per_plane = []
 
-        for plane in csl.planes:
-            labels, xyz = rasterizer_factory(plane).get_rasterazation(sampling_resolution, margin)
-            self.labels_per_plane.append(labels)
-            self.xyz_per_plane.append(xyz)
+        # todo get_rasterazation_cells for empty planes
+        self.cells_per_plane = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
+                                        for plane in csl.planes if not plane.is_empty]).reshape(-1)
 
         self.transform = transform
         self.target_transform = target_transform
 
     def __len__(self):
-        return len(self.labels_per_plane) * len(self.labels_per_plane[0])
+        return self.cells_per_plane.size
 
     def __getitem__(self, idx):
-        i = idx % len(self.labels_per_plane)
-        j = int(idx / len(self.labels_per_plane))
+        cell = self.cells_per_plane[idx]
 
-        xyz = self.xyz_per_plane[i][j]
-        label = [1.0] if self.labels_per_plane[i][j] else [0.0]
+        xyz = cell.xyz
+        label = [1.0] if cell.label else [0.0]
 
         if self.transform:
             xyz = self.transform(xyz)

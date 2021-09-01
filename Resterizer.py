@@ -9,11 +9,24 @@ def rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
 
 
+# todo - sample the btm left point of each cell (not the middle)
+class Cell:
+    def __init__(self, xy_btm_left, cell_size, label, xyz_transformer):
+        self.xy_btm_left = xy_btm_left
+        self.cell_size = cell_size
+        self.label = label
+        self.xyz_transformer = xyz_transformer
+        self.xyz = self.xyz_transformer([self.xy_btm_left])
+
+
 class IRasterizer:
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_rasterazation(self, resolution, margin): raise NotImplementedError
+
+    #@abstractmethod
+    #def get_rasterazation_cells(self, resolution, margin): raise NotImplementedError
 
 
 class EmptyPlaneRasterizer(IRasterizer):
@@ -26,7 +39,7 @@ class EmptyPlaneRasterizer(IRasterizer):
     def vertices_boundaries(self):
         return self.csl.vertices_boundaries
 
-    def _get_points_to_sample(self, resolution, margin):
+    def _get_voxels_edges(self, resolution, margin):
         projected_vertices = self.plane.project(self.csl.all_vertices)
         top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(projected_vertices), margin)
 
@@ -45,10 +58,13 @@ class EmptyPlaneRasterizer(IRasterizer):
             ys = np.linspace(bottom[1], top[1], resolution[1])
             xyzs = self.plane.get_zs(np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)))
 
+        else:
+            raise Exception("invalid plane")
+
         return xyzs
 
     def get_rasterazation(self, resolution, margin):
-        return np.full(resolution, False).reshape(-1), self._get_points_to_sample(resolution, margin)
+        return np.full(resolution, False).reshape(-1), self._get_voxels_edges(resolution, margin)
 
 
 class PlaneRasterizer(IRasterizer):
@@ -57,14 +73,17 @@ class PlaneRasterizer(IRasterizer):
         self.vertices, self.pca = plane.pca_projected_vertices  # todo should be on the plane
         self.plane = plane
 
-    def _get_points_to_sample(self, resolution, margin):
+    def _get_voxels_edges(self, resolution, margin):
         top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(self.vertices), margin)
 
         xs = np.linspace(bottom[0], top[0], resolution[0])
         ys = np.linspace(bottom[1], top[1], resolution[1])
+        xy_diffs = [xs[1] - xs[0], ys[1] - ys[0]]
+
         xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2))
         xyzs = self.pca.inverse_transform(xys)
-        return xys, xyzs
+
+        return xys, xyzs, xy_diffs
 
     def _get_rasterazation_mask(self, xys):
         shape_vertices = []
@@ -90,6 +109,12 @@ class PlaneRasterizer(IRasterizer):
         return mask
 
     def get_rasterazation(self, resolution, margin):
-        xys, xyzs = self._get_points_to_sample(resolution, margin)
+        xys, xyzs, _ = self._get_voxels_edges(resolution, margin)
         mask = self._get_rasterazation_mask(xys)
         return mask, xyzs
+
+    def get_rasterazation_cells(self,  resolution, margin):
+        xys, xyzs, xy_diffs = self._get_voxels_edges(resolution, margin)
+        mask = self._get_rasterazation_mask(xys)
+
+        return [Cell(xy, xy_diffs, label, self.pca.inverse_transform) for xy, label in zip(xys, mask)]

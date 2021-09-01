@@ -34,12 +34,12 @@ def main():
 
     network_manager = NetworkManager()
 
-    # network_manager.prepare_for_training(csl, lr=1e-2)
-    # network_manager.train_network(epochs=1)
-    # network_manager.show_train_losses()
+    network_manager.prepare_for_training(csl, lr=1e-2)
+    network_manager.train_network(epochs=1)
+    network_manager.show_train_losses()
 
-    network_manager.load_from_disk()
-    Renderer.draw_model_and_scene(network_manager, csl)
+    # network_manager.load_from_disk()
+    # Renderer.draw_model_and_scene(network_manager, csl)
     # Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
 
     # network_manager.train_network(epochs=1)
