@@ -3,6 +3,7 @@ from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
 from CSL import Plane
 import Helpers
+from sklearn.decomposition import PCA
 
 
 def rasterizer_factory(plane: Plane):
@@ -25,8 +26,8 @@ class IRasterizer:
     @abstractmethod
     def get_rasterazation(self, resolution, margin): raise NotImplementedError
 
-    #@abstractmethod
-    #def get_rasterazation_cells(self, resolution, margin): raise NotImplementedError
+    @abstractmethod
+    def get_rasterazation_cells(self, resolution, margin): raise NotImplementedError
 
 
 class EmptyPlaneRasterizer(IRasterizer):
@@ -39,7 +40,7 @@ class EmptyPlaneRasterizer(IRasterizer):
     def vertices_boundaries(self):
         return self.csl.vertices_boundaries
 
-    def _get_voxels_edges(self, resolution, margin):
+    def _get_voxels(self, resolution, margin):
         projected_vertices = self.plane.project(self.csl.all_vertices)
         top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(projected_vertices), margin)
 
@@ -60,11 +61,20 @@ class EmptyPlaneRasterizer(IRasterizer):
 
         else:
             raise Exception("invalid plane")
-
         return xyzs
 
     def get_rasterazation(self, resolution, margin):
-        return np.full(resolution, False).reshape(-1), self._get_voxels_edges(resolution, margin)
+        return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
+
+    def get_rasterazation_cells(self,  resolution, margin):
+        xyzs = self._get_voxels(resolution, margin)
+
+        pca = PCA(n_components=2, svd_solver="full")
+        pca.fit(xyzs)
+        xys = pca.transform(xyzs)
+        # todo xys might not be alligned to the axes. should start with xys and find the xy -> xyz transformation and invert it
+
+        return [Cell(xy, cell_size, False, pca.inverse_transform) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -73,7 +83,7 @@ class PlaneRasterizer(IRasterizer):
         self.vertices, self.pca = plane.pca_projected_vertices  # todo should be on the plane
         self.plane = plane
 
-    def _get_voxels_edges(self, resolution, margin):
+    def _get_voxels(self, resolution, margin):
         top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(self.vertices), margin)
 
         xs = np.linspace(bottom[0], top[0], resolution[0])
@@ -109,12 +119,12 @@ class PlaneRasterizer(IRasterizer):
         return mask
 
     def get_rasterazation(self, resolution, margin):
-        xys, xyzs, _ = self._get_voxels_edges(resolution, margin)
+        xys, xyzs, _ = self._get_voxels(resolution, margin)
         mask = self._get_rasterazation_mask(xys)
         return mask, xyzs
 
     def get_rasterazation_cells(self,  resolution, margin):
-        xys, xyzs, xy_diffs = self._get_voxels_edges(resolution, margin)
+        xys, _, xy_diffs = self._get_voxels(resolution, margin)
         mask = self._get_rasterazation_mask(xys)
 
         return [Cell(xy, xy_diffs, label, self.pca.inverse_transform) for xy, label in zip(xys, mask)]
