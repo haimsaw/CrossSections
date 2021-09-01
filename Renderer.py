@@ -105,9 +105,11 @@ class Renderer:
 
 # region 3d
 
-def draw_scene(csl, box):
+def draw_scene(csl):
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
+    fig.suptitle("draw_scene")
+
     colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
 
     for plane in csl.planes:
@@ -117,7 +119,6 @@ def draw_scene(csl, box):
             ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
     # todo show box
     # ax.plot_trisurf(*box.T, color=colors[-1])
-    fig.suptitle("draw_scene")
     plt.show()
     # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
@@ -151,6 +152,31 @@ def draw_model(network_manager, sampling_resolution=(64, 64, 64), threshold=0.5)
     fig.suptitle("draw_model")
     plt.show()
 
+
+# todo refactor
+def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64), threshold=0.5):
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection='3d')
+    fig.suptitle("draw_model_and_scene")
+
+    x = np.linspace(-1, 1, sampling_resolution[0])
+    y = np.linspace(-1, 1, sampling_resolution[1])
+    z = np.linspace(-1, 1, sampling_resolution[2])
+
+    xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+    pred = network_manager.predict(xyz)
+    label = pred > threshold
+    print(f"num of dots: {len(xyz[label])} / {len(xyz)}")
+    ax.scatter(*xyz[label].T)
+
+    colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
+
+    for plane in csl.planes:
+        for connected_component in plane.connected_components:
+            vertices = plane.vertices[connected_component.vertices_indices_in_component]
+            alpha = 1 if connected_component.is_hole else 1
+            ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
+    plt.show()
 # endregion
 
 

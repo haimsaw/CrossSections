@@ -105,7 +105,7 @@ class NetworkManager:
         print(f"running loss for epoch: {running_loss}")
         self.train_losses.append(running_loss)
 
-    def prepare_for_training(self, csl, sampling_resolution=(255, 255), margin=0.2, lr=1e-2):
+    def prepare_for_training(self, csl, sampling_resolution=(256, 256), margin=0.2, lr=1e-2):
         dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin,
                                        target_transform=torch.tensor, transform=torch.tensor)
         self.data_loader = DataLoader(dataset, batch_size=128, shuffle=True)
