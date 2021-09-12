@@ -30,7 +30,7 @@ def main():
     # Renderer.show_plane(csl.planes[3])
 
     # Renderer.draw_scene(csl, box)
-    # Renderer.draw_rasterized_scene(csl, sampling_resolution=(32, 32), margin=0.2)
+    Renderer.draw_rasterized_scene(csl, sampling_resolution=(32, 32), margin=0.2)
 
     network_manager = NetworkManager()
 

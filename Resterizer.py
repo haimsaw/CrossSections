@@ -96,7 +96,7 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
         return xys
 
-    def get_rasterazation(self, resolution, margin):
+    def get_rasterazation(self, resolution, margin):  # todo remove this
         return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
 
     def get_rasterazation_cells(self, resolution, margin):
@@ -163,7 +163,7 @@ class PlaneRasterizer(IRasterizer):
 
         return labeler
 
-    def get_rasterazation(self, resolution, margin):
+    def get_rasterazation(self, resolution, margin): # todo remove this
         xys, xyzs, _ = self._get_voxels(resolution, margin)
         labels = self._get_labeler()(xys)
         return labels, xyzs
