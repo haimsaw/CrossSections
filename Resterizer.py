@@ -10,7 +10,7 @@ def rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
 
 
-# todo - sample the btm left point of each cell (not the middle)
+# sample the btm left point of each cell (not the middle)
 class Cell:
     def __init__(self, xy_btm_left, label, cell_size, labeler, xyz_transformer):
         assert min(cell_size) > 0
@@ -58,40 +58,65 @@ class EmptyPlaneRasterizer(IRasterizer):
         return self.csl.vertices_boundaries
 
     def _get_voxels(self, resolution, margin):
+        d2_points = self._get_pixels(resolution, margin)
+
+        if self.plane.plane_normal[0] != 0:
+            xyzs = self.plane.get_xs(d2_points)
+
+        elif self.plane.plane_normal[1] != 0:
+            xyzs = self.plane.get_ys(d2_points)
+
+        elif self.plane.plane_normal[2] != 0:
+            xyzs = self.plane.get_zs(d2_points)
+
+        else:
+            raise Exception("invalid plane")
+        return xyzs
+
+    def _get_pixels(self, resolution, margin):
         projected_vertices = self.plane.project(self.csl.all_vertices)
         top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(projected_vertices), margin)
 
         if self.plane.plane_normal[0] != 0:
             ys = np.linspace(bottom[1], top[1], resolution[0])
             zs = np.linspace(bottom[2], top[2], resolution[1])
-            xyzs = self.plane.get_xs(np.stack(np.meshgrid(ys, zs), axis=-1).reshape((-1, 2)))
+            xys = np.stack(np.meshgrid(ys, zs), axis=-1).reshape((-1, 2))
 
         elif self.plane.plane_normal[1] != 0:
             xs = np.linspace(bottom[0], top[0], resolution[0])
             zs = np.linspace(bottom[2], top[2], resolution[1])
-            xyzs = self.plane.get_ys(np.stack(np.meshgrid(xs, zs), axis=-1).reshape((-1, 2)))
+            xys = np.stack(np.meshgrid(xs, zs), axis=-1).reshape((-1, 2))
 
         elif self.plane.plane_normal[2] != 0:
             xs = np.linspace(bottom[0], top[0], resolution[0])
             ys = np.linspace(bottom[1], top[1], resolution[1])
-            xyzs = self.plane.get_zs(np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)))
+            xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2))
 
         else:
             raise Exception("invalid plane")
-        return xyzs
+        return xys
 
     def get_rasterazation(self, resolution, margin):
         return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
 
     def get_rasterazation_cells(self, resolution, margin):
-        xyzs = self._get_voxels(resolution, margin)
+        xys = self._get_pixels(resolution, margin)
 
-        pca = PCA(n_components=2, svd_solver="full")
-        pca.fit(xyzs)
-        xys = pca.transform(xyzs)
-        # todo xys might not be alligned to the axes. should start with xys and find the xy -> xyz transformation and invert it
+        if self.plane.plane_normal[0] != 0:
+            xyz_transformer = lambda yz: self.plane.get_xs(yz.reshape(1, -1))
+            pass
+        elif self.plane.plane_normal[1] != 0:
+            xyz_transformer = lambda xz: self.plane.get_ys(xz.reshape(1, -1))
+            pass
+        elif self.plane.plane_normal[2] != 0:
+            xyz_transformer = lambda xy: self.plane.get_zs(xy.reshape(1, -1))
+            pass
 
-        return [Cell(xy, False, cell_size, lambda x: False, pca.inverse_transform) for xy in xys]
+        else:
+            raise Exception("invalid plane")
+        cell_size = [1, 1]
+
+        return [Cell(xy, False, cell_size, lambda x: False, xyz_transformer) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -121,22 +146,22 @@ class PlaneRasterizer(IRasterizer):
             if not component.is_hole:
                 # last vertex is ignored
                 shape_vertices += list(self.vertices[component.vertices_indices_in_component]) + [
-                    [0, 0]]  # todo better way?
+                    [0, 0]]
                 shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
             else:
                 # last vertex is ignored
                 hole_vertices += list(self.vertices[component.vertices_indices_in_component]) + [
-                    [0, 0]]  # todo better way?
+                    [0, 0]]
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
 
-        def masker(xys):
+        def labeler(xys):
             mask = Path(shape_vertices, shape_codes).contains_points(xys)
             if len(hole_vertices) > 0:
                 pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xys)
                 mask &= np.logical_not(pixels_in_hole)
             return mask
 
-        return masker
+        return labeler
 
     def get_rasterazation(self, resolution, margin):
         xys, xyzs, _ = self._get_voxels(resolution, margin)
