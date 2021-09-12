@@ -137,6 +137,22 @@ def draw_rasterized_scene(csl, sampling_resolution, margin):
     plt.show()
 
 
+def draw_rasterized_scene_cells(csl, sampling_resolution, margin):
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection='3d')
+    for plane in csl.planes:
+        cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
+        mask = np.array([cell.label for cell in cells])
+        xyzs = np.array([cell.xyz for cell in cells])
+
+        if not plane.is_empty:  # todo show empty planes
+            ax.scatter(*xyzs[mask].T, color="blue")
+        else:
+            ax.scatter(*xyzs.T, color="green", alpha=0.1)
+
+    fig.suptitle("draw_rasterized_scene")
+    plt.show()
+
 def draw_model(network_manager, sampling_resolution=(64, 64, 64), threshold=0.5):
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')

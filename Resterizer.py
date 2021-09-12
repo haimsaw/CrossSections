@@ -22,7 +22,7 @@ class Cell:
 
         self.labeler = labeler
         self.xyz_transformer = xyz_transformer
-        self.xyz = self.xyz_transformer([self.xy_btm_left])
+        self.xyz = self.xyz_transformer(np.array([self.xy_btm_left]))
 
     def split_cell(self):
         new_cell_size = self.cell_size / 2
@@ -103,14 +103,11 @@ class EmptyPlaneRasterizer(IRasterizer):
         xys = self._get_pixels(resolution, margin)
 
         if self.plane.plane_normal[0] != 0:
-            xyz_transformer = lambda yz: self.plane.get_xs(yz.reshape(1, -1))
-            pass
+            xyz_transformer = lambda yz: self.plane.get_xs(yz)
         elif self.plane.plane_normal[1] != 0:
-            xyz_transformer = lambda xz: self.plane.get_ys(xz.reshape(1, -1))
-            pass
+            xyz_transformer = lambda xz: self.plane.get_ys(xz)
         elif self.plane.plane_normal[2] != 0:
-            xyz_transformer = lambda xy: self.plane.get_zs(xy.reshape(1, -1))
-            pass
+            xyz_transformer = lambda xy: self.plane.get_zs(xy)
 
         else:
             raise Exception("invalid plane")

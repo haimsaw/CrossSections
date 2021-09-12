@@ -4,11 +4,11 @@ from NaiveNetwork import *
 
 
 def main():
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
 
-    csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
 
     #csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
@@ -30,13 +30,13 @@ def main():
     # Renderer.show_plane(csl.planes[3])
 
     # Renderer.draw_scene(csl, box)
-    Renderer.draw_rasterized_scene(csl, sampling_resolution=(32, 32), margin=0.2)
+    Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(32, 32), margin=0.2)
 
-    network_manager = NetworkManager()
+    '''network_manager = NetworkManager()
 
     network_manager.prepare_for_training(csl, lr=1e-2)
     network_manager.train_network(epochs=1)
-    network_manager.show_train_losses()
+    network_manager.show_train_losses()'''
 
     # network_manager.load_from_disk()
     # Renderer.draw_model_and_scene(network_manager, csl)
@@ -57,7 +57,6 @@ if __name__ == "__main__":
 '''
 todo:
 	0.2 keep original proportions when resterizing
-	0.3 show empty slices
 	visualization - show with original planes
 	    axis equal - show correct proprtions
 	reduce 2d sample 32*32 and over sample on errors (see chat)
