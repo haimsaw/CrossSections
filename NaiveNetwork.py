@@ -10,7 +10,6 @@ class RasterizedCslDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), margin=0.2, transform=None, target_transform=None):
         self.csl = csl
 
-        # todo get_rasterazation_cells for empty planes
         self.cells_per_plane = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
                                         for plane in csl.planes]).reshape(-1)
 

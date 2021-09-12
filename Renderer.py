@@ -150,8 +150,9 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin):
         else:
             ax.scatter(*xyzs.T, color="green", alpha=0.1)
 
-    fig.suptitle("draw_rasterized_scene")
+    fig.suptitle("draw_rasterized_scene_cells")
     plt.show()
+
 
 def draw_model(network_manager, sampling_resolution=(64, 64, 64), threshold=0.5):
     fig = plt.figure(figsize=(10, 10))

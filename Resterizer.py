@@ -22,7 +22,7 @@ class Cell:
 
         self.labeler = labeler
         self.xyz_transformer = xyz_transformer
-        self.xyz = self.xyz_transformer(np.array([self.xy_btm_left]))
+        self.xyz = self.xyz_transformer(np.array([self.xy_btm_left]))[0]
 
     def split_cell(self):
         new_cell_size = self.cell_size / 2
@@ -96,7 +96,8 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
         return xys
 
-    def get_rasterazation(self, resolution, margin):  # todo remove this
+    def get_rasterazation(self, resolution, margin):
+        raise NotImplementedError("should use get_rasterazation_cells instead")
         return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
 
     def get_rasterazation_cells(self, resolution, margin):
@@ -111,7 +112,7 @@ class EmptyPlaneRasterizer(IRasterizer):
 
         else:
             raise Exception("invalid plane")
-        cell_size = [1, 1]
+        cell_size = [1, 1]  # todo calc this
 
         return [Cell(xy, False, cell_size, lambda x: False, xyz_transformer) for xy in xys]
 
@@ -160,7 +161,9 @@ class PlaneRasterizer(IRasterizer):
 
         return labeler
 
-    def get_rasterazation(self, resolution, margin): # todo remove this
+    def get_rasterazation(self, resolution, margin):
+        raise NotImplementedError("should use get_rasterazation_cells instead")
+
         xys, xyzs, _ = self._get_voxels(resolution, margin)
         labels = self._get_labeler()(xys)
         return labels, xyzs

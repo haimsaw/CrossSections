@@ -21,22 +21,19 @@ def main():
 
     # csl = CSL("csl-files/Brain.csl")
 
-    csl.centralize()
-    csl.rotate_by_pca()
-    csl.scale()
-    box = csl.add_boundary_planes(margin=0.2)  # todo show and sample empty planes
+    csl.adjust_csl(margin=0.2)
 
     # Renderer.draw_rasterized_plane(csl.planes[3], resolution=(256, 256), margin=0.2)
     # Renderer.show_plane(csl.planes[3])
 
     # Renderer.draw_scene(csl, box)
-    Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(32, 32), margin=0.2)
+    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(32, 32), margin=0.2)
 
-    '''network_manager = NetworkManager()
+    network_manager = NetworkManager()
 
     network_manager.prepare_for_training(csl, lr=1e-2)
     network_manager.train_network(epochs=1)
-    network_manager.show_train_losses()'''
+    network_manager.show_train_losses()
 
     # network_manager.load_from_disk()
     # Renderer.draw_model_and_scene(network_manager, csl)

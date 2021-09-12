@@ -35,6 +35,10 @@ class Plane:
         self.csl = csl
         self.plane_id = plane_id
 
+        self.vertices = vertices  # should be on the plane
+        self.connected_components = connected_components
+        self.mean = np.mean(self.vertices, axis=0) if len(self.vertices) > 0 else np.zeros((3,))
+
         # self.plane_params = plane_params  # Ax+By+Cz+D=0
         self.plane_normal = np.array(plane_params[0:3])
         self.plane_normal /= np.linalg.norm(self.plane_normal)
@@ -45,10 +49,6 @@ class Plane:
             self.plane_origin = np.array([0, -plane_params[3] / plane_params[1], 0])
         else:
             self.plane_origin = np.array([0, 0, -plane_params[3] / plane_params[2]])
-
-        self.vertices = vertices  # should be on the plane
-        self.connected_components = connected_components
-        self.mean = np.mean(self.vertices, axis=0) if len(self.vertices) > 0 else np.zeros((3,))
 
     @classmethod
     def from_csl_file(cls, csl_file, csl):
@@ -151,7 +151,7 @@ class CSL:
             self._add_empty_plane(tuple(normal + [-bottom[i]]))
 
         stacked = np.stack((top, bottom))
-        return np.array([np.choose(choice, stacked) for choice in itertools.product([0, 1], repeat=3)])
+        # return np.array([np.choose(choice, stacked) for choice in itertools.product([0, 1], repeat=3)])
 
     def centralize(self):
         mean = np.mean(self.all_vertices, axis=0)
@@ -169,3 +169,9 @@ class CSL:
         scale_factor = self.scale_factor
         for plane in self.planes:
             plane.vertices /= scale_factor
+
+    def adjust_csl(self, margin):
+        self.centralize()
+        self.rotate_by_pca()
+        self.scale()
+        self.add_boundary_planes(margin=margin)
