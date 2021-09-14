@@ -78,6 +78,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(projected_vertices), margin)
 
         # create 2d grid of pixels, in case the plane is aligned with the axes we want to ignore the dimension it is zero in
+        # the pixels will be projected to the correct 3d space by xyz_transformer
         first_dim = 0 if self.plane.plane_normal[0] == 0 else 1
         second_dim = 1 if self.plane.plane_normal[0] == 0 and self.plane.plane_normal[1] == 0 else 2
 
