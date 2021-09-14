@@ -156,9 +156,11 @@ class NetworkManager:
     @torch.no_grad()
     def refine_sampling(self, threshold=0.5):
         self.model.eval()
+        size_before = len(self.dataset)
 
         def predictor(xyz):
             xyz = xyz.to(self.device)
             return self.model(xyz) > threshold
 
         self.dataset.refine_cells(predictor)
+        print(f'refine_sampling before={size_before}, after={len(self.dataset)}')
