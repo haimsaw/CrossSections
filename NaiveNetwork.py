@@ -10,17 +10,17 @@ class RasterizedCslDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), margin=0.2, transform=None, target_transform=None):
         self.csl = csl
 
-        self.cells_per_plane = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
-                                        for plane in csl.planes]).reshape(-1)
+        self.cells = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
+                               for plane in csl.planes]).reshape(-1)
 
         self.transform = transform
         self.target_transform = target_transform
 
     def __len__(self):
-        return self.cells_per_plane.size
+        return self.cells.size
 
     def __getitem__(self, idx):
-        cell = self.cells_per_plane[idx]
+        cell = self.cells[idx]
 
         xyz = cell.xyz
         label = [1.0] if cell.label else [0.0]
@@ -31,6 +31,15 @@ class RasterizedCslDataset(Dataset):
             label = self.target_transform(label)
 
         return xyz, label
+
+    def refine_cells(self, predictor):
+        new_cells = []
+        for cell in self.cells:
+            if predictor(cell.xyz) == cell.label:
+                new_cells.append(cell)
+            else:
+                new_cells += cell.split_cell()
+        self.cells = np.array(new_cells)
 
 
 class NaiveNetwork(nn.Module):
@@ -72,6 +81,7 @@ class NetworkManager:
         self.train_losses = []
         self.optimizer = None
         self.data_loader = None
+        self.dataset = None
 
         self.is_training_ready = False
         self.total_epochs = 0
@@ -102,9 +112,9 @@ class NetworkManager:
         self.train_losses.append(running_loss)
 
     def prepare_for_training(self, csl, sampling_resolution=(256, 256), margin=0.2, lr=1e-2):
-        dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin,
+        self.dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin,
                                        target_transform=torch.tensor, transform=torch.tensor)
-        self.data_loader = DataLoader(dataset, batch_size=128, shuffle=True)
+        self.data_loader = DataLoader(self.dataset, batch_size=128, shuffle=True)
         self.model.init_weights()
         # self.loss_fn = nn.L1Loss()
         self.loss_fn = nn.BCEWithLogitsLoss()
@@ -116,7 +126,6 @@ class NetworkManager:
             print("Shape of X [N, C, H, W]: ", xyz.shape)
             print("Shape of label: ", label.shape, label.dtype)
             break
-        return self
 
     def train_network(self, epochs=30):
         self.model.train()
@@ -125,30 +134,31 @@ class NetworkManager:
             self._train_epoch()
             self.total_epochs += 1
         print("Done!")
-        return self
 
     def show_train_losses(self):
         plt.bar(range(len(self.train_losses)), self.train_losses)
         plt.show()
-        return self
 
     def load_from_disk(self):
         self.model.load_state_dict(torch.load(self.save_path, map_location=torch.device('cpu')))
         self.model.eval()
-        return self
 
     def save_to_disk(self):
         torch.save(self.model.state_dict(), self.save_path)
-        return self
 
     @torch.no_grad()
-    def predict(self, xyz):
+    def predict(self, xyz, threshold=0.5):
         self.model.eval()
         xyz = torch.from_numpy(xyz).to(self.device)
-        label_pred = self.model(xyz)
+        label_pred = self.model(xyz) > threshold
         return label_pred.detach().cpu().numpy().reshape(-1)
 
-
     @torch.no_grad()
-    def refine_sampling(self):
-        pass
+    def refine_sampling(self, threshold=0.5):
+        self.model.eval()
+
+        def predictor(xyz):
+            xyz = xyz.to(self.device)
+            return self.model(xyz) > threshold
+
+        self.dataset.refine_cells(predictor)

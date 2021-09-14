@@ -3,7 +3,6 @@ from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
 from CSL import Plane
 import Helpers
-from sklearn.decomposition import PCA
 
 
 def rasterizer_factory(plane: Plane):
