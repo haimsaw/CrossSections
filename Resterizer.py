@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
 from CSL import Plane
-import Helpers
+from Helpers import *
 
 
 def rasterizer_factory(plane: Plane):
@@ -74,7 +74,7 @@ class EmptyPlaneRasterizer(IRasterizer):
 
     def _get_pixels(self, resolution, margin):
         projected_vertices = self.plane.project(self.csl.all_vertices)
-        top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(projected_vertices), margin)
+        top, bottom = add_margin(*get_top_bottom(projected_vertices), margin)
 
         # create 2d grid of pixels, in case the plane is aligned with the axes we want to ignore the dimension it is zero in
         # the pixels will be projected to the correct 3d space by xyz_transformer
@@ -114,7 +114,7 @@ class PlaneRasterizer(IRasterizer):
         self.plane = plane
 
     def _get_voxels(self, resolution, margin):
-        top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(self.vertices), margin)
+        top, bottom = add_margin(*get_top_bottom(self.vertices), margin)
 
         xs = np.linspace(bottom[0], top[0], resolution[0])
         ys = np.linspace(bottom[1], top[1], resolution[1])

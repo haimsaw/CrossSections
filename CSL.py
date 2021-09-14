@@ -5,7 +5,7 @@ import numpy as np
 from parse import parse
 from sklearn.decomposition import PCA
 
-import Helpers
+from Helpers import *
 
 
 class ConnectedComponent:
@@ -141,7 +141,7 @@ class CSL:
 
     def add_boundary_planes(self, margin):
 
-        top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(self.all_vertices), margin)
+        top, bottom = add_margin(*get_top_bottom(self.all_vertices), margin)
 
         for i in range(3):
             normal = [0.0] * 3
