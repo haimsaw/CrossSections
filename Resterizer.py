@@ -77,42 +77,32 @@ class EmptyPlaneRasterizer(IRasterizer):
         projected_vertices = self.plane.project(self.csl.all_vertices)
         top, bottom = Helpers.add_margin(*Helpers.get_top_bottom(projected_vertices), margin)
 
-        if self.plane.plane_normal[0] != 0:
-            ys = np.linspace(bottom[1], top[1], resolution[0])
-            zs = np.linspace(bottom[2], top[2], resolution[1])
-            xys = np.stack(np.meshgrid(ys, zs), axis=-1).reshape((-1, 2))
+        # create 2d grid of pixels, in case the plane is aligned with the axes we want to ignore the dimension it is zero in
+        first_dim = 0 if self.plane.plane_normal[0] == 0 else 1
+        second_dim = 1 if self.plane.plane_normal[0] == 0 and self.plane.plane_normal[1] == 0 else 2
 
-        elif self.plane.plane_normal[1] != 0:
-            xs = np.linspace(bottom[0], top[0], resolution[0])
-            zs = np.linspace(bottom[2], top[2], resolution[1])
-            xys = np.stack(np.meshgrid(xs, zs), axis=-1).reshape((-1, 2))
+        xs = np.linspace(bottom[first_dim], top[first_dim], resolution[0])
+        ys = np.linspace(bottom[second_dim], top[second_dim], resolution[1])
+        xy_diffs = [xs[1] - xs[0], ys[1] - ys[0]]
 
-        elif self.plane.plane_normal[2] != 0:
-            xs = np.linspace(bottom[0], top[0], resolution[0])
-            ys = np.linspace(bottom[1], top[1], resolution[1])
-            xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2))
-
-        else:
-            raise Exception("invalid plane")
-        return xys
+        return np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)), xy_diffs
 
     def get_rasterazation(self, resolution, margin):
         raise NotImplementedError("should use get_rasterazation_cells instead")
         return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
 
     def get_rasterazation_cells(self, resolution, margin):
-        xys = self._get_pixels(resolution, margin)
+        xys, cell_size = self._get_pixels(resolution, margin)
 
         if self.plane.plane_normal[0] != 0:
-            xyz_transformer = lambda yz: self.plane.get_xs(yz)
+            xyz_transformer = self.plane.get_xs
         elif self.plane.plane_normal[1] != 0:
-            xyz_transformer = lambda xz: self.plane.get_ys(xz)
+            xyz_transformer = self.plane.get_ys
         elif self.plane.plane_normal[2] != 0:
-            xyz_transformer = lambda xy: self.plane.get_zs(xy)
+            xyz_transformer = self.plane.get_zs
 
         else:
             raise Exception("invalid plane")
-        cell_size = [1, 1]  # todo calc this
 
         return [Cell(xy, False, cell_size, lambda x: False, xyz_transformer) for xy in xys]
 

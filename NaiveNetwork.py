@@ -147,3 +147,8 @@ class NetworkManager:
         xyz = torch.from_numpy(xyz).to(self.device)
         label_pred = self.model(xyz)
         return label_pred.detach().cpu().numpy().reshape(-1)
+
+
+    @torch.no_grad()
+    def refine_sampling(self):
+        pass
