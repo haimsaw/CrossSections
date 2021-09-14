@@ -31,26 +31,28 @@ def main():
 
     network_manager = NetworkManager()
     network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=(34, 34))
+    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(100, 32), margin=0.2)
 
     network_manager.train_network(epochs=1)
     network_manager.refine_sampling()
+    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
 
     network_manager.train_network(epochs=25)
     network_manager.refine_sampling()
+    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
     network_manager.save_to_disk()
 
     network_manager.train_network(epochs=25)
     network_manager.refine_sampling()
+    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
     network_manager.save_to_disk()
 
     network_manager.train_network(epochs=25)
     network_manager.refine_sampling()
+    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
     network_manager.save_to_disk()
 
     network_manager.show_train_losses()
-
-    network_manager.save_to_disk()
-    Renderer.draw_model_and_scene(network_manager, csl)
 
     # Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
 

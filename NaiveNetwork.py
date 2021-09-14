@@ -108,7 +108,7 @@ class NetworkManager:
             if batch % 1000 == 0:
                 loss, current = loss.item(), batch * len(xyz)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
-        print(f"running loss for epoch: {running_loss}")
+        print(f"\trunning loss for epoch: {running_loss}")
         self.train_losses.append(running_loss)
 
     def prepare_for_training(self, csl, sampling_resolution=(256, 256), margin=0.2, lr=1e-2):
@@ -133,7 +133,6 @@ class NetworkManager:
             print(f"\n\nEpoch {self.total_epochs} [{epoch}/{epochs}]\n-------------------------------")
             self._train_epoch()
             self.total_epochs += 1
-        print("Done!")
 
     def show_train_losses(self):
         plt.bar(range(len(self.train_losses)), self.train_losses)
@@ -159,8 +158,9 @@ class NetworkManager:
         size_before = len(self.dataset)
 
         def predictor(xyz):
+            xyz = torch.from_numpy(xyz)
             xyz = xyz.to(self.device)
             return self.model(xyz) > threshold
 
         self.dataset.refine_cells(predictor)
-        print(f'refine_sampling before={size_before}, after={len(self.dataset)}')
+        print(f'\trefine_sampling before={size_before}, after={len(self.dataset)}')

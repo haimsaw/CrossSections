@@ -83,7 +83,7 @@ class EmptyPlaneRasterizer(IRasterizer):
 
         xs = np.linspace(bottom[first_dim], top[first_dim], resolution[0])
         ys = np.linspace(bottom[second_dim], top[second_dim], resolution[1])
-        xy_diffs = [xs[1] - xs[0], ys[1] - ys[0]]
+        xy_diffs = np.array([xs[1] - xs[0], ys[1] - ys[0]])
 
         return np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)), xy_diffs
 
@@ -118,7 +118,7 @@ class PlaneRasterizer(IRasterizer):
 
         xs = np.linspace(bottom[0], top[0], resolution[0])
         ys = np.linspace(bottom[1], top[1], resolution[1])
-        xy_diffs = [xs[1] - xs[0], ys[1] - ys[0]]
+        xy_diffs = np.array([xs[1] - xs[0], ys[1] - ys[0]])
 
         xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2))
         xyzs = self.pca.inverse_transform(xys)

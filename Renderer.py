@@ -181,7 +181,7 @@ def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     labels = network_manager.predict(xyz)
-    print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
+    # print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
     ax.scatter(*xyz[labels].T)
 
     colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
