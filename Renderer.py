@@ -46,7 +46,7 @@ class Renderer:
     def __draw_scene(self):
         for plane in self.csl.planes:
             for connected_component in plane.connected_components:
-                vertices = plane.pca_projected_vertices[connected_component.vertices_indices_in_component]
+                vertices = plane.vertices[connected_component.vertices_indices_in_component]
                 self.__draw_vertices(vertices, connected_component.label, GL_LINE_LOOP)
         self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
@@ -114,13 +114,11 @@ def draw_scene(csl):
 
     for plane in csl.planes:
         for connected_component in plane.connected_components:
-            vertices = plane.pca_projected_vertices[connected_component.vertices_indices_in_component]
+            vertices = plane.vertices[connected_component.vertices_indices_in_component]
             alpha = 1 if connected_component.is_hole else 0.5
             ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
-    # todo show box
-    # ax.plot_trisurf(*box.T, color=colors[-1])
+
     plt.show()
-    # self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
 
 def draw_rasterized_scene(csl, sampling_resolution, margin):
@@ -145,10 +143,10 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin):
         mask = np.array([cell.label for cell in cells])
         xyzs = np.array([cell.xyz for cell in cells])
 
-        if not plane.is_empty:  # todo show empty planes
-            ax.scatter(*xyzs[mask].T, color="blue")
+        if plane.is_empty:
+            ax.scatter(*xyzs.T, color="green", alpha=0.3)
         else:
-            ax.scatter(*xyzs.T, color="green", alpha=0.1)
+            ax.scatter(*xyzs[mask].T, color="blue")
 
     fig.suptitle("draw_rasterized_scene_cells")
     plt.show()
@@ -187,10 +185,11 @@ def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
     colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
 
     for plane in csl.planes:
-        for connected_component in plane.connected_components:
-            vertices = plane.pca_projected_vertices[connected_component.vertices_indices_in_component]
-            alpha = 1 if connected_component.is_hole else 1
-            ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
+        if not plane.is_empty:
+            for connected_component in plane.connected_components:
+                vertices = plane.vertices[connected_component.vertices_indices_in_component]
+                alpha = 1 if connected_component.is_hole else 1
+                ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
     plt.show()
 # endregion
 
@@ -205,7 +204,7 @@ def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
 
 
 def show_plane(plane):
-    verts, _ = plane.pca_projected_vertices
+    verts, _ = plane.pca_projection
     for component in plane.connected_components:
         plt.scatter(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
     plt.scatter([0], [0], color='red')

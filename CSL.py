@@ -72,7 +72,7 @@ class Plane:
         return len(self.vertices) == 0
 
     @property
-    def pca_projected_vertices(self):
+    def pca_projection(self):
         if self.is_empty:
             raise Exception("rotating empty plane")
 

@@ -117,7 +117,7 @@ class EmptyPlaneRasterizer(IRasterizer):
 class PlaneRasterizer(IRasterizer):
     def __init__(self, plane: Plane):
         assert not plane.is_empty
-        self.pca_projected_vertices, self.pca = plane.pca_projected_vertices  # todo should be on the plane
+        self.pca_projected_vertices, self.pca = plane.pca_projection  # todo should be on the plane
         self.plane = plane
 
     def _get_voxels(self, resolution, margin):
