@@ -33,6 +33,7 @@ class RasterizedCslDataset(Dataset):
         return xyz, label
 
     def refine_cells(self, predictor):
+        # todo refine with cuda
         new_cells = []
         for cell in self.cells:
             if predictor(cell.xyz) == cell.label:
@@ -86,8 +87,9 @@ class NetworkManager:
         self.is_training_ready = False
         self.total_epochs = 0
 
-    def _train_epoch(self):
+    def _train_epoch(self, epoch):
         assert self.is_training_ready
+        print(f"\n\nEpoch {self.total_epochs} [{epoch}]\n-------------------------------")
 
         running_loss = 0.0
         size = len(self.data_loader.dataset)
@@ -130,8 +132,7 @@ class NetworkManager:
     def train_network(self, epochs=30):
         self.model.train()
         for epoch in range(epochs):
-            print(f"\n\nEpoch {self.total_epochs} [{epoch}/{epochs}]\n-------------------------------")
-            self._train_epoch()
+            self._train_epoch(epoch)
             self.total_epochs += 1
 
     def show_train_losses(self):

@@ -27,15 +27,15 @@ def main():
     # Renderer.draw_plane(csl.planes[27])
 
     # Renderer.draw_scene(csl, box)
-    Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(100, 100), margin=0.2)
+    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(100, 100), margin=0.2)
 
     network_manager = NetworkManager()
-    network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=(5, 5))
-    Renderer.draw_dataset(network_manager.dataset)
+    network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=(32, 32))
+    # Renderer.draw_dataset(network_manager.dataset)
 
     # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(10, 10), margin=0.2)
 
-    #network_manager.train_network(epochs=1)
+    network_manager.train_network(epochs=1)
     network_manager.refine_sampling()
     Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
     Renderer.draw_dataset(network_manager.dataset)
@@ -69,5 +69,4 @@ todo:
 	0.2 keep original proportions when resterizing
 	visualization - show with original planes
 	    axis equal - show correct proprtions
-	reduce 2d sample 32*32 and over sample on errors (see chat)
 '''
