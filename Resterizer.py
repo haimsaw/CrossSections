@@ -72,6 +72,12 @@ class EmptyPlaneRasterizer(IRasterizer):
         return xyzs
 
     def _get_pixels(self, resolution, margin):
+        '''
+
+        :param resolution:
+        :param margin:
+        :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
+        '''
         projected_vertices = self.plane.project(self.csl.all_vertices)
         top, bottom = add_margin(*get_top_bottom(projected_vertices), margin)
 
@@ -80,18 +86,20 @@ class EmptyPlaneRasterizer(IRasterizer):
         first_dim = 0 if self.plane.plane_normal[0] == 0 else 1
         second_dim = 1 if self.plane.plane_normal[0] == 0 and self.plane.plane_normal[1] == 0 else 2
 
-        xs = np.linspace(bottom[first_dim], top[first_dim], resolution[0])
-        ys = np.linspace(bottom[second_dim], top[second_dim], resolution[1])
-        xy_diffs = np.array([xs[1] - xs[0], ys[1] - ys[0]])
+        xs = np.linspace(bottom[first_dim], top[first_dim], resolution[0], endpoint=False)
+        ys = np.linspace(bottom[second_dim], top[second_dim], resolution[1], endpoint=False)
 
-        return np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)), xy_diffs
+        pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]])/2
+        xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius
+
+        return xys, pixel_radius
 
     def get_rasterazation(self, resolution, margin):
         raise NotImplementedError("should use get_rasterazation_cells instead")
-        return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
+        # return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
 
     def get_rasterazation_cells(self, resolution, margin):
-        xys, cell_size = self._get_pixels(resolution, margin)
+        xys, pixel_radius = self._get_pixels(resolution, margin)
 
         if self.plane.plane_normal[0] != 0:
             xyz_transformer = self.plane.get_xs
@@ -103,7 +111,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        return [Cell(xy, False, cell_size, lambda x: False, xyz_transformer) for xy in xys]
+        return [Cell(xy, False, pixel_radius, lambda x: False, xyz_transformer) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
