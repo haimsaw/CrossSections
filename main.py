@@ -4,14 +4,14 @@ from NaiveNetwork import *
 
 
 def main():
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
 
     # csl = CSL("csl-files/Heart-25-even-better.csl")
 
-    #csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    csl = CSL("csl-files/Horsers.csl")
 
     # csl = CSL("csl-files/rocker-arm.csl")
 
@@ -53,10 +53,6 @@ def main():
     network_manager.save_to_disk()
 
     network_manager.show_train_losses()
-
-    # Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
-
-    # Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
 
     # renderer = Renderer.Renderer(csl, box)
     # renderer.event_loop()
