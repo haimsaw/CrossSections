@@ -129,9 +129,12 @@ class NetworkManager:
             print("Shape of label: ", label.shape, label.dtype)
             break
 
-    def train_network(self, epochs=30):
+    def train_network(self, epochs):
+        print('n_tests' + '.' * epochs)
+        print('Running', end="")
         self.model.train()
         for epoch in range(epochs):
+            print('.', end='')
             self._train_epoch(epoch)
             self.total_epochs += 1
 

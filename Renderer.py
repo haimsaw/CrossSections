@@ -146,7 +146,7 @@ def draw_dataset(dataset):
     plt.show()
 
 
-def draw_rasterized_scene_cells(csl, sampling_resolution, margin):
+def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_planes=True):
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
     for plane in csl.planes:
@@ -154,10 +154,10 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin):
         mask = np.array([cell.label for cell in cells])
         xyzs = np.array([cell.xyz for cell in cells])
 
-        if plane.is_empty:
-            ax.scatter(*xyzs.T, color="green", alpha=0.3)
-        else:
+        if not plane.is_empty:
             ax.scatter(*xyzs[mask].T, color="blue")
+        elif show_empty_planes:
+            ax.scatter(*xyzs.T, color="green", alpha=0.3)
 
     fig.suptitle("draw_rasterized_scene_cells")
     plt.show()
@@ -172,7 +172,7 @@ def draw_model(network_manager, sampling_resolution=(64, 64, 64)):
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     labels = network_manager.predict(xyz)
-    print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
+    # print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
     ax.scatter(*xyz[labels].T)
     fig.suptitle("draw_model")
     plt.show()
