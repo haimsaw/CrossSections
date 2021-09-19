@@ -46,7 +46,7 @@ class Renderer:
     def __draw_scene(self):
         for plane in self.csl.planes:
             for connected_component in plane.connected_components:
-                vertices = plane.vertices[connected_component.vertices_indices_in_component]
+                vertices = plane.pca_projected_vertices[connected_component.vertices_indices_in_component]
                 self.__draw_vertices(vertices, connected_component.label, GL_LINE_LOOP)
         self.__draw_vertices(self.box, self.csl.n_labels, GL_LINE_LOOP)
 
@@ -114,7 +114,7 @@ def draw_scene(csl):
 
     for plane in csl.planes:
         for connected_component in plane.connected_components:
-            vertices = plane.vertices[connected_component.vertices_indices_in_component]
+            vertices = plane.pca_projected_vertices[connected_component.vertices_indices_in_component]
             alpha = 1 if connected_component.is_hole else 0.5
             ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
     # todo show box
@@ -188,7 +188,7 @@ def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
 
     for plane in csl.planes:
         for connected_component in plane.connected_components:
-            vertices = plane.vertices[connected_component.vertices_indices_in_component]
+            vertices = plane.pca_projected_vertices[connected_component.vertices_indices_in_component]
             alpha = 1 if connected_component.is_hole else 1
             ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
     plt.show()

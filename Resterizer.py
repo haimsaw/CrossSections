@@ -9,31 +9,30 @@ def rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
 
 
-# sample the btm left point of each cell (not the middle)
 class Cell:
-    def __init__(self, xy_btm_left, label, cell_size, labeler, xyz_transformer):
-        assert min(cell_size) > 0
+    def __init__(self, pixel_center, label, pixel_radius, labeler, xyz_transformer):
+        assert min(pixel_radius) > 0
 
-        self.xy_btm_left = xy_btm_left
+        self.pixel_center = pixel_center
         self.label = label
 
-        self.cell_size = cell_size
+        self.pixel_radius = pixel_radius
 
         self.labeler = labeler
         self.xyz_transformer = xyz_transformer
-        self.xyz = self.xyz_transformer(np.array([self.xy_btm_left]))[0]
+        self.xyz = self.xyz_transformer(np.array([self.pixel_center]))[0]
 
     def split_cell(self):
-        new_cell_size = self.cell_size / 2
-        new_xys = np.array([[0, 0],
-                            [1, 0],
-                            [0, 1],
-                            [1, 1]]) * new_cell_size + self.xy_btm_left
+        new_cell_radius = self.pixel_radius / 2
+        new_centers = np.array([[1, 1],
+                            [1, -1],
+                            [-1, 1],
+                            [-1, -1]]) * new_cell_radius + self.pixel_center
 
         # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
-        labels = self.labeler(new_xys)
+        labels = self.labeler(new_centers)
 
-        return [Cell(xy, label, new_cell_size, self.labeler, self.xyz_transformer) for xy, label in zip(new_xys, labels)]
+        return [Cell(xy, label, new_cell_radius, self.labeler, self.xyz_transformer) for xy, label in zip(new_centers, labels)]
 
 
 class IRasterizer:
@@ -110,20 +109,26 @@ class EmptyPlaneRasterizer(IRasterizer):
 class PlaneRasterizer(IRasterizer):
     def __init__(self, plane: Plane):
         assert not plane.is_empty
-        self.vertices, self.pca = plane.pca_projected_vertices  # todo should be on the plane
+        self.pca_projected_vertices, self.pca = plane.pca_projected_vertices  # todo should be on the plane
         self.plane = plane
 
     def _get_voxels(self, resolution, margin):
-        top, bottom = add_margin(*get_top_bottom(self.vertices), margin)
+        '''
 
-        xs = np.linspace(bottom[0], top[0], resolution[0])
-        ys = np.linspace(bottom[1], top[1], resolution[1])
-        xy_diffs = np.array([xs[1] - xs[0], ys[1] - ys[0]])
+        :param resolution:
+        :param margin:
+        :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
+        '''
+        top, bottom = add_margin(*get_top_bottom(self.pca_projected_vertices), margin)
 
-        xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2))
+        xs = np.linspace(bottom[0], top[0], resolution[0], endpoint=False)
+        ys = np.linspace(bottom[1], top[1], resolution[1], endpoint=False)
+        pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]])/2
+
+        xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius
         xyzs = self.pca.inverse_transform(xys)
 
-        return xys, xyzs, xy_diffs
+        return xys, xyzs, pixel_radius
 
     def _get_labeler(self):
         shape_vertices = []
@@ -133,12 +138,12 @@ class PlaneRasterizer(IRasterizer):
         for component in self.plane.connected_components:
             if not component.is_hole:
                 # last vertex is ignored
-                shape_vertices += list(self.vertices[component.vertices_indices_in_component]) + [
+                shape_vertices += list(self.pca_projected_vertices[component.vertices_indices_in_component]) + [
                     [0, 0]]
                 shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
             else:
                 # last vertex is ignored
-                hole_vertices += list(self.vertices[component.vertices_indices_in_component]) + [
+                hole_vertices += list(self.pca_projected_vertices[component.vertices_indices_in_component]) + [
                     [0, 0]]
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
 
@@ -152,15 +157,16 @@ class PlaneRasterizer(IRasterizer):
         return labeler
 
     def get_rasterazation(self, resolution, margin):
-        raise NotImplementedError("should use get_rasterazation_cells instead")
-
+        '''
         xys, xyzs, _ = self._get_voxels(resolution, margin)
         labels = self._get_labeler()(xys)
         return labels, xyzs
+        '''
+        raise NotImplementedError("should use get_rasterazation_cells instead")
 
     def get_rasterazation_cells(self, resolution, margin):
-        xys, _, xy_diffs = self._get_voxels(resolution, margin)
+        xys, _, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
         labels = labeler(xys)
 
-        return [Cell(xy, label, xy_diffs, labeler, self.pca.inverse_transform) for xy, label in zip(xys, labels)]
+        return [Cell(xy, label, pixel_radius, labeler, self.pca.inverse_transform) for xy, label in zip(xys, labels)]
