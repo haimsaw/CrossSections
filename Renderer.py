@@ -135,6 +135,17 @@ def draw_rasterized_scene(csl, sampling_resolution, margin):
     plt.show()
 
 
+def draw_dataset(dataset):
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection='3d')
+    xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == 1])
+
+    ax.scatter(*xyzs.T, color="blue")
+    fig.suptitle("draw_dataset")
+
+    plt.show()
+
+
 def draw_rasterized_scene_cells(csl, sampling_resolution, margin):
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
@@ -203,12 +214,20 @@ def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
     plt.show()
 
 
-def show_plane(plane):
+def draw_plane_verts(plane):
     verts, _ = plane.pca_projection
     for component in plane.connected_components:
         plt.scatter(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
     plt.scatter([0], [0], color='red')
-    plt.suptitle("show_plane")
+    plt.suptitle("draw_plane_verts")
+    plt.show()
+
+
+def draw_plane(plane):
+    verts, _ = plane.pca_projection
+    for component in plane.connected_components:
+        plt.plot(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
+    plt.suptitle("draw_plane")
     plt.show()
 
 # endregion
