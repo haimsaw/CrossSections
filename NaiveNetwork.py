@@ -67,7 +67,8 @@ class NaiveNetwork(nn.Module):
 
 
 class NetworkManager:
-    def __init__(self):
+    def __init__(self, verbose=False):
+        self.verbose = verbose
         self.save_path = "trained_model.pt"
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -89,7 +90,8 @@ class NetworkManager:
 
     def _train_epoch(self, epoch):
         assert self.is_training_ready
-        print(f"\n\nEpoch {self.total_epochs} [{epoch}]\n-------------------------------")
+        if self.verbose:
+            print(f"\n\nEpoch {self.total_epochs} [{epoch}]\n-------------------------------")
 
         running_loss = 0.0
         size = len(self.data_loader.dataset)
@@ -107,10 +109,12 @@ class NetworkManager:
             self.optimizer.step()
 
             running_loss += loss.item()
-            if batch % 1000 == 0:
+            if self.verbose and batch % 1000 == 0:
                 loss, current = loss.item(), batch * len(xyz)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
-        print(f"\trunning loss for epoch: {running_loss}")
+
+        if self.verbose:
+            print(f"\trunning loss for epoch: {running_loss}")
         self.train_losses.append(running_loss)
 
     def prepare_for_training(self, csl, sampling_resolution=(256, 256), margin=0.2, lr=1e-2):
@@ -130,11 +134,14 @@ class NetworkManager:
             break
 
     def train_network(self, epochs):
-        print('n_tests' + '.' * epochs)
-        print('Running', end="")
+        if not self.verbose:
+            print('n_epochs' + '.' * epochs)
+            print('_running', end="")
+
         self.model.train()
         for epoch in range(epochs):
-            print('.', end='')
+            if not self.verbose:
+                print('.', end='')
             self._train_epoch(epoch)
             self.total_epochs += 1
 

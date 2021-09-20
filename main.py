@@ -4,14 +4,14 @@ from NaiveNetwork import *
 
 
 def main():
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
 
     # csl = CSL("csl-files/Heart-25-even-better.csl")
 
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Horsers.csl")
 
     # csl = CSL("csl-files/rocker-arm.csl")
 
@@ -26,17 +26,16 @@ def main():
     # Renderer.draw_rasterized_plane(csl.planes[3], resolution=(256, 256), margin=0.2)
     # Renderer.draw_plane(csl.planes[27])
 
-    # Renderer.draw_scene(csl, box)
-    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(100, 100), margin=0.2)
+    Renderer.draw_scene(csl)
+    Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(50, 50), margin=0.2)
 
     network_manager = NetworkManager()
     network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=(32, 32))
     # Renderer.draw_dataset(network_manager.dataset)
 
-    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(10, 10), margin=0.2)
-
     network_manager.train_network(epochs=1)
     network_manager.refine_sampling()
+    Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
     Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
     Renderer.draw_dataset(network_manager.dataset)
 

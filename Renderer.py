@@ -6,6 +6,7 @@ import numpy as np
 from OpenGL.GL import *
 from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
+import inspect
 
 from Resterizer import rasterizer_factory
 
@@ -105,10 +106,18 @@ class Renderer:
 
 # region 3d
 
-def draw_scene(csl):
+def _get_3d_ax():
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
-    fig.suptitle("draw_scene")
+    fig.suptitle(inspect.stack()[1][3])
+    ax.set_xlim3d(-1, 1)
+    ax.set_ylim3d(-1, 1)
+    ax.set_zlim3d(-1, 1)
+    return ax
+
+
+def draw_scene(csl):
+    ax = _get_3d_ax()
 
     colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
 
@@ -122,8 +131,8 @@ def draw_scene(csl):
 
 
 def draw_rasterized_scene(csl, sampling_resolution, margin):
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection='3d')
+    ax = _get_3d_ax()
+
     for plane in csl.planes:
         mask, xyzs = rasterizer_factory(plane).get_rasterazation(sampling_resolution, margin)
         if not plane.is_empty:  # todo show empty planes
@@ -131,24 +140,22 @@ def draw_rasterized_scene(csl, sampling_resolution, margin):
         else:
             ax.scatter(*xyzs.T, color="green", alpha=0.1)
 
-    fig.suptitle("draw_rasterized_scene")
     plt.show()
 
 
 def draw_dataset(dataset):
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection='3d')
+    ax = _get_3d_ax()
+
     xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == 1])
 
     ax.scatter(*xyzs.T, color="blue")
-    fig.suptitle("draw_dataset")
 
     plt.show()
 
 
 def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_planes=True):
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection='3d')
+    ax = _get_3d_ax()
+
     for plane in csl.planes:
         cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
         mask = np.array([cell.label for cell in cells])
@@ -157,15 +164,14 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_pla
         if not plane.is_empty:
             ax.scatter(*xyzs[mask].T, color="blue")
         elif show_empty_planes:
-            ax.scatter(*xyzs.T, color="green", alpha=0.3)
+            ax.scatter(*xyzs.T, color="green", alpha=0.1)
 
-    fig.suptitle("draw_rasterized_scene_cells")
     plt.show()
 
 
 def draw_model(network_manager, sampling_resolution=(64, 64, 64)):
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection='3d')
+    ax = _get_3d_ax()
+
     x = np.linspace(-1, 1, sampling_resolution[0])
     y = np.linspace(-1, 1, sampling_resolution[1])
     z = np.linspace(-1, 1, sampling_resolution[2])
@@ -174,15 +180,12 @@ def draw_model(network_manager, sampling_resolution=(64, 64, 64)):
     labels = network_manager.predict(xyz)
     # print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
     ax.scatter(*xyz[labels].T)
-    fig.suptitle("draw_model")
     plt.show()
 
 
 # todo refactor
 def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64)):
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection='3d')
-    fig.suptitle("draw_model_and_scene")
+    ax = _get_3d_ax()
 
     x = np.linspace(-1, 1, sampling_resolution[0])
     y = np.linspace(-1, 1, sampling_resolution[1])
