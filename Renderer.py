@@ -121,7 +121,7 @@ def _get_3d_ax():
     return ax
 
 
-def draw_scene(csl, ax=None, should_show=True):
+def draw_scene(csl, ax=None, show_empty_planes=False, should_show=True):
     if ax is None:
         ax = _get_3d_ax()
 
@@ -136,6 +136,7 @@ def draw_scene(csl, ax=None, should_show=True):
                 # ax.plot_trisurf(*vertices.T, color='green', alpha=alpha)
                 ax.plot(*vertices.T, color='green')
                 # ax.plot_surface(*vertices.T, color='green')
+
 
     if should_show:
         plt.show()
@@ -173,9 +174,9 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_pla
         xyzs = np.array([cell.xyz for cell in cells])
 
         if not plane.is_empty:
-            ax.scatter(*xyzs[mask].T, color="blue")
+            ax.scatter(*xyzs[mask].T, color="green")
         elif show_empty_planes:
-            ax.scatter(*xyzs.T, color="green", alpha=0.1)
+            ax.scatter(*xyzs.T, color="purple", alpha=0.1)
 
     plt.show()
 

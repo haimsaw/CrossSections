@@ -21,16 +21,21 @@ def main():
 
     # csl = CSL("csl-files/Brain.csl")
 
-    csl.adjust_csl(margin=0.2)
+    csl.adjust_csl(margin=0.05)
 
     # Renderer.draw_rasterized_plane(csl.planes[3], resolution=(256, 256), margin=0.2)
     # Renderer.draw_plane(csl.planes[27])
 
-    Renderer.draw_scene(csl)
-    Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(50, 50), margin=0.2)
+    # Renderer.draw_scene(csl)
+    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(50, 50), margin=0.2)
 
     network_manager = NetworkManager()
-    network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=(32, 32))
+    network_manager.load_from_disk()
+    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64), model_alpha=0.05)
+    Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=(64, 64, 64), margin=0.2, show_empty_planes=True)
+
+    '''
+    # network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=(32, 32))
     # Renderer.draw_dataset(network_manager.dataset)
 
     network_manager.train_network(epochs=1)
@@ -56,8 +61,7 @@ def main():
 
     network_manager.show_train_losses()
 
-    # renderer = Renderer.Renderer(csl, box)
-    # renderer.event_loop()
+    '''
 
 
 if __name__ == "__main__":
