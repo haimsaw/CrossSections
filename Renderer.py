@@ -137,7 +137,6 @@ def draw_scene(csl, ax=None, show_empty_planes=False, should_show=True):
                 ax.plot(*vertices.T, color='green')
                 # ax.plot_surface(*vertices.T, color='green')
 
-
     if should_show:
         plt.show()
 
