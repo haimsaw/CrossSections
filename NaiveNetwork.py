@@ -145,6 +145,9 @@ class NetworkManager:
             self._train_epoch(epoch)
             self.total_epochs += 1
 
+        if not self.verbose:
+            print('\n')
+
     def show_train_losses(self):
         plt.bar(range(len(self.train_losses)), self.train_losses)
         plt.show()
