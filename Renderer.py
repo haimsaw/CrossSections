@@ -113,21 +113,31 @@ def _get_3d_ax():
     ax.set_xlim3d(-1, 1)
     ax.set_ylim3d(-1, 1)
     ax.set_zlim3d(-1, 1)
+
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+
     return ax
 
 
-def draw_scene(csl):
-    ax = _get_3d_ax()
+def draw_scene(csl, ax=None, should_show=True):
+    if ax is None:
+        ax = _get_3d_ax()
 
     colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
 
     for plane in csl.planes:
-        for connected_component in plane.connected_components:
-            vertices = plane.vertices[connected_component.vertices_indices_in_component]
-            alpha = 1 if connected_component.is_hole else 0.5
-            ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
+        if not plane.is_empty:
+            for connected_component in plane.connected_components:
+                vertices = plane.vertices[connected_component.vertices_indices_in_component]
+                vertices[-1]= vertices[0]
+                alpha = 1 if connected_component.is_hole else 0.5
+                # ax.plot_trisurf(*vertices.T, color='green', alpha=alpha)
+                ax.plot(*vertices.T, color='green')
 
-    plt.show()
+    if should_show:
+        plt.show()
 
 
 def draw_rasterized_scene(csl, sampling_resolution, margin):
@@ -169,8 +179,9 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_pla
     plt.show()
 
 
-def draw_model(network_manager, sampling_resolution=(64, 64, 64)):
-    ax = _get_3d_ax()
+def draw_model(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0):
+    if ax is None:
+        ax = _get_3d_ax()
 
     x = np.linspace(-1, 1, sampling_resolution[0])
     y = np.linspace(-1, 1, sampling_resolution[1])
@@ -179,31 +190,17 @@ def draw_model(network_manager, sampling_resolution=(64, 64, 64)):
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     labels = network_manager.predict(xyz)
     # print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
-    ax.scatter(*xyz[labels].T)
-    plt.show()
+    ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
+
+    if should_show:
+        plt.show()
 
 
-# todo refactor
-def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64)):
+def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64), model_alpha=0.05):
     ax = _get_3d_ax()
 
-    x = np.linspace(-1, 1, sampling_resolution[0])
-    y = np.linspace(-1, 1, sampling_resolution[1])
-    z = np.linspace(-1, 1, sampling_resolution[2])
-
-    xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    labels = network_manager.predict(xyz)
-    # print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
-    ax.scatter(*xyz[labels].T)
-
-    colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
-
-    for plane in csl.planes:
-        if not plane.is_empty:
-            for connected_component in plane.connected_components:
-                vertices = plane.vertices[connected_component.vertices_indices_in_component]
-                alpha = 1 if connected_component.is_hole else 1
-                ax.plot_trisurf(*vertices.T, color=colors[connected_component.label], alpha=alpha)
+    draw_model(network_manager, sampling_resolution, ax=ax, should_show=False, alpha=model_alpha)
+    draw_scene(csl, ax=ax, should_show=False)
     plt.show()
 # endregion
 

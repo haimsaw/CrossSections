@@ -4,14 +4,14 @@ from NaiveNetwork import *
 
 
 def main():
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
 
     # csl = CSL("csl-files/Heart-25-even-better.csl")
 
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Horsers.csl")
 
     # csl = CSL("csl-files/rocker-arm.csl")
 
@@ -66,6 +66,4 @@ if __name__ == "__main__":
 '''
 todo:
 	0.2 keep original proportions when resterizing
-	visualization - show with original planes
-	    axis equal - show correct proprtions
 '''
