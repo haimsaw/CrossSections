@@ -131,10 +131,11 @@ def draw_scene(csl, ax=None, should_show=True):
         if not plane.is_empty:
             for connected_component in plane.connected_components:
                 vertices = plane.vertices[connected_component.vertices_indices_in_component]
-                vertices[-1]= vertices[0]
+                vertices[-1] = vertices[0]
                 alpha = 1 if connected_component.is_hole else 0.5
                 # ax.plot_trisurf(*vertices.T, color='green', alpha=alpha)
                 ax.plot(*vertices.T, color='green')
+                # ax.plot_surface(*vertices.T, color='green')
 
     if should_show:
         plt.show()

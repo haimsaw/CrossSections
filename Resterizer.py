@@ -111,7 +111,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        return [Cell(xy, False, pixel_radius, lambda x: False, xyz_transformer) for xy in xys]
+        return [Cell(xy, False, pixel_radius, lambda centers: np.full(len(centers), False), xyz_transformer) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):

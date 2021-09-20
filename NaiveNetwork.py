@@ -177,4 +177,4 @@ class NetworkManager:
             return self.model(xyz) > threshold
 
         self.dataset.refine_cells(predictor)
-        print(f'\trefine_sampling before={size_before}, after={len(self.dataset)}')
+        print(f'refine_sampling before={size_before}, after={len(self.dataset)}')
