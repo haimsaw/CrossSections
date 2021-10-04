@@ -1,2 +1,4 @@
 /.idea/
 /venv/
+/mesh.stl
+/trained_model.pt
