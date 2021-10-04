@@ -189,14 +189,14 @@ class NetworkManager:
     def get_train_errors(self, threshold=0.5):
         # todo test this
         self.model.eval()
-        errored_xyz = np.empty(0, dtype=bool)
-        errored_labels = np.empty(0, dtype=bool)
+        errored_xyz = np.empty((0, 3), dtype=bool)
+        errored_labels = np.empty((0, 1), dtype=bool)
 
         for xyz, label in self.data_loader:
             xyz, label = xyz.to(self.device), label.to(self.device)
 
             label_pred = self.model(xyz) > threshold
-            errors = label != label_pred
+            errors = (label != label_pred).view(-1)
 
             errored_xyz = np.concatenate((errored_xyz, xyz[errors].detach().cpu().numpy()))
             errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
