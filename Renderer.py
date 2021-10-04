@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import inspect
 
 from Resterizer import rasterizer_factory
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
 
 
 # region OpenGL
@@ -203,6 +205,22 @@ def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64),
     draw_model(network_manager, sampling_resolution, ax=ax, should_show=False, alpha=model_alpha)
     draw_scene(csl, ax=ax, should_show=False)
     plt.show()
+
+
+def show_mesh(my_mesh):
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(projection='3d')
+
+    collection = Poly3DCollection(my_mesh.vectors)
+    collection.set_edgecolor('k')
+
+    ax.add_collection3d(collection)
+
+    scale = my_mesh.points.flatten()
+    ax.auto_scale_xyz(scale, scale, scale)
+
+    plt.show()
+
 # endregion
 
 
