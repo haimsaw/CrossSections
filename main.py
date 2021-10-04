@@ -5,7 +5,7 @@ from Mesher import marching_cubes
 
 
 def main():
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
 
@@ -21,9 +21,10 @@ def main():
     # csl = CSL("csl-files/Skull-20.csl")
 
     # csl = CSL("csl-files/Brain.csl")
-    #margin = 0.05
-    #csl.adjust_csl(margin=margin)
-    sampling_resolution_3d = (64, 64, 64)
+
+    margin = 0.05
+    csl.adjust_csl(margin=margin)
+    sampling_resolution_3d = (300, 300, 300)
     sampling_resolution_2d = (32, 32)
 
 
@@ -35,18 +36,19 @@ def main():
     # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=sampling_resolution_2d, margin=margin)
 
     network_manager = NetworkManager()
-    network_manager.load_from_disk()
-    mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
-    Renderer.show_mesh(mesh)
-    mesh.save('mesh.stl')
+    # network_manager.load_from_disk()
+
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=sampling_resolution_3d, model_alpha=0.05)
     # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=sampling_resolution_3d, margin=margin, show_empty_planes=True)
 
-    '''
-    # network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=(32, 32))
+    network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=sampling_resolution_2d)
+    # bad_xyz, bad_labels = network_manager.get_train_errors()
     # Renderer.draw_dataset(network_manager.dataset)
+    network_manager.train_network(epochs=1)
+    network_manager.refine_sampling()
 
+    '''
     network_manager.train_network(epochs=1)
     network_manager.refine_sampling()
     Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
@@ -71,6 +73,10 @@ def main():
     network_manager.show_train_losses()
 
     '''
+
+    mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
+    Renderer.show_mesh(mesh)
+    mesh.save('mesh.stl')
 
 
 if __name__ == "__main__":

@@ -12,7 +12,6 @@ from Resterizer import rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-
 # region OpenGL
 
 class Renderer:
@@ -220,6 +219,7 @@ def show_mesh(my_mesh):
     ax.auto_scale_xyz(scale, scale, scale)
 
     plt.show()
+
 
 # endregion
 

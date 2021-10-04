@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -108,14 +109,14 @@ class NetworkManager:
             loss.backward()
             self.optimizer.step()
 
-            running_loss += loss.item()
+            running_loss += loss.item() * len(xyz)
             if self.verbose and batch % 1000 == 0:
                 loss, current = loss.item(), batch * len(xyz)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
-
+        total_loss = running_loss/size
         if self.verbose:
-            print(f"\trunning loss for epoch: {running_loss}")
-        self.train_losses.append(running_loss)
+            print(f"\tloss for epoch: {total_loss}")
+        self.train_losses.append(total_loss)
 
     def prepare_for_training(self, csl, sampling_resolution=(256, 256), margin=0.2, lr=1e-2):
         self.dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin,
@@ -162,9 +163,14 @@ class NetworkManager:
     @torch.no_grad()
     def predict(self, xyz, threshold=0.5):
         self.model.eval()
-        xyz = torch.from_numpy(xyz).to(self.device)
-        label_pred = self.model(xyz) > threshold
-        return label_pred.detach().cpu().numpy().reshape(-1)
+        data_loader = DataLoader(xyz, batch_size=128, shuffle=False)
+        label_pred = np.empty(0, dtype=bool)
+        for xyz_batch in data_loader:
+            xyz_batch = xyz_batch.to(self.device)
+
+            label_pred = np.concatenate((label_pred, (self.model(xyz_batch) > threshold).detach().cpu().numpy().reshape(-1)))
+
+        return label_pred
 
     @torch.no_grad()
     def refine_sampling(self, threshold=0.5):
@@ -178,3 +184,21 @@ class NetworkManager:
 
         self.dataset.refine_cells(predictor)
         print(f'refine_sampling before={size_before}, after={len(self.dataset)}')
+
+    @torch.no_grad()
+    def get_train_errors(self, threshold=0.5):
+        # todo test this
+        self.model.eval()
+        errored_xyz = np.empty(0, dtype=bool)
+        errored_labels = np.empty(0, dtype=bool)
+
+        for xyz, label in self.data_loader:
+            xyz, label = xyz.to(self.device), label.to(self.device)
+
+            label_pred = self.model(xyz) > threshold
+            errors = label != label_pred
+
+            errored_xyz = np.concatenate((errored_xyz, xyz[errors].detach().cpu().numpy()))
+            errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
+
+        return errored_xyz, errored_labels
