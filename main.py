@@ -23,14 +23,12 @@ def main():
     # csl = CSL("csl-files/Brain.csl")
 
     margin = 0.05
-    csl.adjust_csl(margin=margin)
-    sampling_resolution_3d = (300, 300, 300)
     sampling_resolution_2d = (32, 32)
+    sampling_resolution_3d = (100, 100, 100)
+    epochs_list = [25, 25, 50, 50, 100]
 
+    csl.adjust_csl(margin=margin)
 
-
-    # Renderer.draw_rasterized_plane(csl.planes[3], resolution=(256, 256), margin=0.2)
-    # Renderer.draw_plane(csl.planes[27])
 
     # Renderer.draw_scene(csl)
     # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=sampling_resolution_2d, margin=margin)
@@ -38,45 +36,20 @@ def main():
     network_manager = NetworkManager()
     # network_manager.load_from_disk()
 
-
-    # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=sampling_resolution_3d, model_alpha=0.05)
-    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=sampling_resolution_3d, margin=margin, show_empty_planes=True)
-
     network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=sampling_resolution_2d)
-    # bad_xyz, bad_labels = network_manager.get_train_errors()
-    # Renderer.draw_dataset(network_manager.dataset)
-    network_manager.train_network(epochs=1)
-    network_manager.refine_sampling()
 
-    '''
-    network_manager.train_network(epochs=1)
-    network_manager.refine_sampling()
-    Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
-    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
-    Renderer.draw_dataset(network_manager.dataset)
+    for i, epochs in enumerate(epochs_list):
+        network_manager.train_network(epochs=25)
+        Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
+        if i < len(epochs_list) - 1:
+            network_manager.refine_sampling()
 
-    network_manager.train_network(epochs=25)
-    network_manager.refine_sampling()
-    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
-    network_manager.save_to_disk()
-
-    network_manager.train_network(epochs=25)
-    network_manager.refine_sampling()
-    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
-    network_manager.save_to_disk()
-
-    network_manager.train_network(epochs=25)
-    network_manager.refine_sampling()
-    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64))
-    network_manager.save_to_disk()
-
-    network_manager.show_train_losses()
-
-    '''
+    Renderer.draw_scene_and_errors(network_manager, csl)
+    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=sampling_resolution_3d, model_alpha=0.05)
 
     mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
-    Renderer.show_mesh(mesh)
-    mesh.save('mesh.stl')
+    Renderer.draw_mesh(mesh)
+
 
 
 if __name__ == "__main__":

@@ -206,7 +206,7 @@ def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64),
     plt.show()
 
 
-def show_mesh(my_mesh):
+def draw_mesh(my_mesh):
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(projection='3d')
 
@@ -219,6 +219,14 @@ def show_mesh(my_mesh):
     ax.auto_scale_xyz(scale, scale, scale)
 
     plt.show()
+
+
+def draw_scene_and_errors(network_manager, csl):
+    ax = _get_3d_ax()
+    draw_scene(csl, ax=ax, should_show=False)
+    errored_xyz, errored_labels = network_manager.get_train_errors()
+    ax.scatter(*errored_xyz[errored_labels == 1].T, color="blue")
+    ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
 
 # endregion

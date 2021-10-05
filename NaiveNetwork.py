@@ -187,7 +187,6 @@ class NetworkManager:
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):
-        # todo test this
         self.model.eval()
         errored_xyz = np.empty((0, 3), dtype=bool)
         errored_labels = np.empty((0, 1), dtype=bool)
@@ -201,4 +200,4 @@ class NetworkManager:
             errored_xyz = np.concatenate((errored_xyz, xyz[errors].detach().cpu().numpy()))
             errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
 
-        return errored_xyz, errored_labels
+        return errored_xyz, errored_labels.reshape(-1)
