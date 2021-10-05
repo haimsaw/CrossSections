@@ -22,30 +22,27 @@ def main():
 
     # csl = CSL("csl-files/Brain.csl")
 
-    margin = 0.05
+    bounding_planes_margin = 0.05
+    sampling_margin = 0.2
+    lr = 1e-2
     sampling_resolution_2d = (32, 32)
     sampling_resolution_3d = (100, 100, 100)
     epochs_list = [25, 25, 50, 50, 100]
 
-    csl.adjust_csl(margin=margin)
-
-
-    # Renderer.draw_scene(csl)
-    # Renderer.draw_rasterized_scene_cells(csl, sampling_resolution=sampling_resolution_2d, margin=margin)
+    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
 
     network_manager = NetworkManager()
     # network_manager.load_from_disk()
 
-    network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=sampling_resolution_2d)
+    network_manager.prepare_for_training(csl, sampling_resolution_2d, sampling_margin, lr)
 
     for i, epochs in enumerate(epochs_list):
         network_manager.train_network(epochs=epochs)
-        Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
         if i < len(epochs_list) - 1:
             network_manager.refine_sampling()
+        Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 
     Renderer.draw_scene_and_errors(network_manager, csl)
-    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=sampling_resolution_3d, model_alpha=0.05)
 
     mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
     Renderer.draw_mesh(mesh)

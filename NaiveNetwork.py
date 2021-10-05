@@ -8,10 +8,10 @@ from Resterizer import rasterizer_factory
 
 
 class RasterizedCslDataset(Dataset):
-    def __init__(self, csl, sampling_resolution=(256, 256), margin=0.2, transform=None, target_transform=None):
+    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
         self.csl = csl
 
-        self.cells = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
+        self.cells = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
                                for plane in csl.planes]).reshape(-1)
 
         self.transform = transform
@@ -118,9 +118,9 @@ class NetworkManager:
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, csl, sampling_resolution=(256, 256), margin=0.2, lr=1e-2):
-        self.dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, margin=margin,
-                                       target_transform=torch.tensor, transform=torch.tensor)
+    def prepare_for_training(self, csl, sampling_resolution, sampling_margin, lr):
+        self.dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
+                                            target_transform=torch.tensor, transform=torch.tensor)
         self.data_loader = DataLoader(self.dataset, batch_size=128, shuffle=True)
         self.model.init_weights()
         # self.loss_fn = nn.L1Loss()
@@ -136,7 +136,7 @@ class NetworkManager:
 
     def train_network(self, epochs):
         if not self.verbose:
-            print('n_epochs' + '.' * epochs)
+            print('\nn_epochs' + '.' * epochs)
             print('_running', end="")
 
         self.model.train()

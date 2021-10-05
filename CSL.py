@@ -170,8 +170,8 @@ class CSL:
         for plane in self.planes:
             plane.vertices /= scale_factor
 
-    def adjust_csl(self, margin):
+    def adjust_csl(self, bounding_planes_margin):
         self.centralize()
         self.rotate_by_pca()
         self.scale()
-        self.add_boundary_planes(margin=margin)
+        self.add_boundary_planes(margin=bounding_planes_margin)
