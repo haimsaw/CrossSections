@@ -39,7 +39,7 @@ def main():
     network_manager.prepare_for_training(csl, lr=1e-2, sampling_resolution=sampling_resolution_2d)
 
     for i, epochs in enumerate(epochs_list):
-        network_manager.train_network(epochs=25)
+        network_manager.train_network(epochs=epochs)
         Renderer.draw_model(network_manager, sampling_resolution=(64, 64, 64))
         if i < len(epochs_list) - 1:
             network_manager.refine_sampling()
@@ -49,7 +49,6 @@ def main():
 
     mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
     Renderer.draw_mesh(mesh)
-
 
 
 if __name__ == "__main__":
