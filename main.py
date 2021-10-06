@@ -46,7 +46,7 @@ def main():
     Renderer.draw_scene_and_errors(network_manager, csl)
     '''
 
-    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
+    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution_3d=(50, 50, 50), model_alpha=0.05)
 
     mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
     Renderer.draw_mesh(mesh)

@@ -152,11 +152,11 @@ def draw_dataset(dataset):
     plt.show()
 
 
-def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_planes=True):
+def draw_rasterized_scene_cells(csl, sampling_resolution_2d, margin, show_empty_planes=True):
     ax = _get_3d_ax()
 
     for plane in csl.planes:
-        cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, margin)
+        cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, margin)
         mask = np.array([cell.label for cell in cells])
         xyzs = np.array([cell.xyz for cell in cells])
 
@@ -168,13 +168,13 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_pla
     plt.show()
 
 
-def draw_model_hard_prediction(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0):
+def draw_model_hard_prediction(network_manager, sampling_resolution_3d, ax=None, should_show=True, alpha=1.0):
     if ax is None:
         ax = _get_3d_ax()
 
-    x = np.linspace(-1, 1, sampling_resolution[0])
-    y = np.linspace(-1, 1, sampling_resolution[1])
-    z = np.linspace(-1, 1, sampling_resolution[2])
+    x = np.linspace(-1, 1, sampling_resolution_3d[0])
+    y = np.linspace(-1, 1, sampling_resolution_3d[1])
+    z = np.linspace(-1, 1, sampling_resolution_3d[2])
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     labels = network_manager.hard_predict(xyz)
@@ -185,13 +185,13 @@ def draw_model_hard_prediction(network_manager, sampling_resolution, ax=None, sh
         plt.show()
 
 
-def draw_model_soft_prediction(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0):
+def draw_model_soft_prediction(network_manager, sampling_resolution_3d, ax=None, should_show=True, alpha=1.0):
     if ax is None:
         ax = _get_3d_ax()
 
-    x = np.linspace(-1, 1, sampling_resolution[0])
-    y = np.linspace(-1, 1, sampling_resolution[1])
-    z = np.linspace(-1, 1, sampling_resolution[2])
+    x = np.linspace(-1, 1, sampling_resolution_3d[0])
+    y = np.linspace(-1, 1, sampling_resolution_3d[1])
+    z = np.linspace(-1, 1, sampling_resolution_3d[2])
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     labels = network_manager.hard_predict(xyz)
@@ -202,13 +202,13 @@ def draw_model_soft_prediction(network_manager, sampling_resolution, ax=None, sh
         plt.show()
 
 
-def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64), model_alpha=0.05, hard_prediction=True):
+def draw_model_and_scene(network_manager, csl, sampling_resolution_3d, model_alpha=0.05, hard_prediction=True):
     ax = _get_3d_ax()
 
     if hard_prediction:
-        draw_model_hard_prediction(network_manager, sampling_resolution, ax=ax, should_show=False, alpha=model_alpha)
+        draw_model_hard_prediction(network_manager, sampling_resolution_3d, ax=ax, should_show=False, alpha=model_alpha)
     else:
-        draw_model_soft_prediction(network_manager, sampling_resolution, ax=ax, should_show=False, alpha=model_alpha)
+        draw_model_soft_prediction(network_manager, sampling_resolution_3d, ax=ax, should_show=False, alpha=model_alpha)
     draw_scene(csl, ax=ax, should_show=False)
     plt.show()
 
