@@ -39,9 +39,6 @@ class IRasterizer:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_rasterazation(self, resolution, margin): raise NotImplementedError
-
-    @abstractmethod
     def get_rasterazation_cells(self, resolution, margin): raise NotImplementedError
 
 
@@ -93,10 +90,6 @@ class EmptyPlaneRasterizer(IRasterizer):
         xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius
 
         return xys, pixel_radius
-
-    def get_rasterazation(self, resolution, margin):
-        raise NotImplementedError("should use get_rasterazation_cells instead")
-        # return np.full(resolution, False).reshape(-1), self._get_voxels(resolution, margin)
 
     def get_rasterazation_cells(self, resolution, margin):
         xys, pixel_radius = self._get_pixels(resolution, margin)
@@ -164,13 +157,6 @@ class PlaneRasterizer(IRasterizer):
 
         return labeler
 
-    def get_rasterazation(self, resolution, margin):
-        '''
-        xys, xyzs, _ = self._get_voxels(resolution, margin)
-        labels = self._get_labeler()(xys)
-        return labels, xyzs
-        '''
-        raise NotImplementedError("should use get_rasterazation_cells instead")
 
     def get_rasterazation_cells(self, resolution, margin):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)

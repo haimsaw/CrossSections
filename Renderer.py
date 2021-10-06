@@ -142,19 +142,6 @@ def draw_scene(csl, ax=None, show_empty_planes=False, should_show=True):
         plt.show()
 
 
-def draw_rasterized_scene(csl, sampling_resolution, margin):
-    ax = _get_3d_ax()
-
-    for plane in csl.planes:
-        mask, xyzs = rasterizer_factory(plane).get_rasterazation(sampling_resolution, margin)
-        if not plane.is_empty:  # todo show empty planes
-            ax.scatter(*xyzs[mask].T, color="blue")
-        else:
-            ax.scatter(*xyzs.T, color="green", alpha=0.1)
-
-    plt.show()
-
-
 def draw_dataset(dataset):
     ax = _get_3d_ax()
 
@@ -181,7 +168,7 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_pla
     plt.show()
 
 
-def draw_model(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0):
+def draw_model(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0, hard_prediction=True):
     if ax is None:
         ax = _get_3d_ax()
 
@@ -190,9 +177,13 @@ def draw_model(network_manager, sampling_resolution, ax=None, should_show=True, 
     z = np.linspace(-1, 1, sampling_resolution[2])
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    labels = network_manager.predict(xyz)
-    # print(f"num of dots: {len(xyz[labels])} / {len(xyz)}")
-    ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
+    labels = network_manager.predict(xyz, hard_prediction)
+
+    if hard_prediction:
+        ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
+    else:
+        ax.scatter(*xyz.T, alpha=alpha, c=labels)
+
 
     if should_show:
         plt.show()
@@ -235,7 +226,7 @@ def draw_scene_and_errors(network_manager, csl):
 # region 2d
 
 def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
-    plt.imshow(rasterizer_factory(plane).get_rasterazation(resolution, margin)[0].reshape(resolution), cmap='cool',
+    plt.imshow(rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
                origin='lower')
     plt.suptitle("draw_rasterized_plane")
     plt.show()

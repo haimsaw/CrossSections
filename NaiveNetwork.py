@@ -161,15 +161,17 @@ class NetworkManager:
         torch.save(self.model.state_dict(), self.save_path)
 
     @torch.no_grad()
-    def predict(self, xyz, threshold=0.5):
+    def predict(self, xyz, threshold=0.5, hard_prediction=True):
         self.model.eval()
         data_loader = DataLoader(xyz, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=bool)
         for xyz_batch in data_loader:
             xyz_batch = xyz_batch.to(self.device)
-
-            label_pred = np.concatenate((label_pred, (self.model(xyz_batch) > threshold).detach().cpu().numpy().reshape(-1)))
-
+            if hard_prediction:
+                res = self.model(xyz_batch) > threshold
+            else:
+                res = self.model(xyz_batch)
+            label_pred = np.concatenate((label_pred, res.detach().cpu().numpy().reshape(-1)))
         return label_pred
 
     @torch.no_grad()
