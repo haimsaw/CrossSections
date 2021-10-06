@@ -168,7 +168,7 @@ def draw_rasterized_scene_cells(csl, sampling_resolution, margin, show_empty_pla
     plt.show()
 
 
-def draw_model(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0, hard_prediction=True):
+def draw_model_hard_prediction(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0):
     if ax is None:
         ax = _get_3d_ax()
 
@@ -177,22 +177,38 @@ def draw_model(network_manager, sampling_resolution, ax=None, should_show=True, 
     z = np.linspace(-1, 1, sampling_resolution[2])
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    labels = network_manager.predict(xyz, hard_prediction)
+    labels = network_manager.hard_predict(xyz)
 
-    if hard_prediction:
-        ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
-    else:
-        ax.scatter(*xyz.T, alpha=alpha, c=labels)
-
+    ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
 
     if should_show:
         plt.show()
 
 
-def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64), model_alpha=0.05):
+def draw_model_soft_prediction(network_manager, sampling_resolution, ax=None, should_show=True, alpha=1.0):
+    if ax is None:
+        ax = _get_3d_ax()
+
+    x = np.linspace(-1, 1, sampling_resolution[0])
+    y = np.linspace(-1, 1, sampling_resolution[1])
+    z = np.linspace(-1, 1, sampling_resolution[2])
+
+    xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+    labels = network_manager.hard_predict(xyz)
+
+    ax.scatter(*xyz.T, c=labels, cmap="Blues", alpha=alpha)
+
+    if should_show:
+        plt.show()
+
+
+def draw_model_and_scene(network_manager, csl, sampling_resolution=(64, 64, 64), model_alpha=0.05, hard_prediction=True):
     ax = _get_3d_ax()
 
-    draw_model(network_manager, sampling_resolution, ax=ax, should_show=False, alpha=model_alpha)
+    if hard_prediction:
+        draw_model_hard_prediction(network_manager, sampling_resolution, ax=ax, should_show=False, alpha=model_alpha)
+    else:
+        draw_model_soft_prediction(network_manager, sampling_resolution, ax=ax, should_show=False, alpha=model_alpha)
     draw_scene(csl, ax=ax, should_show=False)
     plt.show()
 

@@ -10,7 +10,7 @@ def marching_cubes(network_manager, sampling_resolution):
     z = np.linspace(-1, 1, sampling_resolution[2])
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    labels = network_manager.predict(xyz).reshape(sampling_resolution)
+    labels = network_manager.hard_predict(xyz).reshape(sampling_resolution)
 
     vertices, faces, normals, values = measure.marching_cubes(labels, 0)
 
