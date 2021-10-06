@@ -4,13 +4,14 @@ from stl import mesh
 from skimage import measure
 
 
-def marching_cubes(network_manager, sampling_resolution):
+def marching_cubes(network_manager, sampling_resolution, soft_predict=True):
     x = np.linspace(-1, 1, sampling_resolution[0])
     y = np.linspace(-1, 1, sampling_resolution[1])
     z = np.linspace(-1, 1, sampling_resolution[2])
 
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    labels = network_manager.hard_predict(xyz).reshape(sampling_resolution)
+
+    labels = (network_manager.soft_predict(xyz) if soft_predict else network_manager.hard_predict(xyz)).reshape(sampling_resolution)
 
     vertices, faces, normals, values = measure.marching_cubes(labels, 0)
 

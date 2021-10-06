@@ -186,6 +186,7 @@ def draw_model_hard_prediction(network_manager, sampling_resolution_3d, ax=None,
 
 
 def draw_model_soft_prediction(network_manager, sampling_resolution_3d, ax=None, should_show=True, alpha=1.0):
+    # todo not working
     if ax is None:
         ax = _get_3d_ax()
 

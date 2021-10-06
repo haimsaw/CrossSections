@@ -46,7 +46,7 @@ def main():
     Renderer.draw_scene_and_errors(network_manager, csl)
     '''
 
-    Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution_3d=(50, 50, 50), model_alpha=0.05)
+    Renderer.draw_model_soft_prediction(network_manager, sampling_resolution_3d=(20, 20, 20), alpha=0.5)
 
     mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
     Renderer.draw_mesh(mesh)
@@ -57,5 +57,7 @@ if __name__ == "__main__":
 
 '''
 todo:
+    use k3d for rendering in collab https://github.com/K3D-tools/K3D-jupyter/blob/main/HOW-TO.md
+    CGAL 5.3 - 3D Surface Mesh Generation https://doc.cgal.org/latest/Surface_mesher/index.html
 	0.2 keep original proportions when resterizing
 '''
