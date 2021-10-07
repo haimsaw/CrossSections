@@ -33,14 +33,16 @@ class RasterizedCslDataset(Dataset):
 
         return xyz, label
 
-    def refine_cells(self, predictor):
-        # todo refine with cuda
+    def refine_cells(self, xyz_to_refine):
+
+        xyz_to_refine = set(xyz_to_refine)
         new_cells = []
         for cell in self.cells:
-            if predictor(cell.xyz) == cell.label:
-                new_cells.append(cell)
-            else:
+            if cell.xyz in xyz_to_refine:
                 new_cells += cell.split_cell()
+            else:
+                new_cells.append(cell)
+
         self.cells = np.array(new_cells)
 
 
@@ -152,7 +154,7 @@ class NetworkManager:
 
     def show_train_losses(self):
         colors = ['red' if i in self.epochs_with_refine else 'blue' for i in range(len(self.train_losses))]
-        plt.bar(range(len(self.train_losses)), self.train_losses, color=colors)
+        plt.bar(range(len(self.train_losses)), self.train_losses, color=colors, figsize=(10,10))
         plt.show()
 
     def load_from_disk(self):
@@ -188,7 +190,9 @@ class NetworkManager:
         size_before = len(self.dataset)
 
         # next epoch will be with the refined dataset
-        self.epochs_with_refine += self.total_epochs + 1
+        self.epochs_with_refine.append(self.total_epochs + 1)
+
+        errored_xyz, _ = self.get_train_errors()
 
         def predictor(xyz):
             xyz = torch.from_numpy(xyz)
