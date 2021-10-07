@@ -88,6 +88,7 @@ class NetworkManager:
 
         self.is_training_ready = False
         self.total_epochs = 0
+        self.epochs_with_refine = []
 
     def _train_epoch(self, epoch):
         assert self.is_training_ready
@@ -150,7 +151,8 @@ class NetworkManager:
             print(f'\ntotal epochs={self.total_epochs}')
 
     def show_train_losses(self):
-        plt.bar(range(len(self.train_losses)), self.train_losses)
+        colors = ['red' if i in self.epochs_with_refine else 'blue' for i in range(len(self.train_losses))]
+        plt.bar(range(len(self.train_losses)), self.train_losses, color=colors)
         plt.show()
 
     def load_from_disk(self):
@@ -184,6 +186,9 @@ class NetworkManager:
     def refine_sampling(self, threshold=0.5):
         self.model.eval()
         size_before = len(self.dataset)
+
+        # next epoch will be with the refined dataset
+        self.epochs_with_refine += self.total_epochs + 1
 
         def predictor(xyz):
             xyz = torch.from_numpy(xyz)
