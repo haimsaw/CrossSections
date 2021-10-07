@@ -31,11 +31,10 @@ def main():
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
 
-    renderer = Renderer3D()
-
-    renderer.add_scene(csl)
-    renderer.add_rasterized_scene(csl, sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
-    renderer.show()
+    #renderer = Renderer3D()
+    #renderer.add_scene(csl)
+    #renderer.add_rasterized_scene(csl, sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
+    #renderer.show()
 
 
     network_manager = NetworkManager()
@@ -47,7 +46,7 @@ def main():
     for i, epochs in enumerate(epochs_list):
         network_manager.train_network(epochs=epochs)
         if i < len(epochs_list) - 1:
-            network_manager.refine_sampling2()
+            network_manager.refine_sampling()
 
         # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
     '''

@@ -34,10 +34,11 @@ class RasterizedCslDataset(Dataset):
         return xyz, label
 
     def refine_cells(self, xyz_to_refine):
+        # xyz_to_refine = set(xyz_to_refine)
 
-        xyz_to_refine = set(xyz_to_refine)
         new_cells = []
         for cell in self.cells:
+            # todo quadratic - can improve by converting xyz_to_refine to set
             if cell.xyz in xyz_to_refine:
                 new_cells += cell.split_cell()
             else:
@@ -83,14 +84,17 @@ class NetworkManager:
         print(self.model)
 
         self.loss_fn = None
-        self.train_losses = []
         self.optimizer = None
+        self.lr_scheduler = None
+
         self.data_loader = None
         self.dataset = None
 
-        self.is_training_ready = False
         self.total_epochs = 0
         self.epochs_with_refine = []
+        self.train_losses = []
+
+        self.is_training_ready = False
 
     def _train_epoch(self, epoch):
         assert self.is_training_ready
@@ -116,6 +120,9 @@ class NetworkManager:
             if self.verbose and batch % 1000 == 0:
                 loss, current = loss.item(), batch * len(xyz)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
+
+        self.lr_scheduler.step()
+
         total_loss = running_loss/size
         if self.verbose:
             print(f"\tloss for epoch: {total_loss}")
@@ -125,11 +132,16 @@ class NetworkManager:
         self.dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
                                             target_transform=torch.tensor, transform=torch.tensor)
         self.data_loader = DataLoader(self.dataset, batch_size=128, shuffle=True)
+
         self.model.init_weights()
+
         # self.loss_fn = nn.L1Loss()
         self.loss_fn = nn.BCEWithLogitsLoss()
         # self.loss_fn = nn.CrossEntropyLoss()
+
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
+        self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
+
         self.is_training_ready = True
 
         for xyz, label in self.data_loader:
@@ -154,7 +166,7 @@ class NetworkManager:
 
     def show_train_losses(self):
         colors = ['red' if i in self.epochs_with_refine else 'blue' for i in range(len(self.train_losses))]
-        plt.bar(range(len(self.train_losses)), self.train_losses, color=colors, figsize=(10,10))
+        plt.bar(range(len(self.train_losses)), self.train_losses, color=colors)
         plt.show()
 
     def load_from_disk(self):
@@ -194,12 +206,7 @@ class NetworkManager:
 
         errored_xyz, _ = self.get_train_errors()
 
-        def predictor(xyz):
-            xyz = torch.from_numpy(xyz)
-            xyz = xyz.to(self.device)
-            return self.model(xyz) > threshold
-
-        self.dataset.refine_cells(predictor)
+        self.dataset.refine_cells(errored_xyz)
         print(f'refine_sampling before={size_before}, after={len(self.dataset)}')
 
     @torch.no_grad()
