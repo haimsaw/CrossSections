@@ -1,17 +1,17 @@
 from CSL import CSL
-import Renderer
+from Renderer import Renderer3D
 from NaiveNetwork import *
 from Mesher import marching_cubes
 
 
 def main():
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
 
     # csl = CSL("csl-files/Heart-25-even-better.csl")
 
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
 
     # csl = CSL("csl-files/rocker-arm.csl")
@@ -23,7 +23,7 @@ def main():
     # csl = CSL("csl-files/Brain.csl")
 
     bounding_planes_margin = 0.05
-    sampling_margin = 0.2
+    sampling_margin = 0.05
     lr = 1e-2
     sampling_resolution_2d = (32, 32)
     sampling_resolution_3d = (100, 100, 100)
@@ -31,8 +31,15 @@ def main():
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
 
-    network_manager = NetworkManager()
-    network_manager.load_from_disk()
+    renderer = Renderer3D()
+
+    renderer.add_scene(csl)
+    renderer.add_rasterized_scene(csl, sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
+    renderer.show()
+
+
+    # network_manager = NetworkManager()
+    # network_manager.load_from_disk()
 
     '''
     network_manager.prepare_for_training(csl, sampling_resolution_2d, sampling_margin, lr)
@@ -44,13 +51,13 @@ def main():
         Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
     
     Renderer.draw_scene_and_errors(network_manager, csl)
-    '''
+
 
     Renderer.draw_model_soft_prediction(network_manager, sampling_resolution_3d=(20, 20, 20), alpha=0.5)
 
     mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
     Renderer.draw_mesh(mesh)
-
+    '''
 
 if __name__ == "__main__":
     main()

@@ -14,7 +14,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 # region OpenGL
 
-class Renderer:
+class RendererOpenGL:
     def __init__(self, csl, box):
         self.csl = csl
 
@@ -108,7 +108,7 @@ class Renderer:
 # region 3d
 
 def _get_3d_ax():
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')
     fig.suptitle(inspect.stack()[1][3])
     ax.set_xlim3d(-1, 1)
@@ -122,120 +122,86 @@ def _get_3d_ax():
     return ax
 
 
-def draw_scene(csl, ax=None, show_empty_planes=False, should_show=True):
-    if ax is None:
-        ax = _get_3d_ax()
+class Renderer3D:
+    def __init__(self):
+        self.ax = _get_3d_ax()
 
-    colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
+    def add_scene(self, csl):
 
-    for plane in csl.planes:
-        if not plane.is_empty:
-            for connected_component in plane.connected_components:
-                vertices = plane.vertices[connected_component.vertices_indices_in_component]
-                vertices[-1] = vertices[0]
-                alpha = 1 if connected_component.is_hole else 0.5
-                # ax.plot_trisurf(*vertices.T, color='green', alpha=alpha)
-                ax.plot(*vertices.T, color='green')
-                # ax.plot_surface(*vertices.T, color='green')
+        # colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
 
-    if should_show:
+        for plane in csl.planes:
+            if not plane.is_empty:
+                for connected_component in plane.connected_components:
+                    vertices = plane.vertices[connected_component.vertices_indices_in_component]
+                    vertices[-1] = vertices[0]
+                    alpha = 1 if connected_component.is_hole else 0.5
+                    # ax.plot_trisurf(*vertices.T, color='green', alpha=alpha)
+                    self.ax.plot(*vertices.T, color='green')
+                    # ax.plot_surface(*vertices.T, color='green')
+
+    def add_dataset(self, dataset):
+
+        xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == 1])
+
+        self.ax.scatter(*xyzs.T, color="blue")
+
+    def add_rasterized_scene(self, csl, sampling_resolution_2d, sampling_margin, show_empty_planes=True, show_outside_shape=False, alpha=0.1):
+
+        for plane in csl.planes:
+            cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, sampling_margin)
+            mask = np.array([cell.label for cell in cells])
+            xyzs = np.array([cell.xyz for cell in cells])
+
+            if not plane.is_empty:
+                self.ax.scatter(*xyzs[mask].T, color="blue", alpha=alpha)
+                if show_outside_shape:
+                    self.ax.scatter(*xyzs[np.logical_not(mask)].T, color="gray", alpha=alpha)
+            elif show_empty_planes:
+                self.ax.scatter(*xyzs.T, color="purple", alpha=alpha/2)
+
+    def add_model_hard_prediction(self, network_manager, sampling_resolution_3d, alpha=0.05):
+
+        x = np.linspace(-1, 1, sampling_resolution_3d[0])
+        y = np.linspace(-1, 1, sampling_resolution_3d[1])
+        z = np.linspace(-1, 1, sampling_resolution_3d[2])
+
+        xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+        labels = network_manager.hard_predict(xyz)
+
+        self.ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
+
+    def add_model_soft_prediction(self, network_manager, sampling_resolution_3d, alpha=1.0):
+        # todo not working
+
+        x = np.linspace(-1, 1, sampling_resolution_3d[0])
+        y = np.linspace(-1, 1, sampling_resolution_3d[1])
+        z = np.linspace(-1, 1, sampling_resolution_3d[2])
+
+        xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+        labels = network_manager.hard_predict(xyz)
+
+        self.ax.scatter(*xyz.T, c=labels, cmap="Blues", alpha=alpha)
+
+    def add_mesh(self, my_mesh):
+
+        collection = Poly3DCollection(my_mesh.vectors)
+        collection.set_edgecolor('k')
+
+        self.ax.add_collection3d(collection)
+
+        scale = my_mesh.points.flatten()
+        self.ax.auto_scale_xyz(scale, scale, scale)
+
         plt.show()
 
+    def add_model_errors(self, network_manager):
+        errored_xyz, errored_labels = network_manager.get_train_errors()
+        self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="blue")
+        self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
-def draw_dataset(dataset):
-    ax = _get_3d_ax()
-
-    xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == 1])
-
-    ax.scatter(*xyzs.T, color="blue")
-
-    plt.show()
-
-
-def draw_rasterized_scene_cells(csl, sampling_resolution_2d, margin, show_empty_planes=True):
-    ax = _get_3d_ax()
-
-    for plane in csl.planes:
-        cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, margin)
-        mask = np.array([cell.label for cell in cells])
-        xyzs = np.array([cell.xyz for cell in cells])
-
-        if not plane.is_empty:
-            ax.scatter(*xyzs[mask].T, color="green")
-        elif show_empty_planes:
-            ax.scatter(*xyzs.T, color="purple", alpha=0.1)
-
-    plt.show()
-
-
-def draw_model_hard_prediction(network_manager, sampling_resolution_3d, ax=None, should_show=True, alpha=1.0):
-    if ax is None:
-        ax = _get_3d_ax()
-
-    x = np.linspace(-1, 1, sampling_resolution_3d[0])
-    y = np.linspace(-1, 1, sampling_resolution_3d[1])
-    z = np.linspace(-1, 1, sampling_resolution_3d[2])
-
-    xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    labels = network_manager.hard_predict(xyz)
-
-    ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
-
-    if should_show:
+    def show(self):
         plt.show()
-
-
-def draw_model_soft_prediction(network_manager, sampling_resolution_3d, ax=None, should_show=True, alpha=1.0):
-    # todo not working
-    if ax is None:
-        ax = _get_3d_ax()
-
-    x = np.linspace(-1, 1, sampling_resolution_3d[0])
-    y = np.linspace(-1, 1, sampling_resolution_3d[1])
-    z = np.linspace(-1, 1, sampling_resolution_3d[2])
-
-    xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    labels = network_manager.hard_predict(xyz)
-
-    ax.scatter(*xyz.T, c=labels, cmap="Blues", alpha=alpha)
-
-    if should_show:
-        plt.show()
-
-
-def draw_model_and_scene(network_manager, csl, sampling_resolution_3d, model_alpha=0.05, hard_prediction=True):
-    ax = _get_3d_ax()
-
-    if hard_prediction:
-        draw_model_hard_prediction(network_manager, sampling_resolution_3d, ax=ax, should_show=False, alpha=model_alpha)
-    else:
-        draw_model_soft_prediction(network_manager, sampling_resolution_3d, ax=ax, should_show=False, alpha=model_alpha)
-    draw_scene(csl, ax=ax, should_show=False)
-    plt.show()
-
-
-def draw_mesh(my_mesh):
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(projection='3d')
-
-    collection = Poly3DCollection(my_mesh.vectors)
-    collection.set_edgecolor('k')
-
-    ax.add_collection3d(collection)
-
-    scale = my_mesh.points.flatten()
-    ax.auto_scale_xyz(scale, scale, scale)
-
-    plt.show()
-
-
-def draw_scene_and_errors(network_manager, csl):
-    ax = _get_3d_ax()
-    draw_scene(csl, ax=ax, should_show=False)
-    errored_xyz, errored_labels = network_manager.get_train_errors()
-    ax.scatter(*errored_xyz[errored_labels == 1].T, color="blue")
-    ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
-
 
 # endregion
 
