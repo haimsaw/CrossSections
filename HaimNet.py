@@ -47,9 +47,9 @@ class RasterizedCslDataset(Dataset):
         self.cells = np.array(new_cells)
 
 
-class NaiveNetwork(nn.Module):
+class HaimNet(nn.Module):
     def __init__(self):
-        super(NaiveNetwork, self).__init__()
+        super(HaimNet, self).__init__()
         self.linear_relu = nn.Sequential(
             nn.Linear(3, 128),   nn.LeakyReLU(),
             nn.Linear(128, 256), nn.LeakyReLU(),
@@ -78,7 +78,7 @@ class NetworkManager:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Using {} device".format(self.device))
 
-        self.model = NaiveNetwork().to(self.device)
+        self.model = HaimNet().to(self.device)
         self.model.double()
 
         print(self.model)
@@ -93,6 +93,7 @@ class NetworkManager:
         self.total_epochs = 0
         self.epochs_with_refine = []
         self.train_losses = []
+        self.refinements_num = 0
 
         self.is_training_ready = False
 
@@ -199,15 +200,16 @@ class NetworkManager:
     @torch.no_grad()
     def refine_sampling(self, threshold=0.5):
         self.model.eval()
-        size_before = len(self.dataset)
 
         # next epoch will be with the refined dataset
         self.epochs_with_refine.append(self.total_epochs + 1)
+        size_before = len(self.dataset)
+        self.refinements_num += 1
 
         errored_xyz, _ = self.get_train_errors()
 
         self.dataset.refine_cells(errored_xyz)
-        print(f'refine_sampling before={size_before}, after={len(self.dataset)}')
+        print(f'refine_sampling before={size_before}, after={len(self.dataset)}, n_refinements = {self.refinements_num}')
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):
