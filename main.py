@@ -37,7 +37,7 @@ def main():
     renderer.show()
 
 
-    network_manager = NetworkManager()
+    network_manager = HaimNetManager()
     network_manager.load_from_disk()
 
     '''

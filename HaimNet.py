@@ -70,7 +70,7 @@ class HaimNet(nn.Module):
         return self.linear_relu(x)
 
 
-class NetworkManager:
+class HaimNetManager:
     def __init__(self, verbose=False):
         self.verbose = verbose
         self.save_path = "trained_model.pt"
