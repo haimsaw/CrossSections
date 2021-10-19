@@ -1,6 +1,6 @@
 from CSL import CSL
 from Renderer import Renderer3D
-from HaimNet import *
+from NetManager import *
 from Mesher import marching_cubes
 
 
