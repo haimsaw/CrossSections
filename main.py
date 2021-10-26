@@ -35,7 +35,7 @@ def main():
     renderer = Renderer3D()
     renderer.add_scene(csl)
     # renderer.add_rasterized_scene(csl, sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
-    renderer.show()
+    # renderer.show()
 
     network_manager_root = HaimNetManager(layers)
     # network_manager_root.load_from_disk()
@@ -49,13 +49,12 @@ def main():
         network_manager.prepare_for_training(csl, l1_sampling_resolution_2d, sampling_margin, lr, octant=octant)
         network_manager.train_network(epochs=n_epochs)
 
-    map(lambda network, octant: run_sub_net(network, octant), zip(network_manager_layer1, octanes))
+    [run_sub_net(network, octant) for network, octant in zip(network_manager_layer1, octanes)]
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 
     # mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
     # mesh.save('mesh.stl')
-
 
 if __name__ == "__main__":
     main()

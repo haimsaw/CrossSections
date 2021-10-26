@@ -12,8 +12,11 @@ class RasterizedCslDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, octant=None, transform=None, target_transform=None):
         self.csl = csl
 
-        self.cells = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin, octant)
-                               for plane in csl.planes]).reshape(-1)
+        cells = []
+        for plane in csl.planes:
+            cells += rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin, octant)
+
+        self.cells = np.array(cells)
 
         self.transform = transform
         self.target_transform = target_transform
@@ -124,9 +127,11 @@ class HaimNetManager:
 
         self.is_training_ready = True
 
+        print("octant: ", octant)
         for xyz, label in self.data_loader:
             print("Shape of X [N, C, H, W]: ", xyz.shape)
             print("Shape of label: ", label.shape, label.dtype)
+
             break
 
     def train_network(self, epochs):
