@@ -6,11 +6,11 @@ from Helpers import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -21,27 +21,6 @@ def get_csl(bounding_planes_margin):
     return csl
 
 
-def get_octets(top, bottom):
-    mid = (top + bottom) / 2
-    size = top - mid
-
-    # in comment the numbers in https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
-    # green for top, red for bottom
-    octets_tops = np.array(
-            [[top[0], top[1], top[2]],  # 13
-             [mid[0], top[1], top[2]],  # 12
-             [mid[0], mid[1], top[2]],  # 9
-             [top[0], mid[1], top[2]],  # 10
-
-             [top[0], top[1], mid[2]],  # 4
-             [mid[0], top[1], mid[2]],  # 3
-             [mid[0], mid[1], mid[2]],  # 0
-             [top[0], mid[1], mid[2]],  # 1
-             ])
-    octets_bottoms = np.array([top - size for top in octets_tops])
-    return np.stack((octets_tops, octets_bottoms), axis=1)
-
-
 def main():
     bounding_planes_margin = 0.05
     sampling_margin = 0.5
@@ -49,7 +28,7 @@ def main():
     root_sampling_resolution_2d = (32, 32)
     l1_sampling_resolution_2d = (64, 64)
     layers = (3, 128, 256, 512, 512, 1)
-    n_epochs=10
+    n_epochs = 1
 
     csl = get_csl(bounding_planes_margin)
 
@@ -64,7 +43,13 @@ def main():
     network_manager_root.train_network(epochs=n_epochs)
 
     network_manager_layer1 = [HaimNetManager(layers) for _ in range(8)]
-    octates = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
+    octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
+
+    def run_sub_net(network_manager, octant):
+        network_manager.prepare_for_training(csl, l1_sampling_resolution_2d, sampling_margin, lr, octant=octant)
+        network_manager.train_network(epochs=n_epochs)
+
+    map(lambda network, octant: run_sub_net(network, octant), zip(network_manager_layer1, octanes))
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 

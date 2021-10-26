@@ -8,6 +8,8 @@ def initializer(m):
         torch.nn.init.xavier_uniform_(m.weight)
         # torch.nn.init.constant_(m.weight, 1)
         m.bias.data.fill_(0.1)
+    elif isinstance(m, nn.LeakyReLU) or isinstance(m, nn.Sequential):
+        return
     else:
         assert False
 
