@@ -1,34 +1,27 @@
 import torch
 from torch import nn
+from itertools import chain
+
+
+def initializer(m):
+    if isinstance(m, nn.Linear):
+        torch.nn.init.xavier_uniform_(m.weight)
+        # torch.nn.init.constant_(m.weight, 1)
+        m.bias.data.fill_(0.1)
+    else:
+        assert False
 
 
 class HaimNet(nn.Module):
-    def __init__(self):
+    def __init__(self, n_neurons):
         super().__init__()
-        self.linear_relu = nn.Sequential(
-            nn.Linear(3, 128),   nn.LeakyReLU(),
-            nn.Linear(128, 256), nn.LeakyReLU(),
-            nn.Linear(256, 512), nn.LeakyReLU(),
-            nn.Linear(512, 512), nn.LeakyReLU(),
-            nn.Linear(512, 1),
-        )
+        neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 1)]
+        activations = [nn.LeakyReLU() for i in range(len(n_neurons) - 1)]
+        layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-1], 1)]
+        self.linear_relu = nn.Sequential(*layers)
 
     def init_weights(self):
-        def initializer(m):
-            if isinstance(m, nn.Linear):
-                torch.nn.init.xavier_uniform_(m.weight)
-                # torch.nn.init.constant_(m.weight, 1)
-                m.bias.data.fill_(0.1)
         self.linear_relu.apply(initializer)
 
     def forward(self, x):
         return self.linear_relu(x)
-
-
-class Discriminator(nn.Module):
-    def __init__(self, ):
-        super().__init__()
-        self.main = nn.Sequential()
-
-    def forward(self, x):
-        return self.main(x)

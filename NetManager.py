@@ -56,7 +56,7 @@ class HaimNetManager:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Using {} device".format(self.device))
 
-        self.model = HaimNet().to(self.device)
+        self.model = HaimNet((3, 128, 256, 512, 512)).to(self.device)
         self.model.double()
 
         print(self.model)
@@ -115,8 +115,8 @@ class HaimNetManager:
         self.model.init_weights()
 
         # self.loss_fn = nn.L1Loss()
-        self.loss_fn = nn.BCEWithLogitsLoss()
         # self.loss_fn = nn.CrossEntropyLoss()
+        self.loss_fn = nn.BCEWithLogitsLoss()
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
