@@ -22,6 +22,11 @@ class Cell:
         self.xyz_transformer = xyz_transformer
         self.xyz = self.xyz_transformer(np.array([self.pixel_center]))[0]
 
+    def is_in_octant(self, octant_bottom, octant_top):
+        is_in_range_for_ax = (bottom <= coordinate <= top
+                              for coordinate, bottom, top in zip(self.xyz, octant_bottom, octant_top))
+        return all(is_in_range_for_ax)
+
     def split_cell(self):
         new_cell_radius = self.pixel_radius / 2
         new_centers = np.array([[1, 1],
@@ -156,7 +161,6 @@ class PlaneRasterizer(IRasterizer):
             return mask
 
         return labeler
-
 
     def get_rasterazation_cells(self, resolution, margin):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
