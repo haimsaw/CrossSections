@@ -133,7 +133,7 @@ class CSL:
 
     @property
     def scale_factor(self):
-        return np.max(self.all_vertices)
+        return np.max(np.absolute(self.all_vertices))
 
     def _add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1
@@ -165,7 +165,7 @@ class CSL:
         for plane in self.planes:
             plane @= pca
 
-    def scale(self):
+    def scale(self, margin):
         scale_factor = self.scale_factor
         for plane in self.planes:
             plane.vertices /= scale_factor
@@ -173,5 +173,5 @@ class CSL:
     def adjust_csl(self, bounding_planes_margin):
         self.centralize()
         self.rotate_by_pca()
-        self.scale()
+        self.scale(margin=bounding_planes_margin)
         self.add_boundary_planes(margin=bounding_planes_margin)

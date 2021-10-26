@@ -2,68 +2,85 @@ from CSL import CSL
 from Renderer import Renderer3D
 from NetManager import *
 from Mesher import marching_cubes
+from Helpers import *
 
 
-def main():
-    #csl = CSL("csl-files/ParallelEight.csl")
+def get_csl(bounding_planes_margin):
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-
     csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
-
     # csl = CSL("csl-files/rocker-arm.csl")
-
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/Skull-20.csl")
-
     # csl = CSL("csl-files/Brain.csl")
+    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
+    return csl
 
+
+def get_octets(top, bottom):
+    mid = (top + bottom) / 2
+    size = top - mid
+
+    # in comment the numbers in https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
+    # green for top, red for bottom
+    octets_tops = np.array(
+            [[top[0], top[1], top[2]],  # 13
+             [mid[0], top[1], top[2]],  # 12
+             [mid[0], mid[1], top[2]],  # 9
+             [top[0], mid[1], top[2]],  # 10
+
+             [top[0], top[1], mid[2]],  # 4
+             [mid[0], top[1], mid[2]],  # 3
+             [mid[0], mid[1], mid[2]],  # 0
+             [top[0], mid[1], mid[2]],  # 1
+             ])
+    octets_bottoms = np.array([top - size for top in octets_tops])
+    return np.stack((octets_tops, octets_bottoms), axis=1)
+
+
+def main():
     bounding_planes_margin = 0.05
     sampling_margin = 0.5
     lr = 1e-2
-    sampling_resolution_2d = (64, 64)
-    sampling_resolution_3d = (100, 100, 100)
-    epochs_list = [64, 64, 128, 256, 512]
+    root_sampling_resolution_2d = (32, 32)
+    l1_sampling_resolution_2d = (64, 64)
+    layers = (3, 128, 256, 512, 512, 1)
+    n_epochs=10
 
-    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
+    csl = get_csl(bounding_planes_margin)
 
     renderer = Renderer3D()
     renderer.add_scene(csl)
     # renderer.add_rasterized_scene(csl, sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
     renderer.show()
 
+    network_manager_root = HaimNetManager(layers)
+    # network_manager_root.load_from_disk()
+    network_manager_root.prepare_for_training(csl, root_sampling_resolution_2d, sampling_margin, lr, octant=None)
+    network_manager_root.train_network(epochs=n_epochs)
 
-    network_manager = HaimNetManager()
-    network_manager.load_from_disk()
+    network_manager_layer1 = [HaimNetManager(layers) for _ in range(8)]
+    octates = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
 
-    '''
-    network_manager.prepare_for_training(csl, sampling_resolution_2d, sampling_margin, lr)
+    # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 
-    for i, epochs in enumerate(epochs_list):
-        network_manager.train_network(epochs=epochs)
-        if i < len(epochs_list) - 1:
-            network_manager.refine_sampling()
+    # mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
+    # mesh.save('mesh.stl')
 
-        # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
-
-    Renderer.draw_scene_and_errors(network_manager, csl)
-
-
-    Renderer.draw_model_soft_prediction(network_manager, sampling_resolution_3d=(20, 20, 20), alpha=0.5)
-    '''
-
-    mesh = marching_cubes(network_manager, sampling_resolution=sampling_resolution_3d)
-    mesh.save('mesh.stl')
 
 if __name__ == "__main__":
     main()
 
 '''
 todo:
+    scale csl so that bounding box is at 1,0,0
+    genarate all octants
+
+
     use k3d for rendering in collab https://github.com/K3D-tools/K3D-jupyter/blob/main/HOW-TO.md
     CGAL 5.3 - 3D Surface Mesh Generation https://doc.cgal.org/latest/Surface_mesher/index.html
 	0.2 keep original proportions when resterizing

@@ -22,9 +22,13 @@ class Cell:
         self.xyz_transformer = xyz_transformer
         self.xyz = self.xyz_transformer(np.array([self.pixel_center]))[0]
 
-    def is_in_octant(self, octant_bottom, octant_top):
-        is_in_range_for_ax = (bottom <= coordinate <= top
-                              for coordinate, bottom, top in zip(self.xyz, octant_bottom, octant_top))
+    def is_in_octant(self, top_bottom_octant):
+        # top_bottom_octant is a tuple (octant top, octant bottom), none for everywhere
+        if top_bottom_octant is None:
+            return True
+
+        is_in_range_for_ax = (top >= coordinate >= bottom
+                              for coordinate, top, bottom in zip(self.xyz, *top_bottom_octant))
         return all(is_in_range_for_ax)
 
     def split_cell(self):
@@ -44,7 +48,7 @@ class IRasterizer:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_rasterazation_cells(self, resolution, margin): raise NotImplementedError
+    def get_rasterazation_cells(self, resolution, margin, octant=None): raise NotImplementedError
 
 
 class EmptyPlaneRasterizer(IRasterizer):
@@ -96,7 +100,7 @@ class EmptyPlaneRasterizer(IRasterizer):
 
         return xys, pixel_radius
 
-    def get_rasterazation_cells(self, resolution, margin):
+    def get_rasterazation_cells(self, resolution, margin, octant=None):
         xys, pixel_radius = self._get_pixels(resolution, margin)
 
         if self.plane.plane_normal[0] != 0:
@@ -109,7 +113,8 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        return [Cell(xy, False, pixel_radius, lambda centers: np.full(len(centers), False), xyz_transformer) for xy in xys]
+        return filter(lambda cell: cell.is_in_octant(octant),
+                      [Cell(xy, False, pixel_radius, lambda centers: np.full(len(centers), False), xyz_transformer) for xy in xys])
 
 
 class PlaneRasterizer(IRasterizer):
@@ -162,9 +167,10 @@ class PlaneRasterizer(IRasterizer):
 
         return labeler
 
-    def get_rasterazation_cells(self, resolution, margin):
+    def get_rasterazation_cells(self, resolution, margin, octant=None):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
         labels = labeler(xys)
 
-        return [Cell(xy, label, pixel_radius, labeler, self.pca.inverse_transform) for xy, label in zip(xys, labels)]
+        return filter(lambda cell: cell.is_in_octant(octant),
+                      [Cell(xy, label, pixel_radius, labeler, self.pca.inverse_transform) for xy, label in zip(xys, labels)])

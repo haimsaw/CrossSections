@@ -9,10 +9,10 @@ from Resterizer import rasterizer_factory
 
 
 class RasterizedCslDataset(Dataset):
-    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
+    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, octant=None, transform=None, target_transform=None):
         self.csl = csl
 
-        self.cells = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
+        self.cells = np.array([rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin, octant)
                                for plane in csl.planes]).reshape(-1)
 
         self.transform = transform
@@ -34,6 +34,7 @@ class RasterizedCslDataset(Dataset):
 
         return xyz, label
 
+    # todo - not correct anymore, refined cells might end up in wrong octant
     def refine_cells(self, xyz_to_refine):
         # xyz_to_refine = set(xyz_to_refine)
 
@@ -49,14 +50,14 @@ class RasterizedCslDataset(Dataset):
 
 
 class HaimNetManager:
-    def __init__(self, verbose=False):
+    def __init__(self, layers, verbose=False):
         self.verbose = verbose
         self.save_path = "trained_model.pt"
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Using {} device".format(self.device))
 
-        self.model = HaimNet((3, 128, 256, 512, 512)).to(self.device)
+        self.model = HaimNet(layers).to(self.device)
         self.model.double()
 
         print(self.model)
@@ -107,9 +108,9 @@ class HaimNetManager:
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, csl, sampling_resolution, sampling_margin, lr):
+    def prepare_for_training(self, csl, sampling_resolution, sampling_margin, lr, octant=None):
         self.dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
-                                            target_transform=torch.tensor, transform=torch.tensor)
+                                            octant=octant, target_transform=torch.tensor, transform=torch.tensor)
         self.data_loader = DataLoader(self.dataset, batch_size=128, shuffle=True)
 
         self.model.init_weights()
