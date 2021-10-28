@@ -128,11 +128,6 @@ class HaimNetManager:
         self.is_training_ready = True
 
         print("octant: ", octant)
-        for xyz, label in self.data_loader:
-            print("Shape of X [N, C, H, W]: ", xyz.shape)
-            print("Shape of label: ", label.shape, label.dtype)
-
-            break
 
     def train_network(self, epochs):
         if not self.verbose:

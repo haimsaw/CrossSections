@@ -117,7 +117,7 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
 
         return list(filter(lambda cell: cell.is_in_octant(octant),
-                      [Cell(xy, False, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]))
+                      [Cell(xy, OUTSIDE_LABEL, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]))
 
 
 class PlaneRasterizer(IRasterizer):

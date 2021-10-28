@@ -24,7 +24,7 @@ class HaimNet(nn.Module):
         layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], 1)]
         self.linear_relu = nn.Sequential(*layers)
 
-        assert residual_module is None or residual_module.parameters()[0].requires_grad == False
+        # todo assert residual_module is None or residual_module.parameters()[0].requires_grad == False
         self.residual_module = residual_module
 
     def init_weights(self):

@@ -12,7 +12,7 @@ def main():
     root_sampling_resolution_2d = (32, 32)
     l1_sampling_resolution_2d = (64, 64)
     layers = (3, 16, 32, 32, 64, 1)
-    n_epochs = 512
+    n_epochs = 5
 
     csl = get_csl(bounding_planes_margin)
 
@@ -28,12 +28,14 @@ def main():
 
     network_manager_root.requires_grad_(False)
 
+    network_manager_root.requires_grad_(False)
     network_manager_layer1 = [HaimNetManager(layers, residual_module=network_manager_root.module) for _ in range(8)]
     octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
 
     for network_manager, octant in zip(network_manager_layer1, octanes):
         network_manager.prepare_for_training(csl, l1_sampling_resolution_2d, sampling_margin, lr, octant=octant)
         network_manager.train_network(epochs=n_epochs)
+        #network_manager.show_train_losses()
 
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
