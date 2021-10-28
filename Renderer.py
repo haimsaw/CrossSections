@@ -1,6 +1,6 @@
 from math import radians
 from random import random
-
+from Helpers import *
 import glfw
 import numpy as np
 from OpenGL.GL import *
@@ -160,13 +160,8 @@ class Renderer3D:
             elif show_empty_planes:
                 self.ax.scatter(*xyzs.T, color="purple", alpha=alpha/2)
 
-    def add_model_hard_prediction(self, network_manager, sampling_resolution_3d, alpha=0.05):
-
-        x = np.linspace(-1, 1, sampling_resolution_3d[0])
-        y = np.linspace(-1, 1, sampling_resolution_3d[1])
-        z = np.linspace(-1, 1, sampling_resolution_3d[2])
-
-        xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+    def add_model_hard_prediction(self, network_manager, sampling_resolution_3d, alpha=0.05, octant=None):
+        xyz = get_xyz_in_octant(octant, sampling_resolution_3d)
         labels = network_manager.hard_predict(xyz)
 
         self.ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
@@ -208,6 +203,8 @@ class Renderer3D:
 
 # region 2d
 
+
+# todo make this a class like the Renderer3D
 def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
     plt.imshow(rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
                origin='lower')

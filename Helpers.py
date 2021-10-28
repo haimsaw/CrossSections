@@ -31,3 +31,14 @@ def get_octets(top, bottom):
              ])
     octanes_bottoms = np.array([top - size for top in octanes_tops])
     return np.stack((octanes_tops, octanes_bottoms), axis=1)
+
+
+def get_xyz_in_octant(octant, sampling_resolution_3d):
+    x = np.linspace(-1, 1, sampling_resolution_3d[0])
+    y = np.linspace(-1, 1, sampling_resolution_3d[1])
+    z = np.linspace(-1, 1, sampling_resolution_3d[2])
+    xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+    if octant is not None:
+        filter = np.all(np.logical_and(xyz >= octant[0], octant[1] >= xyz), axis=1)
+        xyz = xyz[filter]
+    return xyz

@@ -4,6 +4,9 @@ from abc import ABCMeta, abstractmethod
 from CSL import Plane
 from Helpers import *
 
+INSIDE_LABEL = 1.0
+OUTSIDE_LABEL = 0.0
+
 
 def rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
@@ -114,7 +117,7 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
 
         return list(filter(lambda cell: cell.is_in_octant(octant),
-                      [Cell(xy, False, pixel_radius, lambda centers: np.full(len(centers), False), xyz_transformer) for xy in xys]))
+                      [Cell(xy, False, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]))
 
 
 class PlaneRasterizer(IRasterizer):
@@ -163,8 +166,8 @@ class PlaneRasterizer(IRasterizer):
             if len(hole_vertices) > 0:
                 pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xys)
                 mask &= np.logical_not(pixels_in_hole)
-            return mask
-
+            labels = np.where(mask, INSIDE_LABEL, np.full(mask.shape, OUTSIDE_LABEL))
+            return labels
         return labeler
 
     def get_rasterazation_cells(self, resolution, margin, octant=None):

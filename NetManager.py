@@ -28,7 +28,7 @@ class RasterizedCslDataset(Dataset):
         cell = self.cells[idx]
 
         xyz = cell.xyz
-        label = [1.0] if cell.label else [0.0]
+        label = [cell.label]
 
         if self.transform:
             xyz = self.transform(xyz)
@@ -53,17 +53,17 @@ class RasterizedCslDataset(Dataset):
 
 
 class HaimNetManager:
-    def __init__(self, layers, verbose=False):
+    def __init__(self, layers, residual_module=None, verbose=False):
         self.verbose = verbose
         self.save_path = "trained_model.pt"
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Using {} device".format(self.device))
 
-        self.model = HaimNet(layers).to(self.device)
-        self.model.double()
+        self.module = HaimNet(layers, residual_module).to(self.device)
+        self.module.double()
 
-        print(self.model)
+        print(self.module)
 
         self.loss_fn = None
         self.optimizer = None
@@ -90,7 +90,7 @@ class HaimNetManager:
             xyz, label = xyz.to(self.device), label.to(self.device)
 
             # Compute prediction error
-            label_pred = self.model(xyz)
+            label_pred = self.module(xyz)
             # print(f"{label_pred.shape}, {label.shape}")
             loss = self.loss_fn(label_pred, label)
 
@@ -116,13 +116,13 @@ class HaimNetManager:
                                             octant=octant, target_transform=torch.tensor, transform=torch.tensor)
         self.data_loader = DataLoader(self.dataset, batch_size=128, shuffle=True)
 
-        self.model.init_weights()
+        self.module.init_weights()
 
         # self.loss_fn = nn.L1Loss()
         # self.loss_fn = nn.CrossEntropyLoss()
         self.loss_fn = nn.BCEWithLogitsLoss()
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
+        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=lr)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
 
         self.is_training_ready = True
@@ -139,7 +139,7 @@ class HaimNetManager:
             print('\nn_epochs' + '.' * epochs)
             print('_running', end="")
 
-        self.model.train()
+        self.module.train()
         for epoch in range(epochs):
             if not self.verbose:
                 print('.', end='')
@@ -155,35 +155,38 @@ class HaimNetManager:
         plt.show()
 
     def load_from_disk(self):
-        self.model.load_state_dict(torch.load(self.save_path, map_location=torch.device('cpu')))
-        self.model.eval()
+        self.module.load_state_dict(torch.load(self.save_path, map_location=torch.device('cpu')))
+        self.module.eval()
 
     def save_to_disk(self):
-        torch.save(self.model.state_dict(), self.save_path)
+        torch.save(self.module.state_dict(), self.save_path)
+
+    def requires_grad_(self, requires_grad):
+        self.module.requires_grad_(requires_grad)
 
     @torch.no_grad()
     def hard_predict(self, xyz, threshold=0.5):
-        self.model.eval()
+        self.module.eval()
         data_loader = DataLoader(xyz, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=bool)
         for xyz_batch in data_loader:
             xyz_batch = xyz_batch.to(self.device)
-            label_pred = np.concatenate((label_pred, (self.model(xyz_batch) > threshold).detach().cpu().numpy().reshape(-1)))
+            label_pred = np.concatenate((label_pred, (self.module(xyz_batch) > threshold).detach().cpu().numpy().reshape(-1)))
         return label_pred
 
     @torch.no_grad()
     def soft_predict(self, xyz):
-        self.model.eval()
+        self.module.eval()
         data_loader = DataLoader(xyz, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=float)
         for xyz_batch in data_loader:
             xyz_batch = xyz_batch.to(self.device)
-            label_pred = np.concatenate((label_pred, self.model(xyz_batch).detach().cpu().numpy().reshape(-1)))
+            label_pred = np.concatenate((label_pred, self.module(xyz_batch).detach().cpu().numpy().reshape(-1)))
         return label_pred
 
     @torch.no_grad()
     def refine_sampling(self, threshold=0.5):
-        self.model.eval()
+        self.module.eval()
 
         # next epoch will be with the refined dataset
         self.epochs_with_refine.append(self.total_epochs + 1)
@@ -197,14 +200,14 @@ class HaimNetManager:
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):
-        self.model.eval()
+        self.module.eval()
         errored_xyz = np.empty((0, 3), dtype=bool)
         errored_labels = np.empty((0, 1), dtype=bool)
 
         for xyz, label in self.data_loader:
             xyz, label = xyz.to(self.device), label.to(self.device)
 
-            label_pred = self.model(xyz) > threshold
+            label_pred = self.module(xyz) > threshold
             errors = (label != label_pred).view(-1)
 
             errored_xyz = np.concatenate((errored_xyz, xyz[errors].detach().cpu().numpy()))

@@ -15,15 +15,23 @@ def initializer(m):
 
 
 class HaimNet(nn.Module):
-    def __init__(self, n_neurons):
+    def __init__(self, n_neurons, residual_module):
         super().__init__()
-        neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 1)]
-        activations = [nn.LeakyReLU() for i in range(len(n_neurons) - 1)]
-        layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-1], 1)]
+        assert n_neurons[0] == 3 and n_neurons[-1] == 1
+
+        neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
+        activations = [nn.LeakyReLU() for i in range(len(n_neurons) - 2)]
+        layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], 1)]
         self.linear_relu = nn.Sequential(*layers)
+
+        assert residual_module is None or residual_module.parameters()[0].requires_grad == False
+        self.residual_module = residual_module
 
     def init_weights(self):
         self.linear_relu.apply(initializer)
 
     def forward(self, x):
-        return self.linear_relu(x)
+        if self.residual_module is not None:
+            return self.linear_relu(x) + self.residual_module(x)
+        else:
+            return self.linear_relu(x)
