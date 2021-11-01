@@ -10,7 +10,9 @@ def get_top_bottom(points):
 def add_margin(top, bottom, margin):
     return top + margin * (top - bottom),  bottom - margin * (top - bottom)
 
-    # todo make class octent
+# todo make class octent
+
+
 def get_octets(top, bottom):
     # todo octets with overlap
     mid = (top + bottom) / 2

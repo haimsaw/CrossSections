@@ -30,12 +30,14 @@ def main():
     sampling_resolution_3d = (50, 50, 50)
 
     layers = (3, 16, 32, 32, 64, 1)
-    n_epochs = 2
+    layers = (3, 16, 1)
+
+    n_epochs = 1
 
     csl = get_csl(bounding_planes_margin)
 
-    renderer = Renderer3D()
-    renderer.add_scene(csl)
+    # renderer = Renderer3D()
+    # renderer.add_scene(csl)
     # renderer.add_rasterized_scene(csl, sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
     # renderer.show()
 

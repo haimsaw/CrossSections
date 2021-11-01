@@ -87,12 +87,11 @@ class HaimNetManager(INetManager):
         self.csl = csl
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print("Using {} device".format(self.device))
 
         self.module = HaimNet(layers, residual_module).to(self.device)
         self.module.double()
 
-        print(self.module)
+        # print(self.module)
 
         self.loss_fn = None
         self.optimizer = None
@@ -240,7 +239,11 @@ class HaimNetManager(INetManager):
 
 class OctnetreeManager(INetManager):
     def __init__(self, csl, layers, network_manager_root, sampling_margin):
-        self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
+        # todo find better way to divied to octans
+        # self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
+        self.octanes = get_octets(np.array([2, 2, 2]), np.array([-2, -2, -2]))
+        # print("octanes=", self.octanes)
+
         self.network_managers = [HaimNetManager(csl, layers, residual_module=network_manager_root.module, octant=octant)
                                  for octant in self.octanes]
 
@@ -249,7 +252,8 @@ class OctnetreeManager(INetManager):
             network_manager.prepare_for_training(sampling_resolution_2d, sampling_margin, lr)
 
     def train_network(self, epochs):
-        for network_manager in self.network_managers:
+        for i, network_manager in enumerate(self.network_managers):
+            print(f"training {i}")
             network_manager.train_network(epochs=epochs)
             # network_manager.show_train_losses()
 
