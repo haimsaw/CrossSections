@@ -58,6 +58,18 @@ class INetManager:
     __metaclass__ = ABCMeta
 
     @abstractmethod
+    def show_train_losses(self): raise NotImplementedError
+
+    @abstractmethod
+    def load_from_disk(self): raise NotImplementedError
+
+    @abstractmethod
+    def save_to_disk(self): raise NotImplementedError
+
+    @abstractmethod
+    def requires_grad_(self, requires_grad): raise NotImplementedError
+
+    @abstractmethod
     def soft_predict(self, xyzs): raise NotImplementedError
 
     @abstractmethod
