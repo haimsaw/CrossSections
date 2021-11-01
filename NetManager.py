@@ -6,6 +6,8 @@ from torch import nn
 
 from Modules import HaimNet
 from Resterizer import rasterizer_factory
+from Helpers import *
+from abc import ABCMeta, abstractmethod
 
 
 class RasterizedCslDataset(Dataset):
@@ -52,10 +54,25 @@ class RasterizedCslDataset(Dataset):
         self.cells = np.array(new_cells)
 
 
-class HaimNetManager:
-    def __init__(self, layers, residual_module=None, verbose=False):
+class INetManager:
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def soft_predict(self, xyzs): raise NotImplementedError
+
+    @abstractmethod
+    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr): raise NotImplementedError
+
+    @abstractmethod
+    def train_network(self, epochs): raise NotImplementedError
+
+
+class HaimNetManager(INetManager):
+    def __init__(self, csl, layers, residual_module=None, octant=None, verbose=False):
         self.verbose = verbose
         self.save_path = "trained_model.pt"
+        self.octant = octant
+        self.csl = csl
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Using {} device".format(self.device))
@@ -111,9 +128,9 @@ class HaimNetManager:
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, csl, sampling_resolution, sampling_margin, lr, octant=None):
-        self.dataset = RasterizedCslDataset(csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
-                                            octant=octant, target_transform=torch.tensor, transform=torch.tensor)
+    def prepare_for_training(self, sampling_resolution, sampling_margin, lr):
+        self.dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
+                                            octant=self.octant, target_transform=torch.tensor, transform=torch.tensor)
         self.data_loader = DataLoader(self.dataset, batch_size=128, shuffle=True)
 
         self.module.init_weights()
@@ -126,8 +143,6 @@ class HaimNetManager:
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
 
         self.is_training_ready = True
-
-        print("octant: ", octant)
 
     def train_network(self, epochs):
         if not self.verbose:
@@ -160,9 +175,9 @@ class HaimNetManager:
         self.module.requires_grad_(requires_grad)
 
     @torch.no_grad()
-    def hard_predict(self, xyz, threshold=0.5):
+    def hard_predict(self, xyzs, threshold=0.5):
         self.module.eval()
-        data_loader = DataLoader(xyz, batch_size=128, shuffle=False)
+        data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=bool)
         for xyz_batch in data_loader:
             xyz_batch = xyz_batch.to(self.device)
@@ -170,9 +185,9 @@ class HaimNetManager:
         return label_pred
 
     @torch.no_grad()
-    def soft_predict(self, xyz):
+    def soft_predict(self, xyzs):
         self.module.eval()
-        data_loader = DataLoader(xyz, batch_size=128, shuffle=False)
+        data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=float)
         for xyz_batch in data_loader:
             xyz_batch = xyz_batch.to(self.device)
@@ -209,3 +224,31 @@ class HaimNetManager:
             errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
 
         return errored_xyz, errored_labels.reshape(-1)
+
+
+class OctnetreeManager(INetManager):
+    def __init__(self, csl, layers, network_manager_root, sampling_margin):
+        self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
+        self.network_managers = [HaimNetManager(csl, layers, residual_module=network_manager_root.module, octant=octant)
+                                 for octant in self.octanes]
+
+    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr):
+        for network_manager in self.network_managers:
+            network_manager.prepare_for_training(sampling_resolution_2d, sampling_margin, lr)
+
+    def train_network(self, epochs):
+        for network_manager in self.network_managers:
+            network_manager.train_network(epochs=epochs)
+            # network_manager.show_train_losses()
+
+    @torch.no_grad()
+    def soft_predict(self, xyzs):
+        # todo do in GPU
+        return np.array([self.predict_xyz(xyz) for xyz in xyzs])
+
+    @torch.no_grad()
+    def predict_xyz(self, xyz):
+        for network_manager, octant in zip(self.network_managers, self.octanes):
+            if is_in_octant(xyz, octant):
+                return network_manager.soft_predict([xyz])
+        raise Exception(f"xyz not in any octant. xyz={xyz}")

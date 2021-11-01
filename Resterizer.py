@@ -25,15 +25,6 @@ class Cell:
         self.xyz_transformer = xyz_transformer
         self.xyz = self.xyz_transformer(np.array([self.pixel_center]))[0]
 
-    def is_in_octant(self, top_bottom_octant):
-        # top_bottom_octant is a tuple (octant top, octant bottom), none for everywhere
-        if top_bottom_octant is None:
-            return True
-
-        is_in_range_for_ax = (top >= coordinate >= bottom
-                              for coordinate, top, bottom in zip(self.xyz, *top_bottom_octant))
-        return all(is_in_range_for_ax)
-
     def split_cell(self):
         new_cell_radius = self.pixel_radius / 2
         new_centers = np.array([[1, 1],
@@ -116,7 +107,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        return list(filter(lambda cell: cell.is_in_octant(octant),
+        return list(filter(lambda cell: is_in_octant(cell.xyz, octant),
                       [Cell(xy, OUTSIDE_LABEL, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]))
 
 
@@ -175,5 +166,5 @@ class PlaneRasterizer(IRasterizer):
         labeler = self._get_labeler()
         labels = labeler(xys)
 
-        return list(filter(lambda cell: cell.is_in_octant(octant),
+        return list(filter(lambda cell: is_in_octant(cell.xyz, octant),
                       [Cell(xy, label, pixel_radius, labeler, self.pca.inverse_transform) for xy, label in zip(xys, labels)]))

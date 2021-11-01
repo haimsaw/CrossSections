@@ -10,7 +10,7 @@ def get_top_bottom(points):
 def add_margin(top, bottom, margin):
     return top + margin * (top - bottom),  bottom - margin * (top - bottom)
 
-
+    # todo make class octent
 def get_octets(top, bottom):
     # todo octets with overlap
     mid = (top + bottom) / 2
@@ -41,3 +41,13 @@ def get_xyz_in_octant(octant, sampling_resolution_3d):
     if octant is not None:
         xyz = xyz[np.all(np.logical_and(xyz <= octant[0], octant[1] <= xyz), axis=1)]
     return xyz
+
+
+def is_in_octant(xyz, top_bottom_octant):
+    # top_bottom_octant is a tuple (octant top, octant bottom), none for everywhere
+    if top_bottom_octant is None:
+        return True
+
+    is_in_range_for_ax = (top >= coordinate >= bottom
+                          for coordinate, top, bottom in zip(xyz, *top_bottom_octant))
+    return all(is_in_range_for_ax)
