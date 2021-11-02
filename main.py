@@ -66,13 +66,17 @@ if __name__ == "__main__":
 
 '''
 todo:
+    check if i should scale everiting to 1?
+    check if i should use softmax when predicting
+    
+    add scene to mesh
+
     positional encoding
     overlaping octants
-    check if i should scale everiting to 1?
     make octnetree_manager as actual octree
-    add scene to mesh
+    keep original proportions when resterizing
+
     
     use k3d for rendering in collab https://github.com/K3D-tools/K3D-jupyter/blob/main/HOW-TO.md
     CGAL 5.3 - 3D Surface Mesh Generation https://doc.cgal.org/latest/Surface_mesher/index.html
-	0.2 keep original proportions when resterizing
 '''
