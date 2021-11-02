@@ -48,7 +48,7 @@ def main():
 
     network_manager_root.requires_grad_(False)
 
-    octnetree_manager_l1 = OctnetreeManager(csl, layers, network_manager_root, sampling_margin)
+    octnetree_manager_l1 = OctnetreeManager(csl, layers, network_manager_root)
     octnetree_manager_l1.prepare_for_training(l1_sampling_resolution_2d, sampling_margin, lr)
     octnetree_manager_l1.train_network(epochs=n_epochs)
 

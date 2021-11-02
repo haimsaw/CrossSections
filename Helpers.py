@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def get_top_bottom(points):
@@ -53,3 +54,12 @@ def is_in_octant(xyz, top_bottom_octant):
     is_in_range_for_ax = (top >= coordinate >= bottom
                           for coordinate, top, bottom in zip(xyz, *top_bottom_octant))
     return all(is_in_range_for_ax)
+
+
+def is_in_octant_tensor(xyzs, top_bottom_octant):
+    # top_bottom_octant is a tuple (octant top, octant bottom), none for everywhere
+    if top_bottom_octant is None:
+        return True
+
+    top, bottom = torch.Tensor(top_bottom_octant[0]), torch.Tensor(top_bottom_octant[1])
+    return torch.all(torch.logical_and(top >= xyzs, xyzs >= bottom), 1)

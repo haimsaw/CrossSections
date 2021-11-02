@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
 
-from Modules import HaimNet
+from Modules import *
 from Resterizer import rasterizer_factory
 from Helpers import *
 from abc import ABCMeta, abstractmethod
@@ -57,8 +57,15 @@ class RasterizedCslDataset(Dataset):
 class INetManager:
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        pass
+    def __init__(self, csl, module, verbose=False):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        self.module = module
+        self.module.double()
+        self.module.to(self.device)
+
+        self.csl = csl
+        self.verbose = verbose
 
     @abstractmethod
     def show_train_losses(self): raise NotImplementedError
@@ -86,25 +93,27 @@ class INetManager:
 
     @torch.no_grad()
     def hard_predict(self, xyzs, threshold=0.5):
-        # todo self.module.eval()
+        self.module.eval()
         return self.soft_predict(xyzs) > threshold
+
+    @torch.no_grad()
+    def soft_predict(self, xyzs):
+        # todo refactor this to be on the Interface
+        self.module.eval()
+        data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
+        label_pred = np.empty(0, dtype=float)
+        for xyz_batch in data_loader:
+            xyz_batch = xyz_batch.to(self.device)
+            label_pred = np.concatenate((label_pred, self.module(xyz_batch).detach().cpu().numpy().reshape(-1)))
+        return label_pred
 
 
 class HaimNetManager(INetManager):
     def __init__(self, csl, layers, residual_module=None, octant=None, verbose=False):
-        super().__init__()
+        super().__init__(csl, HaimNet(layers, residual_module), verbose)
 
-        self.verbose = verbose
         self.save_path = "trained_model.pt"
         self.octant = octant
-        self.csl = csl
-
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        self.module = HaimNet(layers, residual_module).to(self.device)
-        self.module.double()
-
-        # print(self.module)
 
         self.loss_fn = None
         self.optimizer = None
@@ -241,15 +250,19 @@ class HaimNetManager(INetManager):
 
 
 class OctnetreeManager(INetManager):
-    def __init__(self, csl, layers, network_manager_root, sampling_margin):
-        super().__init__()
+    def __init__(self, csl, layers, network_manager_root, verbose=False):
         # todo find better way to divied to octans
+
         # self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
         self.octanes = get_octets(np.array([2, 2, 2]), np.array([-2, -2, -2]))
         # print("octanes=", self.octanes)
 
+        # todo this whole thing need to be refactored - remove self.network_managers
         self.network_managers = [HaimNetManager(csl, layers, residual_module=network_manager_root.module, octant=octant)
                                  for octant in self.octanes]
+        module = HaimnetOctnetree([manager.module for manager in self.network_managers], self.octanes)
+
+        super().__init__(csl, module, verbose)
 
     def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr):
         for network_manager in self.network_managers:
@@ -261,14 +274,5 @@ class OctnetreeManager(INetManager):
             network_manager.train_network(epochs=epochs)
             # network_manager.show_train_losses()
 
-    @torch.no_grad()
-    def soft_predict(self, xyzs):
-        # todo do in GPU
-        return np.array([self.predict_xyz(xyz) for xyz in xyzs])
 
-    @torch.no_grad()
-    def predict_xyz(self, xyz):
-        for network_manager, octant in zip(self.network_managers, self.octanes):
-            if is_in_octant(xyz, octant):
-                return network_manager.soft_predict([xyz])
-        raise Exception(f"xyz not in any octant. xyz={xyz}")
+
