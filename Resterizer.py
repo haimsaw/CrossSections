@@ -13,17 +13,27 @@ def rasterizer_factory(plane: Plane):
 
 
 class Cell:
-    def __init__(self, pixel_center, label, pixel_radius, labeler, xyz_transformer):
+    def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer):
         assert min(pixel_radius) > 0
+        self._label = None
 
         self.pixel_center = pixel_center
-        self.label = label
-
         self.pixel_radius = pixel_radius
 
         self.labeler = labeler
         self.xyz_transformer = xyz_transformer
         self.xyz = self.xyz_transformer(np.array([self.pixel_center]))[0]
+
+    @property
+    def label(self):
+        if self._label is None:
+            self._label = self._get_label()
+        return self._label
+
+    def _get_label(self, accuracy=100):
+        sampels = np.random.random_sample((accuracy, 2)) * self.pixel_radius + self.pixel_center
+        labels = self.labeler(sampels)
+        return sum(labels)/accuracy
 
     def split_cell(self):
         new_cell_radius = self.pixel_radius / 2
@@ -33,9 +43,8 @@ class Cell:
                             [-1, -1]]) * new_cell_radius + self.pixel_center
 
         # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
-        labels = self.labeler(new_centers)
 
-        return [Cell(xy, label, new_cell_radius, self.labeler, self.xyz_transformer) for xy, label in zip(new_centers, labels)]
+        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer) for xy, label in new_centers]
 
 
 class IRasterizer:
@@ -107,8 +116,9 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
+        # todo the filter is not efficent
         return list(filter(lambda cell: is_in_octant(cell.xyz, octant),
-                      [Cell(xy, OUTSIDE_LABEL, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]))
+                      [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]))
 
 
 class PlaneRasterizer(IRasterizer):
@@ -164,7 +174,7 @@ class PlaneRasterizer(IRasterizer):
     def get_rasterazation_cells(self, resolution, margin, octant=None):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
-        labels = labeler(xys)
 
+        # todo the filter is not efficent
         return list(filter(lambda cell: is_in_octant(cell.xyz, octant),
-                      [Cell(xy, label, pixel_radius, labeler, self.pca.inverse_transform) for xy, label in zip(xys, labels)]))
+                      [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]))

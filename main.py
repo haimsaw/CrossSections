@@ -70,6 +70,7 @@ todo:
     overlaping octants
     check if i should scale everiting to 1?
     make octnetree_manager as actual octree
+    add scene to mesh
     
     use k3d for rendering in collab https://github.com/K3D-tools/K3D-jupyter/blob/main/HOW-TO.md
     CGAL 5.3 - 3D Surface Mesh Generation https://doc.cgal.org/latest/Surface_mesher/index.html
