@@ -57,6 +57,9 @@ class RasterizedCslDataset(Dataset):
 class INetManager:
     __metaclass__ = ABCMeta
 
+    def __init__(self):
+        pass
+
     @abstractmethod
     def show_train_losses(self): raise NotImplementedError
 
@@ -78,9 +81,19 @@ class INetManager:
     @abstractmethod
     def train_network(self, epochs): raise NotImplementedError
 
+    @abstractmethod
+    def get_train_errors(self, threshold=0.5): raise NotImplementedError
+
+    @torch.no_grad()
+    def hard_predict(self, xyzs, threshold=0.5):
+        # todo self.module.eval()
+        return self.soft_predict(xyzs) > threshold
+
 
 class HaimNetManager(INetManager):
     def __init__(self, csl, layers, residual_module=None, octant=None, verbose=False):
+        super().__init__()
+
         self.verbose = verbose
         self.save_path = "trained_model.pt"
         self.octant = octant
@@ -186,16 +199,6 @@ class HaimNetManager(INetManager):
         self.module.requires_grad_(requires_grad)
 
     @torch.no_grad()
-    def hard_predict(self, xyzs, threshold=0.5):
-        self.module.eval()
-        data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
-        label_pred = np.empty(0, dtype=bool)
-        for xyz_batch in data_loader:
-            xyz_batch = xyz_batch.to(self.device)
-            label_pred = np.concatenate((label_pred, (self.module(xyz_batch) > threshold).detach().cpu().numpy().reshape(-1)))
-        return label_pred
-
-    @torch.no_grad()
     def soft_predict(self, xyzs):
         self.module.eval()
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
@@ -239,6 +242,7 @@ class HaimNetManager(INetManager):
 
 class OctnetreeManager(INetManager):
     def __init__(self, csl, layers, network_manager_root, sampling_margin):
+        super().__init__()
         # todo find better way to divied to octans
         # self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
         self.octanes = get_octets(np.array([2, 2, 2]), np.array([-2, -2, -2]))
