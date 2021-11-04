@@ -95,7 +95,7 @@ class Renderer3D:
 
     def add_model_errors(self, network_manager: INetManager):
         errored_xyz, errored_labels = network_manager.get_train_errors()
-        self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="blue")
+        self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
     def show(self):

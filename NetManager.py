@@ -85,10 +85,11 @@ class INetManager:
     def get_train_errors(self, threshold=0.5): raise NotImplementedError
 
     @abstractmethod
-    def soft_predict(self, xyzs): raise NotImplementedError
+    def soft_predict(self, xyzs, use_sigmoid=False): raise NotImplementedError
 
     @torch.no_grad()
-    def hard_predict(self, xyzs, threshold=0.5):
+    def hard_predict(self, xyzs, threshold=0.5, use_sigmoid=False):
+        # todo should threshold = 0.0 if threshold=true?
         # todo self.module.eval()
         xyzs, soft_labels = self.soft_predict(xyzs)
         return xyzs, soft_labels > threshold
@@ -201,7 +202,7 @@ class HaimNetManager(INetManager):
         self.module.requires_grad_(requires_grad)
 
     @torch.no_grad()
-    def soft_predict(self, xyzs):
+    def soft_predict(self, xyzs, use_sigmoid=False):
         # change the order of xyzs
         # todo assert in octant
 
@@ -210,7 +211,8 @@ class HaimNetManager(INetManager):
         label_pred = np.empty(0, dtype=float)
         for xyzs_batch in data_loader:
             xyzs_batch = xyzs_batch.to(self.device)
-            label_pred = np.concatenate((label_pred, torch.sigmoid(self.module(xyzs_batch)).detach().cpu().numpy().reshape(-1)))
+            batch_labels = torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)
+            label_pred = np.concatenate((label_pred, batch_labels.detach().cpu().numpy().reshape(-1)))
         return xyzs, label_pred
 
     @torch.no_grad()
@@ -274,13 +276,13 @@ class OctnetreeManager(INetManager):
             network_manager.show_train_losses()
 
     @torch.no_grad()
-    def soft_predict(self, xyzs):
+    def soft_predict(self, xyzs, use_sigmoid=False):
         # change the order of xyzs
         # todo assert every xyz is in octant at least one ocnant
 
         xyzs_per_octants = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octanes]
 
-        labels_per_octants = [manager.soft_predict(xyzs)[1] for manager, xyzs in zip(self.network_managers, xyzs_per_octants)]
+        labels_per_octants = [manager.soft_predict(xyzs, use_sigmoid)[1] for manager, xyzs in zip(self.network_managers, xyzs_per_octants)]
 
         xyzs = np.array([xyz for xyzs in xyzs_per_octants for xyz in xyzs])
         labels = np.array([label for labels in labels_per_octants for label in labels])
