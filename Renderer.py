@@ -1,10 +1,7 @@
 from math import radians
 from random import random
 from Helpers import *
-import glfw
 import numpy as np
-from OpenGL.GL import *
-from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
 import inspect
 
@@ -69,10 +66,10 @@ class Renderer3D:
                 self.ax.scatter(*xyzs.T, color="purple", alpha=alpha/2)
 
     def add_model_hard_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=0.05, octant=None):
-        xyz = get_xyz_in_octant(octant, sampling_resolution_3d)
-        labels = network_manager.hard_predict(xyz)
+        xyzs = get_xyzs_in_octant(octant, sampling_resolution_3d)
+        xyzs, labels = network_manager.hard_predict(xyzs)
 
-        self.ax.scatter(*xyz[labels].T, alpha=alpha, color='blue')
+        self.ax.scatter(*xyzs[labels].T, alpha=alpha, color='blue')
 
     def add_model_soft_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=1.0):
         # todo not working
@@ -82,7 +79,7 @@ class Renderer3D:
         z = np.linspace(-1, 1, sampling_resolution_3d[2])
 
         xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-        labels = network_manager.hard_predict(xyz)
+        _, labels = network_manager.soft_predict(xyz)
 
         self.ax.scatter(*xyz.T, c=labels, cmap="Blues", alpha=alpha)
 
@@ -95,8 +92,6 @@ class Renderer3D:
 
         scale = my_mesh.points.flatten()
         self.ax.auto_scale_xyz(scale, scale, scale)
-
-        plt.show()
 
     def add_model_errors(self, network_manager: INetManager):
         errored_xyz, errored_labels = network_manager.get_train_errors()

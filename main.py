@@ -1,7 +1,7 @@
 from CSL import *
 from Renderer import Renderer3D
 from NetManager import *
-from Mesher import marching_cubes
+from Mesher import *
 from Helpers import *
 
 
@@ -66,13 +66,13 @@ if __name__ == "__main__":
 
 '''
 todo:
-    check if i should scale everiting to 1?
+    check if i should scale everything to 1?
     check if i should use softmax when predicting
     
     add scene to mesh
 
     positional encoding
-    overlaping octants
+    overlapping octanes
     make octnetree_manager as actual octree
     keep original proportions when resterizing
 

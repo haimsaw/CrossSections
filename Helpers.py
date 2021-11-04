@@ -36,14 +36,20 @@ def get_octets(top, bottom):
     return np.stack((octanes_tops, octanes_bottoms), axis=1)
 
 
-def get_xyz_in_octant(octant, sampling_resolution_3d):
+def get_xyzs_in_octant(octant, sampling_resolution_3d):
     x = np.linspace(-1, 1, sampling_resolution_3d[0])
     y = np.linspace(-1, 1, sampling_resolution_3d[1])
     z = np.linspace(-1, 1, sampling_resolution_3d[2])
     xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     if octant is not None:
-        xyz = xyz[np.all(np.logical_and(xyz <= octant[0], octant[1] <= xyz), axis=1)]
+        xyz = xyz[np.all(np.logical_and(xyz < octant[0], octant[1] <= xyz), axis=1)]
     return xyz
+
+
+def is_in_octant_list(xyzs, top_bottom_octant):
+    if top_bottom_octant is None:
+        return np.full(True, xyzs.shape)
+    return np.all(np.logical_and(xyzs < top_bottom_octant[0], top_bottom_octant[1] <= xyzs), axis=1)
 
 
 def is_in_octant(xyz, top_bottom_octant):
@@ -51,15 +57,7 @@ def is_in_octant(xyz, top_bottom_octant):
     if top_bottom_octant is None:
         return True
 
-    is_in_range_for_ax = (top >= coordinate >= bottom
+    is_in_range_for_ax = (top > coordinate >= bottom
                           for coordinate, top, bottom in zip(xyz, *top_bottom_octant))
     return all(is_in_range_for_ax)
 
-
-def is_in_octant_tensor(xyzs, top_bottom_octant):
-    # top_bottom_octant is a tuple (octant top, octant bottom), none for everywhere
-    if top_bottom_octant is None:
-        return True
-
-    top, bottom = torch.Tensor(top_bottom_octant[0]), torch.Tensor(top_bottom_octant[1])
-    return torch.all(torch.logical_and(top >= xyzs, xyzs >= bottom), 1)

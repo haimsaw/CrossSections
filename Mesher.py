@@ -15,6 +15,7 @@ def _get_mesh(labels):
 
 
 def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
-    xyz = get_xyz_in_octant(None, sampling_resolution_3d)
-    labels = net_manager.soft_predict(xyz).reshape(sampling_resolution_3d)
-    return _get_mesh(labels)
+    xyz = get_xyzs_in_octant(None, sampling_resolution_3d)
+    _, labels = net_manager.soft_predict(xyz)
+    return _get_mesh(labels.reshape(sampling_resolution_3d))
+

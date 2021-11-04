@@ -31,27 +31,8 @@ class HaimNet(nn.Module):
     def init_weights(self):
         self.linear_relu.apply(initializer)
 
-    def forward(self, xyz):
+    def forward(self, xyzs):
         if self.residual_module is not None:
-            return self.linear_relu(xyz) + self.residual_module(xyz)
+            return self.linear_relu(xyzs) + self.residual_module(xyzs)
         else:
-            return self.linear_relu(xyz)
-
-
-class HaimnetOctnetree(nn.Module):
-    def __init__(self, haimnet_modules, octanes):
-        super().__init__()
-
-        self.haimnet_modules = haimnet_modules
-        self.octanes = octanes
-
-    def forward(self, xyz):
-
-        [is_in_octant_tensor(xyz, octant) for haimnet_module, octant in zip(self.haimnet_modules, self.octanes)]
-        # todo use torch.where?
-
-
-        for haimnet_module, octant in zip(self.haimnet_modules, self.octanes):
-            if is_in_octant_tensor(xyz, octant):
-                return haimnet_module(xyz)
-        raise Exception(f"xyz not in any octant. xyz={xyz}")
+            return self.linear_relu(xyzs)

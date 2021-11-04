@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from torch import nn
 
 from Modules import *
@@ -57,12 +57,8 @@ class RasterizedCslDataset(Dataset):
 class INetManager:
     __metaclass__ = ABCMeta
 
-    def __init__(self, csl, module, verbose=False):
+    def __init__(self, csl, verbose=False):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        self.module = module
-        self.module.double()
-        self.module.to(self.device)
 
         self.csl = csl
         self.verbose = verbose
@@ -80,9 +76,6 @@ class INetManager:
     def requires_grad_(self, requires_grad): raise NotImplementedError
 
     @abstractmethod
-    def soft_predict(self, xyzs): raise NotImplementedError
-
-    @abstractmethod
     def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr): raise NotImplementedError
 
     @abstractmethod
@@ -91,29 +84,26 @@ class INetManager:
     @abstractmethod
     def get_train_errors(self, threshold=0.5): raise NotImplementedError
 
-    @torch.no_grad()
-    def hard_predict(self, xyzs, threshold=0.5):
-        self.module.eval()
-        return self.soft_predict(xyzs) > threshold
+    @abstractmethod
+    def soft_predict(self, xyzs): raise NotImplementedError
 
     @torch.no_grad()
-    def soft_predict(self, xyzs):
-        # todo refactor this to be on the Interface
-        self.module.eval()
-        data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
-        label_pred = np.empty(0, dtype=float)
-        for xyz_batch in data_loader:
-            xyz_batch = xyz_batch.to(self.device)
-            label_pred = np.concatenate((label_pred, self.module(xyz_batch).detach().cpu().numpy().reshape(-1)))
-        return label_pred
+    def hard_predict(self, xyzs, threshold=0.5):
+        # todo self.module.eval()
+        xyzs, soft_labels = self.soft_predict(xyzs)
+        return xyzs, soft_labels > threshold
 
 
 class HaimNetManager(INetManager):
     def __init__(self, csl, layers, residual_module=None, octant=None, verbose=False):
-        super().__init__(csl, HaimNet(layers, residual_module), verbose)
+        super().__init__(csl, verbose)
 
         self.save_path = "trained_model.pt"
         self.octant = octant
+
+        self.module = HaimNet(layers, residual_module)
+        self.module.double()
+        self.module.to(self.device)
 
         self.loss_fn = None
         self.optimizer = None
@@ -162,9 +152,12 @@ class HaimNetManager(INetManager):
         self.train_losses.append(total_loss)
 
     def prepare_for_training(self, sampling_resolution, sampling_margin, lr):
+        # todo - calc dataset once per layer
         self.dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
                                             octant=self.octant, target_transform=torch.tensor, transform=torch.tensor)
-        self.data_loader = DataLoader(self.dataset, batch_size=128, shuffle=True)
+        sampler = SubsetRandomSampler([i for i, (x, _) in enumerate(self.dataset) if is_in_octant(x, self.octant)])
+
+        self.data_loader = DataLoader(self.dataset, batch_size=128, sampler=sampler)
 
         self.module.init_weights()
 
@@ -209,13 +202,16 @@ class HaimNetManager(INetManager):
 
     @torch.no_grad()
     def soft_predict(self, xyzs):
+        # change the order of xyzs
+        # todo assert in octant
+
         self.module.eval()
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=float)
-        for xyz_batch in data_loader:
-            xyz_batch = xyz_batch.to(self.device)
-            label_pred = np.concatenate((label_pred, self.module(xyz_batch).detach().cpu().numpy().reshape(-1)))
-        return label_pred
+        for xyzs_batch in data_loader:
+            xyzs_batch = xyzs_batch.to(self.device)
+            label_pred = np.concatenate((label_pred, self.module(xyzs_batch).detach().cpu().numpy().reshape(-1)))
+        return xyzs, label_pred
 
     @torch.no_grad()
     def refine_sampling(self, threshold=0.5):
@@ -226,7 +222,7 @@ class HaimNetManager(INetManager):
         size_before = len(self.dataset)
         self.refinements_num += 1
 
-        errored_xyz, _ = self.get_train_errors()
+        errored_xyz, _ = self.get_train_errors(threshold)
 
         self.dataset.refine_cells(errored_xyz)
         print(f'refine_sampling before={size_before}, after={len(self.dataset)}, n_refinements = {self.refinements_num}')
@@ -251,18 +247,16 @@ class HaimNetManager(INetManager):
 
 class OctnetreeManager(INetManager):
     def __init__(self, csl, layers, network_manager_root, verbose=False):
-        # todo find better way to divied to octans
+        super().__init__(csl, verbose)
+
+        # todo find better way to devied to octans
 
         # self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
         self.octanes = get_octets(np.array([2, 2, 2]), np.array([-2, -2, -2]))
         # print("octanes=", self.octanes)
 
-        # todo this whole thing need to be refactored - remove self.network_managers
         self.network_managers = [HaimNetManager(csl, layers, residual_module=network_manager_root.module, octant=octant)
                                  for octant in self.octanes]
-        module = HaimnetOctnetree([manager.module for manager in self.network_managers], self.octanes)
-
-        super().__init__(csl, module, verbose)
 
     def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr):
         for network_manager in self.network_managers:
@@ -274,5 +268,17 @@ class OctnetreeManager(INetManager):
             network_manager.train_network(epochs=epochs)
             # network_manager.show_train_losses()
 
+    @torch.no_grad()
+    def soft_predict(self, xyzs):
+        # change the order of xyzs
+        # todo assert every xyz is in octant at least one ocnant
 
+        xyzs_per_octants = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octanes]
 
+        labels_per_octants = [manager.soft_predict(xyzs)[1] for manager, xyzs in zip(self.network_managers, xyzs_per_octants)]
+
+        xyzs = np.array([xyz for xyzs in xyzs_per_octants for xyz in xyzs])
+        labels = np.array([label for labels in labels_per_octants for label in labels])
+        argsorted_xyzs = np.lexsort(xyzs.T)
+
+        return xyzs[argsorted_xyzs], labels[argsorted_xyzs]
