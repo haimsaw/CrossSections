@@ -232,19 +232,19 @@ class HaimNetManager(INetManager):
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):
         self.module.eval()
-        errored_xyz = np.empty((0, 3), dtype=bool)
+        errored_xyzs = np.empty((0, 3), dtype=bool)
         errored_labels = np.empty((0, 1), dtype=bool)
 
         for xyz, label in self.data_loader:
             xyz, label = xyz.to(self.device), label.to(self.device)
 
-            label_pred = self.module(xyz) > threshold
+            label_pred = self.hard_predict(xyz, threshold)
             errors = (label != label_pred).view(-1)
 
-            errored_xyz = np.concatenate((errored_xyz, xyz[errors].detach().cpu().numpy()))
+            errored_xyzs = np.concatenate((errored_xyzs, xyz[errors].detach().cpu().numpy()))
             errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
 
-        return errored_xyz, errored_labels.reshape(-1)
+        return errored_xyzs, errored_labels.reshape(-1)
 
 
 class OctnetreeManager(INetManager):
@@ -289,3 +289,17 @@ class OctnetreeManager(INetManager):
         argsorted_xyzs = np.lexsort(xyzs.T)
 
         return xyzs[argsorted_xyzs], labels[argsorted_xyzs]
+
+    @torch.no_grad()
+    def get_train_errors(self, threshold=0.5):
+        # todo self.module.eval()
+        errored_xyzs = np.empty((0, 3), dtype=bool)
+        errored_labels = np.empty((0, 1), dtype=bool)
+
+        for network_manager in self.network_managers:
+            net_errors_xyzs, net_errors_labels = network_manager.get_train_errors()
+
+            errored_xyzs = np.concatenate((errored_xyzs,net_errors_xyzs))
+            errored_labels = np.concatenate((errored_labels, net_errors_xyzs))
+
+        return errored_xyzs, errored_labels.reshape(-1)
