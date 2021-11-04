@@ -299,7 +299,7 @@ class OctnetreeManager(INetManager):
         for network_manager in self.network_managers:
             net_errors_xyzs, net_errors_labels = network_manager.get_train_errors()
 
-            errored_xyzs = np.concatenate((errored_xyzs,net_errors_xyzs))
-            errored_labels = np.concatenate((errored_labels, net_errors_xyzs))
+            errored_xyzs = np.concatenate((errored_xyzs, net_errors_xyzs))
+            errored_labels = np.concatenate((errored_labels, net_errors_labels))
 
         return errored_xyzs, errored_labels.reshape(-1)
