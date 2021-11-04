@@ -54,6 +54,7 @@ def is_in_octant_list(xyzs, top_bottom_octant):
 
 def is_in_octant(xyz, top_bottom_octant):
     # top_bottom_octant is a tuple (octant top, octant bottom), none for everywhere
+    # todo remove this
     if top_bottom_octant is None:
         return True
 

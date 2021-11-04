@@ -210,7 +210,7 @@ class HaimNetManager(INetManager):
         label_pred = np.empty(0, dtype=float)
         for xyzs_batch in data_loader:
             xyzs_batch = xyzs_batch.to(self.device)
-            label_pred = np.concatenate((label_pred, self.module(xyzs_batch).detach().cpu().numpy().reshape(-1)))
+            label_pred = np.concatenate((label_pred, torch.sigmoid(self.module(xyzs_batch)).detach().cpu().numpy().reshape(-1)))
         return xyzs, label_pred
 
     @torch.no_grad()
@@ -246,6 +246,7 @@ class HaimNetManager(INetManager):
 
 
 class OctnetreeManager(INetManager):
+
     def __init__(self, csl, layers, network_manager_root, verbose=False):
         super().__init__(csl, verbose)
 
@@ -264,9 +265,13 @@ class OctnetreeManager(INetManager):
 
     def train_network(self, epochs):
         for i, network_manager in enumerate(self.network_managers):
-            print(f"training {i}")
+            print(f"manager: {i}")
             network_manager.train_network(epochs=epochs)
-            # network_manager.show_train_losses()
+
+    def show_train_losses(self):
+        for i, network_manager in enumerate(self.network_managers):
+            print(f"manager: {i}")
+            network_manager.show_train_losses()
 
     @torch.no_grad()
     def soft_predict(self, xyzs):
