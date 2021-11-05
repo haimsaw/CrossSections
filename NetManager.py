@@ -85,10 +85,10 @@ class INetManager:
     def get_train_errors(self, threshold=0.5): raise NotImplementedError
 
     @abstractmethod
-    def soft_predict(self, xyzs, use_sigmoid=False): raise NotImplementedError
+    def soft_predict(self, xyzs, use_sigmoid=True): raise NotImplementedError
 
     @torch.no_grad()
-    def hard_predict(self, xyzs, threshold=0.5, use_sigmoid=False):
+    def hard_predict(self, xyzs, threshold=0.5):
         # todo should threshold = 0.0 if threshold=true?
         # todo self.module.eval()
         xyzs, soft_labels = self.soft_predict(xyzs)
@@ -202,7 +202,7 @@ class HaimNetManager(INetManager):
         self.module.requires_grad_(requires_grad)
 
     @torch.no_grad()
-    def soft_predict(self, xyzs, use_sigmoid=False):
+    def soft_predict(self, xyzs, use_sigmoid=True):
         # change the order of xyzs
         # todo assert in octant
 
@@ -276,7 +276,7 @@ class OctnetreeManager(INetManager):
             network_manager.show_train_losses()
 
     @torch.no_grad()
-    def soft_predict(self, xyzs, use_sigmoid=False):
+    def soft_predict(self, xyzs, use_sigmoid=True):
         # change the order of xyzs
         # todo assert every xyz is in octant at least one ocnant
 
@@ -294,7 +294,7 @@ class OctnetreeManager(INetManager):
     def get_train_errors(self, threshold=0.5):
         # todo self.module.eval()
         errored_xyzs = np.empty((0, 3), dtype=bool)
-        errored_labels = np.empty((0, 1), dtype=bool)
+        errored_labels = np.empty(0, dtype=bool)
 
         for network_manager in self.network_managers:
             net_errors_xyzs, net_errors_labels = network_manager.get_train_errors()
@@ -302,4 +302,4 @@ class OctnetreeManager(INetManager):
             errored_xyzs = np.concatenate((errored_xyzs, net_errors_xyzs))
             errored_labels = np.concatenate((errored_labels, net_errors_labels))
 
-        return errored_xyzs, errored_labels.reshape(-1)
+        return errored_xyzs, errored_labels
