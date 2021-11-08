@@ -83,12 +83,12 @@ class Renderer3D:
 
         self.ax.scatter(*xyz.T, c=labels, cmap="Blues", alpha=alpha)
 
-    def add_mesh(self, my_mesh):
+    def add_mesh(self, my_mesh, alpha=0.2):
 
         collection = Poly3DCollection(my_mesh.vectors)
         collection.set_edgecolor('k')
 
-        self.ax.add_collection3d(collection)
+        self.ax.add_collection3d(collection, alpha=alpha)
 
         scale = my_mesh.points.flatten()
         self.ax.auto_scale_xyz(scale, scale, scale)
