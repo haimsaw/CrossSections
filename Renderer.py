@@ -79,7 +79,7 @@ class Renderer3D:
         z = np.linspace(-1, 1, sampling_resolution_3d[2])
 
         xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-        _, labels = network_manager.soft_predict(xyz)
+        xyz, labels = network_manager.soft_predict(xyz)
 
         self.ax.scatter(*xyz.T, c=labels, cmap="Blues", alpha=alpha)
 
