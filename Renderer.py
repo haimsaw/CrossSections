@@ -55,7 +55,7 @@ class Renderer3D:
 
         for plane in csl.planes:
             cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, sampling_margin)
-            mask = np.array([cell.label for cell in cells])
+            mask = np.array([cell.label >= 0.5 for cell in cells])
             xyzs = np.array([cell.xyz for cell in cells])
 
             if not plane.is_empty:

@@ -140,7 +140,6 @@ class CSL:
         self.planes.append(Plane.empty_plane(plane_id, plane_params, self))
 
     def add_boundary_planes(self, margin):
-
         top, bottom = add_margin(*get_top_bottom(self.all_vertices), margin)
 
         for i in range(3):
@@ -150,7 +149,7 @@ class CSL:
             self._add_empty_plane(tuple(normal + [-top[i]]))
             self._add_empty_plane(tuple(normal + [-bottom[i]]))
 
-        stacked = np.stack((top, bottom))
+        # stacked = np.stack((top, bottom))
         # return np.array([np.choose(choice, stacked) for choice in itertools.product([0, 1], repeat=3)])
 
     def centralize(self):
@@ -165,14 +164,16 @@ class CSL:
         for plane in self.planes:
             plane @= pca
 
-    def scale(self, margin):
+    def scale(self, bounding_planes_margin):
         scale_factor = self.scale_factor
         for plane in self.planes:
             plane.vertices /= scale_factor
+            # scale again so that the bounding planes will be in the range
+            plane.vertices *= (1 - 2*bounding_planes_margin)
 
     def adjust_csl(self, bounding_planes_margin):
         self.centralize()
         self.rotate_by_pca()
-        self.scale(margin=bounding_planes_margin)
+        self.scale(bounding_planes_margin)
         self.add_boundary_planes(margin=bounding_planes_margin)
 

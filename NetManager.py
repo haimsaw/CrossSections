@@ -286,9 +286,8 @@ class OctnetreeManager(INetManager):
 
         xyzs = np.array([xyz for xyzs in xyzs_per_octants for xyz in xyzs])
         labels = np.array([label for labels in labels_per_octants for label in labels])
-        argsorted_xyzs = np.lexsort(xyzs.T)
 
-        return xyzs[argsorted_xyzs], labels[argsorted_xyzs]
+        return xyzs, labels
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):

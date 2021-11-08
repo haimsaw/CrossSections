@@ -30,7 +30,7 @@ class Cell:
             self._label = self._get_label()
         return self._label
 
-    def _get_label(self, accuracy=100):
+    def _get_label(self, accuracy=1000):
         sampels = np.random.random_sample((accuracy, 2)) * self.pixel_radius + self.pixel_center
         labels = self.labeler(sampels)
         return sum(labels)/accuracy

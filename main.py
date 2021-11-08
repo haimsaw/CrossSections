@@ -22,24 +22,28 @@ def get_csl(bounding_planes_margin):
 
 
 def main():
-    bounding_planes_margin = 0.05
+    bounding_planes_margin = 0.1
     sampling_margin = 0.5
     lr = 1e-2
     root_sampling_resolution_2d = (32, 32)
-    l1_sampling_resolution_2d = (64, 64)
-    sampling_resolution_3d = (50, 50, 50)
-
-    layers = (3, 16, 32, 32, 64, 1)
-    layers = (3, 16, 1)
-
-    n_epochs = 1
+    l1_sampling_resolution_2d = (32, 32)
+    sampling_resolution_3d = (100, 100, 100)
+    layers = (3, 16, 32, 32, 32, 1)
+    n_epochs = 25
 
     csl = get_csl(bounding_planes_margin)
 
-    # renderer = Renderer3D()
-    # renderer.add_scene(csl)
-    # renderer.add_rasterized_scene(csl, sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
-    # renderer.show()
+    csl. planes = [csl.planes[0]]
+
+    renderer = Renderer3D()
+    renderer.add_scene(csl)
+    renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
+    renderer.show()
+
+    network_manager_root = HaimNetManager(csl, layers)
+    # network_manager_root.load_from_disk()
+    network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr)
+    network_manager_root.train_network(epochs=n_epochs)
 
     network_manager_root = HaimNetManager(csl, layers)
     # network_manager_root.load_from_disk()
