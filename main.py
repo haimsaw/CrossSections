@@ -6,11 +6,11 @@ from Helpers import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -22,7 +22,7 @@ def get_csl(bounding_planes_margin):
 
 
 def main():
-    bounding_planes_margin = 0.1
+    bounding_planes_margin = 0.05
     sampling_margin = 0.5
     lr = 1e-2
     root_sampling_resolution_2d = (32, 32)
@@ -33,7 +33,7 @@ def main():
 
     csl = get_csl(bounding_planes_margin)
 
-    csl. planes = [csl.planes[0]]
+    # csl. planes = [csl.planes[0]]
 
     renderer = Renderer3D()
     renderer.add_scene(csl)
@@ -70,6 +70,8 @@ if __name__ == "__main__":
 
 '''
 todo:
+    should sample from [-1, 1] in all directions
+
     check if i should scale everything to 1?
     check if i should use softmax when predicting
     

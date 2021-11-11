@@ -33,6 +33,6 @@ class HaimNet(nn.Module):
 
     def forward(self, xyzs):
         if self.residual_module is not None:
-            return self.linear_relu(xyzs) + torch.sigmoid(self.residual_module(xyz))
+            return self.linear_relu(xyzs) + torch.sigmoid(self.residual_module(xyzs))
         else:
             return self.linear_relu(xyzs)
