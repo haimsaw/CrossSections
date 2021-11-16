@@ -45,11 +45,6 @@ def main():
     network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr)
     network_manager_root.train_network(epochs=n_epochs)
 
-    network_manager_root = HaimNetManager(csl, layers)
-    # network_manager_root.load_from_disk()
-    network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr)
-    network_manager_root.train_network(epochs=n_epochs)
-
     network_manager_root.requires_grad_(False)
 
     octnetree_manager_l1 = OctnetreeManager(csl, layers, network_manager_root)

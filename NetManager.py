@@ -255,7 +255,7 @@ class OctnetreeManager(INetManager):
         # todo find better way to devied to octans
 
         # self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
-        self.octanes = get_octets(np.array([2, 2, 2]), np.array([-2, -2, -2]))
+        self.octanes = get_octets(np.array([1, 1, 1]), np.array([-1, -1, -1]), 0.2)
         # print("octanes=", self.octanes)
 
         self.network_managers = [HaimNetManager(csl, layers, residual_module=network_manager_root.module, octant=octant)
@@ -276,7 +276,7 @@ class OctnetreeManager(INetManager):
             network_manager.show_train_losses()
 
     @torch.no_grad()
-    def soft_predict(self, xyzs, use_sigmoid=True):
+    def soft_predict_old(self, xyzs, use_sigmoid=True):
         # change the order of xyzs
         # todo assert every xyz is in octant at least one ocnant
 
@@ -286,6 +286,24 @@ class OctnetreeManager(INetManager):
 
         xyzs = np.array([xyz for xyzs in xyzs_per_octants for xyz in xyzs])
         labels = np.array([label for labels in labels_per_octants for label in labels])
+
+        return xyzs, labels
+
+    @torch.no_grad()
+    def soft_predict(self, xyzs, use_sigmoid=True):
+        directions = ["+++", "-++", "--+", "+-+", "++-", "-+-", "---", "+--"]
+
+        # change the order of xyzs
+        # todo assert every xyz is in octant at least one ocnant
+
+        xyzs_per_octants = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octanes]
+        labels_per_octants = [manager.soft_predict(xyzs, use_sigmoid)[1] * get_mask_for_blending(xyzs, octant, direction)
+                              for octant, manager, xyzs, direction in zip(self.octanes, self.network_managers, xyzs_per_octants, directions)]
+
+        flatten_xyzs = np.array([xyz for xyzs in xyzs_per_octants for xyz in xyzs])
+        flatten_labels = np.array([label for labels in labels_per_octants for label in labels])
+
+        labels = np.array([np.sum(flatten_labels[np.all(flatten_xyzs == xyz, axis=1)]) for xyz in xyzs])
 
         return xyzs, labels
 

@@ -36,7 +36,7 @@ def get_octets(top, btm, overlap_margin):
     octanes_bottoms = np.array([top - size for top in octanes_tops])
 
     if overlap_margin != 0:
-        overlap_size = size * overlap_margin
+        overlap_size = np.array([size[0] * overlap_margin, 0, 0])
         octanes_tops += overlap_size
         octanes_bottoms -= overlap_size
 
@@ -70,13 +70,21 @@ def is_in_octant(xyz, top_bottom_octant):
     return all(is_in_range_for_ax)
 
 
-def get_mask_for_merging(xyzs, octant):
-    # return labels for belnding in the x direction (from - to +)
+def get_mask_for_blending(xyzs, octant, oct_direction):
+    # return labels for blending in the x direction
     # xyzs are in octant+overlap
 
-    top_x = octant[0][0]
-    overlap_end_x = get_top_bottom(xyzs)[0][0]
-    line = lambda xyz: xyz[0] * 1 / (top_x - overlap_end_x) + overlap_end_x / (overlap_end_x - top_x)
+    top_x = octant[0][0] # todo this should be the original size
+    btm_x = octant[1][0]
+
+    overlap_end_x = octant[0][0]
+    overlap_start_x = octant[1][0]
+
+    if oct_direction[0] == '-':
+        line = lambda xyz: xyz[0] * 1 / (top_x - overlap_end_x) + overlap_end_x / (overlap_end_x - top_x)
+    elif oct_direction[0] == '+':
+        line = lambda xyz: xyz[0] * 1 / (btm_x - overlap_start_x) + overlap_start_x / (overlap_start_x - btm_x)
+
     wights = np.array([min(1, line(xyz)) for xyz in xyzs])
 
     return wights
