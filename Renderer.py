@@ -78,10 +78,10 @@ class Renderer3D:
         y = np.linspace(-1, 1, sampling_resolution_3d[1])
         z = np.linspace(-1, 1, sampling_resolution_3d[2])
 
-        xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-        xyz, labels = network_manager.soft_predict(xyz)
+        xyzs = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+        xyzs, labels = network_manager.soft_predict(xyzs)
 
-        self.ax.scatter(*xyz.T, c=labels, cmap="Blues", alpha=alpha)
+        self.ax.scatter(*xyzs.T, c=labels, cmap="Blues", alpha=alpha)
 
     def add_mesh(self, my_mesh, alpha=0.2):
 

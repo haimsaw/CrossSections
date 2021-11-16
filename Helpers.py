@@ -14,10 +14,11 @@ def add_margin(top, bottom, margin):
 # todo make class octent
 
 
-def get_octets(top, bottom):
-    # todo octets with overlap
-    mid = (top + bottom) / 2
+def get_octets(top, btm, overlap_margin):
+    # todo octets overlap only on x axis
+    mid = (top + btm) / 2
     size = top - mid
+    overlap = size * overlap_margin
 
     # in comment the numbers in https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
     # green for top, red for bottom
@@ -32,7 +33,19 @@ def get_octets(top, bottom):
              [mid[0], mid[1], mid[2]],  # 0
              [top[0], mid[1], mid[2]],  # 1
              ])
-    octanes_bottoms = np.array([top - size for top in octanes_tops])
+
+    octanes_bottoms = np.array(
+            [[mid[0], mid[1], mid[2]],  # 0
+             [btm[0], mid[1], mid[2]],  # 1
+             [btm[0], btm[1], mid[2]],  # 4
+             [mid[0], btm[1], mid[2]],  # 3
+
+             [mid[0], mid[1], btm[2]],  # 9
+             [btm[0], mid[1], btm[2]],  # 10
+             [btm[0], btm[1], btm[2]],  # 13
+             [mid[0], btm[1], btm[2]],  # 12
+             ])
+    # octanes_bottoms = np.array([top - size for top in octanes_tops])
     return np.stack((octanes_tops, octanes_bottoms), axis=1)
 
 
@@ -40,10 +53,10 @@ def get_xyzs_in_octant(octant, sampling_resolution_3d):
     x = np.linspace(-1, 1, sampling_resolution_3d[0])
     y = np.linspace(-1, 1, sampling_resolution_3d[1])
     z = np.linspace(-1, 1, sampling_resolution_3d[2])
-    xyz = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+    xyzs = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     if octant is not None:
-        xyz = xyz[np.all(np.logical_and(xyz < octant[0], octant[1] <= xyz), axis=1)]
-    return xyz
+        xyzs = xyzs[np.all(np.logical_and(xyzs < octant[0], octant[1] <= xyzs), axis=1)]
+    return xyzs
 
 
 def is_in_octant_list(xyzs, top_bottom_octant):
@@ -61,4 +74,53 @@ def is_in_octant(xyz, top_bottom_octant):
     is_in_range_for_ax = (top > coordinate >= bottom
                           for coordinate, top, bottom in zip(xyz, *top_bottom_octant))
     return all(is_in_range_for_ax)
+
+
+def get_mask_for_merging(xyzs, octant):
+    # return labels for belnding in the x direction (from - to +)
+    # xyzs are in octant+overlap
+
+    top_x = octant[0][0]
+    overlap_end_x = get_top_bottom(xyzs)[0][0]
+    line = lambda xyz: xyz[0] * 1 / (top_x - overlap_end_x) + overlap_end_x / (overlap_end_x - top_x)
+    wights = np.array([min(1, line(xyz)) for xyz in xyzs])
+
+    return wights
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
