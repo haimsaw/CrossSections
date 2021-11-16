@@ -18,7 +18,6 @@ def get_octets(top, btm, overlap_margin):
     # todo octets overlap only on x axis
     mid = (top + btm) / 2
     size = top - mid
-    overlap = size * overlap_margin
 
     # in comment the numbers in https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
     # green for top, red for bottom
@@ -34,18 +33,13 @@ def get_octets(top, btm, overlap_margin):
              [top[0], mid[1], mid[2]],  # 1
              ])
 
-    octanes_bottoms = np.array(
-            [[mid[0], mid[1], mid[2]],  # 0
-             [btm[0], mid[1], mid[2]],  # 1
-             [btm[0], btm[1], mid[2]],  # 4
-             [mid[0], btm[1], mid[2]],  # 3
+    octanes_bottoms = np.array([top - size for top in octanes_tops])
 
-             [mid[0], mid[1], btm[2]],  # 9
-             [btm[0], mid[1], btm[2]],  # 10
-             [btm[0], btm[1], btm[2]],  # 13
-             [mid[0], btm[1], btm[2]],  # 12
-             ])
-    # octanes_bottoms = np.array([top - size for top in octanes_tops])
+    if overlap_margin != 0:
+        overlap_size = size * overlap_margin
+        octanes_tops += overlap_size
+        octanes_bottoms -= overlap_size
+
     return np.stack((octanes_tops, octanes_bottoms), axis=1)
 
 
