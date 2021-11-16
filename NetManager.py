@@ -255,11 +255,11 @@ class OctnetreeManager(INetManager):
         # todo find better way to devied to octans
 
         # self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
-        self.octanes = get_octets(np.array([1, 1, 1]), np.array([-1, -1, -1]), 0.2)
+        self.octs, self.octs_core = get_octets(np.array([1, 1, 1]), np.array([-1, -1, -1]), 0.2)
         # print("octanes=", self.octanes)
 
         self.network_managers = [HaimNetManager(csl, layers, residual_module=network_manager_root.module, octant=octant)
-                                 for octant in self.octanes]
+                                 for octant in self.octs]
 
     def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr):
         for network_manager in self.network_managers:
@@ -280,7 +280,7 @@ class OctnetreeManager(INetManager):
         # change the order of xyzs
         # todo assert every xyz is in octant at least one ocnant
 
-        xyzs_per_octants = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octanes]
+        xyzs_per_octants = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octs]
 
         labels_per_octants = [manager.soft_predict(xyzs, use_sigmoid)[1] for manager, xyzs in zip(self.network_managers, xyzs_per_octants)]
 
@@ -296,12 +296,12 @@ class OctnetreeManager(INetManager):
         # change the order of xyzs
         # todo assert every xyz is in octant at least one ocnant
 
-        xyzs_per_octants = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octanes]
-        labels_per_octants = [manager.soft_predict(xyzs, use_sigmoid)[1] * get_mask_for_blending(xyzs, octant, direction)
-                              for octant, manager, xyzs, direction in zip(self.octanes, self.network_managers, xyzs_per_octants, directions)]
+        xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octs]
+        labels_per_oct = [manager.soft_predict(xyzs, use_sigmoid)[1] * get_mask_for_blending(xyzs, oct, oct_core, direction)
+                              for oct, oct_core, manager, xyzs, direction in zip(self.octs, self.octs_core, self.network_managers, xyzs_per_oct, directions)]
 
-        flatten_xyzs = np.array([xyz for xyzs in xyzs_per_octants for xyz in xyzs])
-        flatten_labels = np.array([label for labels in labels_per_octants for label in labels])
+        flatten_xyzs = np.array([xyz for xyzs in xyzs_per_oct for xyz in xyzs])
+        flatten_labels = np.array([label for labels in labels_per_oct for label in labels])
 
         labels = np.array([np.sum(flatten_labels[np.all(flatten_xyzs == xyz, axis=1)]) for xyz in xyzs])
 

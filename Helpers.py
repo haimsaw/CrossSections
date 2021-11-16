@@ -34,13 +34,14 @@ def get_octets(top, btm, overlap_margin):
              ])
 
     octanes_bottoms = np.array([top - size for top in octanes_tops])
+    octs_core = np.stack((octanes_tops, octanes_bottoms), axis=1)
 
-    if overlap_margin != 0:
-        overlap_size = np.array([size[0] * overlap_margin, 0, 0])
-        octanes_tops += overlap_size
-        octanes_bottoms -= overlap_size
+    overlap_size = np.array([size[0] * overlap_margin, 0, 0])
+    octanes_tops += overlap_size
+    octanes_bottoms -= overlap_size
+    octs = np.stack((octanes_tops, octanes_bottoms), axis=1)
 
-    return np.stack((octanes_tops, octanes_bottoms), axis=1)
+    return octs, octs_core
 
 
 def get_xyzs_in_octant(octant, sampling_resolution_3d):
@@ -49,14 +50,14 @@ def get_xyzs_in_octant(octant, sampling_resolution_3d):
     z = np.linspace(-1, 1, sampling_resolution_3d[2])
     xyzs = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
     if octant is not None:
-        xyzs = xyzs[np.all(np.logical_and(xyzs < octant[0], octant[1] <= xyzs), axis=1)]
+        xyzs = xyzs[np.all(np.logical_and(xyzs <= octant[0], octant[1] <= xyzs), axis=1)]
     return xyzs
 
 
 def is_in_octant_list(xyzs, top_bottom_octant):
     if top_bottom_octant is None:
         return np.full(True, xyzs.shape)
-    return np.all(np.logical_and(xyzs < top_bottom_octant[0], top_bottom_octant[1] <= xyzs), axis=1)
+    return np.all(np.logical_and(xyzs <= top_bottom_octant[0], top_bottom_octant[1] <= xyzs), axis=1)
 
 
 def is_in_octant(xyz, top_bottom_octant):
@@ -70,20 +71,20 @@ def is_in_octant(xyz, top_bottom_octant):
     return all(is_in_range_for_ax)
 
 
-def get_mask_for_blending(xyzs, octant, oct_direction):
+def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
     # return labels for blending in the x direction
     # xyzs are in octant+overlap
 
-    top_x = octant[0][0] # todo this should be the original size
-    btm_x = octant[1][0]
+    top_x = oct_core[0][0]
+    btm_x = oct_core[1][0]
 
-    overlap_end_x = octant[0][0]
-    overlap_start_x = octant[1][0]
+    overlap_end_x = oct[0][0]
+    overlap_start_x = oct[1][0]
 
     if oct_direction[0] == '-':
-        line = lambda xyz: xyz[0] * 1 / (top_x - overlap_end_x) + overlap_end_x / (overlap_end_x - top_x)
+        line = lambda xyz: xyz[0] * 1 / (top_x - overlap_end_x) + overlap_end_x / (overlap_end_x - top_x) #todo bug is here - should be tapese like
     elif oct_direction[0] == '+':
-        line = lambda xyz: xyz[0] * 1 / (btm_x - overlap_start_x) + overlap_start_x / (overlap_start_x - btm_x)
+        line = lambda xyz: xyz[0] * 1 / (btm_x - overlap_start_x) + overlap_start_x / (overlap_start_x - btm_x) #todo bug is here - should be tapese like
 
     wights = np.array([min(1, line(xyz)) for xyz in xyzs])
 
