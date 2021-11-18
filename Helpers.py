@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 
 def get_top_bottom(points):
@@ -14,7 +13,7 @@ def add_margin(top, bottom, margin):
 # todo make class octent
 
 
-def get_octets(top, btm, overlap_margin):
+def get_octs(top, btm, overlap_margin):
     # todo octets overlap only on x axis
     mid = (top + btm) / 2
     size = top - mid
@@ -75,16 +74,19 @@ def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
     # return labels for blending in the x direction
     # xyzs are in octant+overlap
 
-    top_x = oct_core[0][0]
-    btm_x = oct_core[1][0]
+    core_end_x = oct_core[0][0]
+    core_start_x = oct_core[1][0]
 
-    overlap_end_x = oct[0][0]
-    overlap_start_x = oct[1][0]
+    margin_end_x = oct[0][0]
+    margin_start_x = oct[1][0]
+    
+    non_blending_start_x = 2*core_start_x - margin_start_x
+    non_blending_end_x = 2*core_end_x - margin_end_x
 
     if oct_direction[0] == '-':
-        line = lambda xyz: xyz[0] * 1 / (top_x - overlap_end_x) + overlap_end_x / (overlap_end_x - top_x) #todo bug is here - should be tapese like
+        line = lambda xyz: xyz[0] * 1 / (non_blending_end_x - margin_end_x) + margin_end_x / (margin_end_x - non_blending_end_x) #todo bug is here - should be tapese like
     elif oct_direction[0] == '+':
-        line = lambda xyz: xyz[0] * 1 / (btm_x - overlap_start_x) + overlap_start_x / (overlap_start_x - btm_x) #todo bug is here - should be tapese like
+        line = lambda xyz: xyz[0] * 1 / (non_blending_start_x - margin_start_x) + margin_start_x / (margin_start_x - non_blending_start_x) #todo bug is here - should be tapese like
 
     wights = np.array([min(1, line(xyz)) for xyz in xyzs])
 
