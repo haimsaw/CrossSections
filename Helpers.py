@@ -35,7 +35,7 @@ def get_octs(top, btm, overlap_margin):
     octanes_bottoms = np.array([top - size for top in octanes_tops])
     octs_core = np.stack((octanes_tops, octanes_bottoms), axis=1)
 
-    overlap_size = np.array([size[0] * overlap_margin, size[1] * overlap_margin, 0])
+    overlap_size = size * overlap_margin
     octanes_tops += overlap_size
     octanes_bottoms -= overlap_size
     octs = np.stack((octanes_tops, octanes_bottoms), axis=1)
@@ -74,6 +74,7 @@ def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
     # return labels for blending in the x direction
     # xyzs are in octant+overlap
     # todo this assumes that octree depth is 1
+    # todo refactor this
 
     core_end_x = oct_core[0][0]
     core_start_x = oct_core[1][0]
@@ -93,6 +94,15 @@ def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
     non_blending_start_y = 2*core_start_y - margin_start_y
     non_blending_end_y = 2*core_end_y - margin_end_y
 
+    core_end_z = oct_core[0][2]
+    core_start_z = oct_core[1][2]
+
+    margin_end_z = oct[0][2]
+    margin_start_z = oct[1][2]
+
+    non_blending_start_z = 2*core_start_z - margin_start_z
+    non_blending_end_z = 2*core_end_z - margin_end_z
+
     if oct_direction[0] == '-':
         line_x = lambda xyz: xyz[0] * 1 / (non_blending_end_x - margin_end_x) + margin_end_x / (margin_end_x - non_blending_end_x)
     elif oct_direction[0] == '+':
@@ -103,7 +113,12 @@ def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
     elif oct_direction[1] == '+':
         line_y = lambda xyz: xyz[1] * 1 / (non_blending_start_y - margin_start_y) + margin_start_y / (margin_start_y - non_blending_start_y)
 
-    wights = np.array([min(1, line_x(xyz), line_y(xyz)) for xyz in xyzs])
+    if oct_direction[2] == '-':
+        line_z = lambda xyz: xyz[2] * 1 / (non_blending_end_z - margin_end_z) + margin_end_z / (margin_end_z - non_blending_end_z)
+    elif oct_direction[2] == '+':
+        line_z = lambda xyz: xyz[2] * 1 / (non_blending_start_z - margin_start_z) + margin_start_z / (margin_start_z - non_blending_start_z)
+
+    wights = np.array([min(1, line_x(xyz), line_y(xyz), line_z(xyz)) for xyz in xyzs])
 
     return wights
 
