@@ -300,11 +300,25 @@ class OctnetreeManager(INetManager):
         labels_per_oct = [get_mask_for_blending(xyzs, oct, oct_core, direction)  # * manager.soft_predict(xyzs, use_sigmoid)[1]
                               for oct, oct_core, manager, xyzs, direction in zip(self.octs, self.octs_core, self.network_managers, xyzs_per_oct, directions)]
 
-        flatten_xyzs = np.array([xyz for xyzs in xyzs_per_oct for xyz in xyzs])
-        flatten_labels = np.array([label for labels in labels_per_oct for label in labels])
+        #flatten_xyzs = np.array([xyz for xyzs in xyzs_per_oct for xyz in xyzs])
+        #flatten_labels = np.array([label for labels in labels_per_oct for label in labels])
 
-        labels = np.array([np.sum(flatten_labels[np.all(flatten_xyzs == xyz, axis=1)]) for xyz in xyzs])
+        flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
+        flatten_labels = (label for labels in labels_per_oct for label in labels)
 
+        dict = {}
+        for xyz, label in zip(flatten_xyzs, flatten_labels):
+            xyz_data = xyz.tobytes()
+            if xyz_data in dict:
+                dict[xyz_data] += label
+            else:
+                dict[xyz_data] = label
+
+        # argsorted_flatten_xyzs = np.lexsort((flatten_xyzs.T[2], flatten_xyzs.T[1], flatten_xyzs.T[0]))
+
+        #  labels = np.array([np.sum(flatten_labels[np.all(flatten_xyzs == xyz, axis=1)]) for xyz in xyzs])
+
+        labels = np.array([dict[xyz.tobytes()] for xyz in xyzs])
         return xyzs, labels
 
     @torch.no_grad()
