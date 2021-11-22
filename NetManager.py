@@ -297,7 +297,7 @@ class OctnetreeManager(INetManager):
         # todo assert every xyz is in octant at least one ocnant
 
         xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octs]
-        labels_per_oct = [get_mask_for_blending(xyzs, oct, oct_core, direction)  # * manager.soft_predict(xyzs, use_sigmoid)[1]
+        labels_per_oct = [get_mask_for_blending(xyzs, oct, oct_core, direction) * manager.soft_predict(xyzs, use_sigmoid)[1]
                               for oct, oct_core, manager, xyzs, direction in zip(self.octs, self.octs_core, self.network_managers, xyzs_per_oct, directions)]
 
         #flatten_xyzs = np.array([xyz for xyzs in xyzs_per_oct for xyz in xyzs])
