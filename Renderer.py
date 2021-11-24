@@ -8,6 +8,7 @@ import inspect
 from Resterizer import rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
+import pickle
 
 # region 3d
 
@@ -24,12 +25,22 @@ def _get_3d_ax():
     ax.set_ylabel('y')
     ax.set_zlabel('z')
 
-    return ax
+    return ax, fig
 
 
 class Renderer3D:
     def __init__(self):
-        self.ax = _get_3d_ax()
+        self.ax, self.fig = _get_3d_ax()
+
+    def save(self, filename):
+        """
+        to show fig.pickle file:
+        import pickle
+        figx = pickle.load(open(filename, 'rb'))
+        figx.show()
+        """
+
+        pickle.dump(self.fig, open(filename, 'wb'))
 
     def add_scene(self, csl):
 
