@@ -25,11 +25,11 @@ def main():
     bounding_planes_margin = 0.05
     sampling_margin = 0.5
     lr = 1e-2
-    root_sampling_resolution_2d = (5, 5)
-    l1_sampling_resolution_2d = (5, 5)
-    sampling_resolution_3d = (10, 10, 10)
+    root_sampling_resolution_2d = (30, 30)
+    l1_sampling_reolution_2d = (30, 30)
+    sampling_resolution_3d = (30, 30, 30)
     layers = (3, 16, 32, 32, 32, 1)
-    n_epochs = 0
+    n_epochs = 5
 
     csl = get_csl(bounding_planes_margin)
 
@@ -38,17 +38,25 @@ def main():
     renderer = Renderer3D()
     renderer.add_scene(csl)
     renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
-    #renderer.show()
+    renderer.show()
 
     network_manager_root = HaimNetManager(csl, layers)
     # network_manager_root.load_from_disk()
     network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr)
     network_manager_root.train_network(epochs=n_epochs)
 
+    mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
+    renderer = Renderer3D()
+    renderer.add_mesh(mesh)
+    renderer.add_scene(csl)
+    renderer.save("test")
+    renderer.show()
+
+
     network_manager_root.requires_grad_(False)
 
     octnetree_manager_l1 = OctnetreeManager(csl, layers, network_manager_root)
-    octnetree_manager_l1.prepare_for_training(l1_sampling_resolution_2d, sampling_margin, lr)
+    octnetree_manager_l1.prepare_for_training(l1_sampling_reolution_2d, sampling_margin, lr)
     octnetree_manager_l1.train_network(epochs=n_epochs)
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)

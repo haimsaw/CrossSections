@@ -36,6 +36,7 @@ class Renderer3D:
         """
         to show fig.pickle file:
         import pickle
+        import matplotlib.pyplot as plt
         figx = pickle.load(open(filename, 'rb'))
         figx.show()
         """
@@ -96,13 +97,13 @@ class Renderer3D:
 
     def add_mesh(self, my_mesh, alpha=0.2):
 
-        collection = Poly3DCollection(my_mesh.vectors)
+        collection = Poly3DCollection(my_mesh.vectors, alpha=alpha)
         collection.set_edgecolor('k')
 
-        self.ax.add_collection3d(collection, alpha=alpha)
+        self.ax.add_collection3d(collection)
 
         scale = my_mesh.points.flatten()
-        self.ax.auto_scale_xyz(scale, scale, scale)
+        #self.ax.auto_scale_xyz(scale, scale, scale)
 
     def add_model_errors(self, network_manager: INetManager):
         errored_xyz, errored_labels = network_manager.get_train_errors()
