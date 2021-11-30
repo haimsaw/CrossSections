@@ -23,7 +23,6 @@ class HaimNet(nn.Module):
 
         n_neurons = [embedded_dim] + hidden_layers + [1]
 
-
         neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
         activations = [nn.LeakyReLU() for i in range(len(n_neurons) - 2)]
         layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], 1)]
@@ -38,7 +37,7 @@ class HaimNet(nn.Module):
     def forward(self, xyzs):
         embbeded = self.embedder(xyzs)
         if self.residual_module is not None:
-            return self.linear_relu(embbeded) + torch.sigmoid(self.residual_module(embbeded))
+            return self.linear_relu(embbeded) + torch.sigmoid(self.residual_module(xyzs))
         else:
             return self.linear_relu(embbeded)
 
