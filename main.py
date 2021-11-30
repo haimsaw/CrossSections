@@ -29,8 +29,8 @@ def main():
     root_sampling_resolution_2d = (30, 30)
     l1_sampling_reolution_2d = (30, 30)
     sampling_resolution_3d = (30, 30, 30)
-    layers = [16, 32, 32, 32]
-    n_epochs = 3
+    hidden_layers = [16, 32, 32, 32]
+    n_epochs = 1
 
     csl = get_csl(bounding_planes_margin)
 
@@ -44,7 +44,7 @@ def main():
     return
     '''
 
-    network_manager_root = HaimNetManager(csl, layers)
+    network_manager_root = HaimNetManager(csl, hidden_layers)
     # network_manager_root.load_from_disk()
     network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr)
     network_manager_root.train_network(epochs=n_epochs)
@@ -54,12 +54,11 @@ def main():
     renderer.add_mesh(mesh)
     renderer.add_scene(csl)
     renderer.add_model_errors(network_manager_root)
-    renderer.save("test")
     renderer.show()
 
     network_manager_root.requires_grad_(False)
 
-    octnetree_manager_l1 = OctnetreeManager(csl, layers, network_manager_root)
+    octnetree_manager_l1 = OctnetreeManager(csl, hidden_layers, network_manager_root)
     octnetree_manager_l1.prepare_for_training(l1_sampling_reolution_2d, sampling_margin, lr)
     octnetree_manager_l1.train_network(epochs=n_epochs)
 

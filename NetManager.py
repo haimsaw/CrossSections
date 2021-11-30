@@ -96,13 +96,13 @@ class INetManager:
 
 
 class HaimNetManager(INetManager):
-    def __init__(self, csl, layers, residual_module=None, octant=None, verbose=False):
+    def __init__(self, csl, hidden_layers, residual_module=None, octant=None, verbose=False):
         super().__init__(csl, verbose)
 
         self.save_path = "trained_model.pt"
         self.octant = octant
 
-        self.module = HaimNet(layers, residual_module)
+        self.module = HaimNet(hidden_layers, residual_module)
         self.module.double()
         self.module.to(self.device)
 
@@ -251,7 +251,7 @@ class HaimNetManager(INetManager):
 
 class OctnetreeManager(INetManager):
 
-    def __init__(self, csl, layers, network_manager_root, verbose=False):
+    def __init__(self, csl, hidden_layers, network_manager_root, verbose=False):
         super().__init__(csl, verbose)
 
         # todo find better way to devied to octans
@@ -260,7 +260,7 @@ class OctnetreeManager(INetManager):
         self.octs, self.octs_core = get_octs(np.array([1, 1, 1]), np.array([-1, -1, -1]), 0.2)
         # print("octanes=", self.octanes)
 
-        self.network_managers = [HaimNetManager(csl, layers, residual_module=network_manager_root.module, octant=octant)
+        self.network_managers = [HaimNetManager(csl, hidden_layers, residual_module=network_manager_root.module, octant=octant)
                                  for octant in self.octs]
 
     def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr):

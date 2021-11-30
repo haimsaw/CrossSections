@@ -16,13 +16,13 @@ def initializer(m):
 
 
 class HaimNet(nn.Module):
-    def __init__(self, n_neurons, residual_module):
+    def __init__(self, hidden_layers, residual_module):
         super().__init__()
 
         self.embedder, embedded_dim = get_embedder(10)
 
-        n_neurons.append(1)  # output is always 1
-        n_neurons.insert(0, embedded_dim)
+        n_neurons = [embedded_dim] + hidden_layers + [1]
+
 
         neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
         activations = [nn.LeakyReLU() for i in range(len(n_neurons) - 2)]
