@@ -14,7 +14,7 @@ import pickle
 
 
 def _get_3d_ax():
-    fig = plt.figure(figsize=(15, 15))
+    fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
     fig.suptitle(inspect.stack()[1][3])
     ax.set_xlim3d(-1, 1)
@@ -98,7 +98,9 @@ class Renderer3D:
     def add_mesh(self, my_mesh, alpha=0.2):
 
         collection = Poly3DCollection(my_mesh.vectors, alpha=alpha)
-        collection.set_edgecolor('k')
+        collection.set_edgecolor('b')
+        #collection.set_facecolor('k')
+
 
         self.ax.add_collection3d(collection)
 

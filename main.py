@@ -3,6 +3,7 @@ from Renderer import Renderer3D
 from NetManager import *
 from Mesher import *
 from Helpers import *
+from stl import mesh as mesh2
 
 
 def get_csl(bounding_planes_margin):
@@ -28,17 +29,20 @@ def main():
     root_sampling_resolution_2d = (30, 30)
     l1_sampling_reolution_2d = (30, 30)
     sampling_resolution_3d = (30, 30, 30)
-    layers = (3, 16, 32, 32, 32, 1)
-    n_epochs = 5
+    layers = [16, 32, 32, 32]
+    n_epochs = 3
 
     csl = get_csl(bounding_planes_margin)
 
     # csl. planes = [csl.planes[0]]
-
+    '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
-    renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
+    renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
+    # renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
     renderer.show()
+    return
+    '''
 
     network_manager_root = HaimNetManager(csl, layers)
     # network_manager_root.load_from_disk()
@@ -49,9 +53,9 @@ def main():
     renderer = Renderer3D()
     renderer.add_mesh(mesh)
     renderer.add_scene(csl)
+    renderer.add_model_errors(network_manager_root)
     renderer.save("test")
     renderer.show()
-
 
     network_manager_root.requires_grad_(False)
 

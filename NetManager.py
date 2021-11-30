@@ -235,13 +235,15 @@ class HaimNetManager(INetManager):
         errored_xyzs = np.empty((0, 3), dtype=bool)
         errored_labels = np.empty((0, 1), dtype=bool)
 
-        for xyz, label in self.data_loader:
-            xyz, label = xyz.to(self.device), label.to(self.device)
+        for xyzs, label in self.data_loader:
+            xyzs, label = xyzs.to(self.device), label.to(self.device)
 
-            label_pred = self.hard_predict(xyz, threshold)
+            #xyzs, label_pred = self.hard_predict(xyzs, threshold)
+            label_pred = self.module(xyzs) > threshold # todo use self.hard_predict (not returning a tensor)
+
             errors = (label != label_pred).view(-1)
 
-            errored_xyzs = np.concatenate((errored_xyzs, xyz[errors].detach().cpu().numpy()))
+            errored_xyzs = np.concatenate((errored_xyzs, xyzs[errors].detach().cpu().numpy()))
             errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
 
         return errored_xyzs, errored_labels.reshape(-1)
