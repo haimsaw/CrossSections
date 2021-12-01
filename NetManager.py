@@ -76,7 +76,7 @@ class INetManager:
     def requires_grad_(self, requires_grad): raise NotImplementedError
 
     @abstractmethod
-    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr): raise NotImplementedError
+    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr, scheduler_step): raise NotImplementedError
 
     @abstractmethod
     def train_network(self, epochs): raise NotImplementedError
@@ -109,6 +109,7 @@ class HaimNetManager(INetManager):
         self.loss_fn = None
         self.optimizer = None
         self.lr_scheduler = None
+        self.scheduler_step = 0
 
         self.data_loader = None
         self.dataset = None
@@ -145,17 +146,20 @@ class HaimNetManager(INetManager):
                 loss, current = loss.item(), batch * len(xyz)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
-        self.lr_scheduler.step()
+        if epoch > 0 and epoch % self.scheduler_step == 0:
+            self.lr_scheduler.step()
 
         total_loss = running_loss/size
         if self.verbose:
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, sampling_resolution, sampling_margin, lr):
+    def prepare_for_training(self, sampling_resolution, sampling_margin, lr, scheduler_step):
         # todo - calc dataset once per layer
         self.dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
                                             octant=self.octant, target_transform=torch.tensor, transform=torch.tensor)
+
+        # todo list comp is super slow
         sampler = SubsetRandomSampler([i for i, (x, _) in enumerate(self.dataset) if is_in_octant(x, self.octant)])
 
         self.data_loader = DataLoader(self.dataset, batch_size=128, sampler=sampler)
@@ -168,6 +172,7 @@ class HaimNetManager(INetManager):
 
         self.optimizer = torch.optim.Adam(self.module.parameters(), lr=lr)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
+        self.scheduler_step = scheduler_step
 
         self.is_training_ready = True
 
@@ -263,9 +268,9 @@ class OctnetreeManager(INetManager):
         self.network_managers = [HaimNetManager(csl, hidden_layers, residual_module=network_manager_root.module, octant=octant, embedder=embedder)
                                  for octant in self.octs]
 
-    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr):
+    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr, scheduler_step):
         for network_manager in self.network_managers:
-            network_manager.prepare_for_training(sampling_resolution_2d, sampling_margin, lr)
+            network_manager.prepare_for_training(sampling_resolution_2d, sampling_margin, lr, scheduler_step)
 
     def train_network(self, epochs):
         for i, network_manager in enumerate(self.network_managers):

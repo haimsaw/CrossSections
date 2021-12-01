@@ -33,6 +33,7 @@ def main():
     hidden_layers = [16, 32, 32, 32]
     n_epochs = 1
     embedder = get_embedder(10)
+    scheduler_step = 5
 
     csl = get_csl(bounding_planes_margin)
 
@@ -41,16 +42,16 @@ def main():
     renderer = Renderer3D()
     renderer.add_scene(csl)
     #renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
-    renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
+    #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
-    # renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=False, show_outside_shape=True)
+    renderer.add_rasterized_scene(csl, (64, 64), sampling_margin, show_empty_planes=False, show_outside_shape=False)
     renderer.show()
     return
 
 
     network_manager_root = HaimNetManager(csl, hidden_layers, embedder)
     # network_manager_root.load_from_disk()
-    network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr)
+    network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr, scheduler_step)
     network_manager_root.train_network(epochs=n_epochs)
 
     mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
@@ -63,7 +64,7 @@ def main():
     network_manager_root.requires_grad_(False)
 
     octnetree_manager_l1 = OctnetreeManager(csl, hidden_layers, network_manager_root, embedder)
-    octnetree_manager_l1.prepare_for_training(l1_sampling_reolution_2d, sampling_margin, lr)
+    octnetree_manager_l1.prepare_for_training(l1_sampling_reolution_2d, sampling_margin, lr, scheduler_step)
     octnetree_manager_l1.train_network(epochs=n_epochs)
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
