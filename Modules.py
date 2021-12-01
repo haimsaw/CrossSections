@@ -16,12 +16,12 @@ def initializer(m):
 
 
 class HaimNet(nn.Module):
-    def __init__(self, hidden_layers, residual_module):
+    def __init__(self, hidden_layers, residual_module, embedder):
         super().__init__()
 
-        self.embedder, embedded_dim = get_embedder(10)
+        self.embedder = embedder
 
-        n_neurons = [embedded_dim] + hidden_layers + [1]
+        n_neurons = [self.embedder.out_dim] + hidden_layers + [1]
 
         neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
         activations = [nn.LeakyReLU() for i in range(len(n_neurons) - 2)]
@@ -47,6 +47,9 @@ class Embedder:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.create_embedding_fn()
+
+    def __call__(self, x):
+        return self.embed(x)
 
     def create_embedding_fn(self):
         embed_fns = []
@@ -76,9 +79,7 @@ class Embedder:
         return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-def get_embedder(multires, i=0):
-    if i == -1:
-        return nn.Identity(), 3
+def get_embedder(multires):
 
     embed_kwargs = {
         'include_input': True,
@@ -90,5 +91,4 @@ def get_embedder(multires, i=0):
     }
 
     embedder_obj = Embedder(**embed_kwargs)
-    embed = lambda x, eo=embedder_obj: eo.embed(x)
-    return embed, embedder_obj.out_dim
+    return embedder_obj
