@@ -1,57 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from torch import nn
 
 from Modules import *
-from Resterizer import rasterizer_factory
+from Resterizer import RasterizedCslDataset
 from Helpers import *
 from abc import ABCMeta, abstractmethod
-
-
-class RasterizedCslDataset(Dataset):
-    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, octant=None, transform=None, target_transform=None):
-        self.csl = csl
-
-        cells = []
-        for plane in csl.planes:
-            cells += rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin, octant)
-
-        self.cells = np.array(cells)
-
-        self.transform = transform
-        self.target_transform = target_transform
-
-    def __len__(self):
-        return self.cells.size
-
-    def __getitem__(self, idx):
-        cell = self.cells[idx]
-
-        xyz = cell.xyz
-        label = [cell.label]
-
-        if self.transform:
-            xyz = self.transform(xyz)
-        if self.target_transform:
-            label = self.target_transform(label)
-
-        return xyz, label
-
-    # todo - not correct anymore, refined cells might end up in wrong octant
-    def refine_cells(self, xyz_to_refine):
-        # xyz_to_refine = set(xyz_to_refine)
-
-        new_cells = []
-        for cell in self.cells:
-            # todo quadratic - can improve by converting xyz_to_refine to set
-            if cell.xyz in xyz_to_refine:
-                new_cells += cell.split_cell()
-            else:
-                new_cells.append(cell)
-
-        self.cells = np.array(new_cells)
 
 
 class INetManager:
@@ -306,7 +262,6 @@ class OctnetManager(INetManager):
         xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octs]
         labels_per_oct = [get_mask_for_blending(xyzs, oct, oct_core, direction) * manager.soft_predict(xyzs, use_sigmoid)
                               for oct, oct_core, manager, xyzs, direction in zip(self.octs, self.octs_core, self.network_managers, xyzs_per_oct, directions)]
-
         flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
         flatten_labels = (label for labels in labels_per_oct for label in labels)
 
@@ -320,6 +275,7 @@ class OctnetManager(INetManager):
 
         labels = np.array([dict[xyz.tobytes()] for xyz in xyzs])
         return labels
+
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):

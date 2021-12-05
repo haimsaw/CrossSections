@@ -3,6 +3,7 @@ from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
 from CSL import Plane
 from Helpers import *
+from torch.utils.data import Dataset
 
 INSIDE_LABEL = 1.0
 OUTSIDE_LABEL = 0.0
@@ -180,3 +181,48 @@ class PlaneRasterizer(IRasterizer):
         # todo the filter is not efficent
         return list(filter(lambda cell: is_in_octant(cell.xyz, octant),
                       [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]))
+
+
+class RasterizedCslDataset(Dataset):
+    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, octant=None, transform=None, target_transform=None):
+        self.csl = csl
+
+        cells = []
+        for plane in csl.planes:
+            cells += rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin, octant)
+
+        self.cells = np.array(cells)
+
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return self.cells.size
+
+    def __getitem__(self, idx):
+        cell = self.cells[idx]
+
+        xyz = cell.xyz
+        label = [cell.label]
+
+        if self.transform:
+            xyz = self.transform(xyz)
+        if self.target_transform:
+            label = self.target_transform(label)
+
+        return xyz, label
+
+    # todo - not correct anymore, refined cells might end up in wrong octant
+    def refine_cells(self, xyz_to_refine):
+        # xyz_to_refine = set(xyz_to_refine)
+
+        new_cells = []
+        for cell in self.cells:
+            # todo quadratic - can improve by converting xyz_to_refine to set
+            if cell.xyz in xyz_to_refine:
+                new_cells += cell.split_cell()
+            else:
+                new_cells.append(cell)
+
+        self.cells = np.array(new_cells)
+

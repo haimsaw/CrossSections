@@ -20,7 +20,21 @@ class OctNode:
         self.haim_net_kwargs = haimnet_kwargs
         self.is_leaf = True
 
-    def train_node(self, *, sampling_resolution, sampling_margin, lr, scheduler_step, n_epochs):
+    def __str__(self):
+        return f"position: {self.center}, radius: {self.radius}"
+
+    @property
+    def oct(self):
+        radius_with_margin = self.radius * (1 + self.overlap_margin)
+        return np.stack((self.center + radius_with_margin, self.center - radius_with_margin))
+
+    @property
+    def oct_core(self):
+        return np.stack((self.center + self.radius, self.center - self.radius))
+
+    def train_leaf(self, *, sampling_resolution, sampling_margin, lr, scheduler_step, n_epochs):
+        assert self.is_leaf
+
         self.haim_net_manager.prepare_for_training(sampling_resolution, sampling_margin, lr, scheduler_step)
         self.haim_net_manager.train_network(epochs=n_epochs)
 
@@ -36,6 +50,7 @@ class OctNode:
                          for center in centers]
 
         self.is_leaf = False
+        self.haim_net_manager.requires_grad_(False)
 
     @staticmethod
     def _find_branch(root, position):
@@ -54,7 +69,7 @@ class OctNode:
         return index
 
 
-class OctnetTree:
+class OctnetTree(INetManager):
     """ Branches (or children) follow a predictable pattern to make accesses simple.
         Here, - means less than 'origin' in that dimension, + means greater than.
         branch: 0 1 2 3 4 5 6 7
@@ -64,28 +79,49 @@ class OctnetTree:
         https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
         """
     def __init__(self, csl, overlap_margin, hidden_layers, embedder):
+        super().__init__(csl)
         self.csl = csl
         self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), overlap_margin=overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
     def train_leaves(self, **train_kwargs):
-        return self._train_leaves(self.root, train_kwargs)
+        [leaf.train_leaf(**train_kwargs) for leaf in self.get_leaves()]
 
     def add_level(self):
-        return self._add_level(node=self.root)
+        [leaf.split_node() for leaf in self.get_leaves()]
 
-    def _add_level(self, node):
+    def get_leaves(self):
+        leaves = []
+        self._get_leaves(self.root, leaves)
+        return leaves
+
+    def _get_leaves(self, node, acc):
         if node.is_leaf:
-            node.haim_net_manager.requires_grad_(False)
-            node.split_node()
+            acc.append(node)
         else:
-            [self._add_level(child) for child in node.branches]
+            [self._get_leaves(child, acc) for child in node.branches]
 
-    def _train_leaves(self, node, train_kwargs):
-        if node.is_leaf:
-            node.train_node(**train_kwargs)
-        else:
-            [self._train_leaves(child, train_kwargs) for child in node.branches]
+    @torch.no_grad()
+    def soft_predict(self, xyzs, use_sigmoid=True):
+        leaves = self.get_leaves()
 
+        xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, node.oct)] for node in leaves]
+        labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core, direction) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+                          for node, xyzs, direction in zip(leaves, xyzs_per_oct, self.branches_directions)]
+
+        return self._merge_oct_predictions(labels_per_oct, xyzs, xyzs_per_oct)
+
+    def _merge_oct_predictions(self, labels_per_oct, xyzs, xyzs_per_oct):
+        flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
+        flatten_labels = (label for labels in labels_per_oct for label in labels)
+        dict = {}
+        for xyz, label in zip(flatten_xyzs, flatten_labels):
+            xyz_data = xyz.tobytes()
+            if xyz_data in dict:
+                dict[xyz_data] += label
+            else:
+                dict[xyz_data] = label
+        labels = np.array([dict[xyz.tobytes()] for xyz in xyzs])
+        return labels
 
 

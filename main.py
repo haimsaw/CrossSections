@@ -51,7 +51,6 @@ def main():
 
     tree = OctnetTree(csl, overlap_margin, hidden_layers, embedder)
     tree.train_leaves(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
-
     '''
     mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
     renderer = Renderer3D()
@@ -64,9 +63,12 @@ def main():
     tree.add_level()
     tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
+    tree.add_level()
+    tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
+
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 
-    mesh = marching_cubes(octnetree_manager_l1, sampling_resolution_3d)
+    mesh = marching_cubes(tree, sampling_resolution_3d)
     renderer = Renderer3D()
     renderer.add_mesh(mesh)
     renderer.show()
