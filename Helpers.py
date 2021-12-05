@@ -70,7 +70,7 @@ def is_in_octant(xyz, top_bottom_octant):
     return all(is_in_range_for_ax)
 
 
-def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
+def get_mask_for_blending_old(xyzs, oct, oct_core, oct_direction):
     # return labels for blending in the x direction
     # xyzs are in octant+overlap
     # todo this assumes that octree depth is 1
@@ -95,3 +95,39 @@ def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
 
     return wights
 
+
+def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
+    # return labels for blending in the x direction
+    # xyzs are in octant+overlap
+    # todo this assumes that octree depth is 1
+    # todo refactor this
+
+    # 3 1d interpolation (1 chose 3)
+    # 3 2d interpolation (2 chose 3)
+    # 1 3d interpolation (3 chose 2)
+
+    core_start = oct_core[1]
+    core_end = oct_core[0]
+
+    margin_start = oct[1]
+    margin_end = oct[0]
+
+    non_blending_start = 2 * core_start - margin_start
+    non_blending_end = 2 * core_end - margin_end
+
+    wights = np.full(xyzs.shape, 1.0)
+
+    # 3d interpolation
+    points = []
+
+    return wights
+
+
+class OctTree:
+    def __init__(self, root):
+        pass
+
+
+class Oct:
+    def __init__(self, oct_core, oct_with_margin):
+        pass

@@ -5,7 +5,7 @@ from Mesher import *
 from Helpers import *
 from Modules import *
 from stl import mesh as mesh2
-
+from Octree2 import *
 
 def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEight.csl")
@@ -34,11 +34,12 @@ def main():
     n_epochs = 1
     embedder = get_embedder(10)
     scheduler_step = 5
+    overlap_margin = 0.2
 
     csl = get_csl(bounding_planes_margin)
 
     # csl. planes = [csl.planes[0]]
-
+    '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
     renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
@@ -46,26 +47,23 @@ def main():
 
     renderer.add_rasterized_scene(csl, (64, 64), sampling_margin, show_empty_planes=False, show_outside_shape=False)
     renderer.show()
-    return
+    '''
 
+    tree = OctnetTree(csl, overlap_margin, hidden_layers, embedder)
+    tree.train_leaves(root_sampling_resolution_2d=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
-    network_manager_root = HaimNetManager(csl, hidden_layers, embedder)
-    # network_manager_root.load_from_disk()
-    network_manager_root.prepare_for_training(root_sampling_resolution_2d, sampling_margin, lr, scheduler_step)
-    network_manager_root.train_network(epochs=n_epochs)
-
+    '''
     mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
     renderer = Renderer3D()
     renderer.add_mesh(mesh)
     renderer.add_scene(csl)
     renderer.add_model_errors(network_manager_root)
     renderer.show()
-
+    '''
     network_manager_root.requires_grad_(False)
 
-    octnetree_manager_l1 = OctnetreeManager(csl, hidden_layers, network_manager_root, embedder)
-    octnetree_manager_l1.prepare_for_training(l1_sampling_reolution_2d, sampling_margin, lr, scheduler_step)
-    octnetree_manager_l1.train_network(epochs=n_epochs)
+    tree.add_level()
+    tree.train_leaves(root_sampling_resolution_2d=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 

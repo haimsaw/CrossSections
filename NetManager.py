@@ -254,7 +254,7 @@ class HaimNetManager(INetManager):
         return errored_xyzs, errored_labels.reshape(-1)
 
 
-class OctnetreeManager(INetManager):
+class OctnetManager(INetManager):
 
     def __init__(self, csl, hidden_layers, network_manager_root, embedder, verbose=False):
         super().__init__(csl, verbose)
@@ -334,3 +334,4 @@ class OctnetreeManager(INetManager):
             errored_labels = np.concatenate((errored_labels, net_errors_labels))
 
         return errored_xyzs, errored_labels
+
