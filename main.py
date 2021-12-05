@@ -7,15 +7,16 @@ from Modules import *
 from stl import mesh as mesh2
 from Octree2 import *
 
+
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
-    csl = CSL("csl-files/Abdomen.csl")
+    # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/Skull-20.csl")
     # csl = CSL("csl-files/Brain.csl")
@@ -38,7 +39,6 @@ def main():
 
     csl = get_csl(bounding_planes_margin)
 
-    # csl. planes = [csl.planes[0]]
     '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
@@ -50,7 +50,7 @@ def main():
     '''
 
     tree = OctnetTree(csl, overlap_margin, hidden_layers, embedder)
-    tree.train_leaves(root_sampling_resolution_2d=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
+    tree.train_leaves(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
     '''
     mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
@@ -60,10 +60,9 @@ def main():
     renderer.add_model_errors(network_manager_root)
     renderer.show()
     '''
-    network_manager_root.requires_grad_(False)
 
     tree.add_level()
-    tree.train_leaves(root_sampling_resolution_2d=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
+    tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 
