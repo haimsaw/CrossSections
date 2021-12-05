@@ -91,8 +91,8 @@ class INetManager:
     def hard_predict(self, xyzs, threshold=0.5):
         # todo should threshold = 0.0 if threshold=true?
         # todo self.module.eval()
-        xyzs, soft_labels = self.soft_predict(xyzs)
-        return xyzs, soft_labels > threshold
+        soft_labels = self.soft_predict(xyzs)
+        return soft_labels > threshold
 
 
 class HaimNetManager(INetManager):
@@ -218,7 +218,7 @@ class HaimNetManager(INetManager):
             xyzs_batch = xyzs_batch.to(self.device)
             batch_labels = torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)
             label_pred = np.concatenate((label_pred, batch_labels.detach().cpu().numpy().reshape(-1)))
-        return xyzs, label_pred
+        return label_pred
 
     @torch.no_grad()
     def refine_sampling(self, threshold=0.5):
@@ -289,7 +289,7 @@ class OctnetreeManager(INetManager):
 
         xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, oct)] for oct in self.octs]
 
-        labels_per_oct = [manager.soft_predict(xyzs, use_sigmoid)[1] for manager, xyzs in zip(self.network_managers, xyzs_per_oct)]
+        labels_per_oct = [manager.soft_predict(xyzs, use_sigmoid) for manager, xyzs in zip(self.network_managers, xyzs_per_oct)]
 
         xyzs = np.array([xyz for xyzs in xyzs_per_oct for xyz in xyzs])
         labels = np.array([label for labels in labels_per_oct for label in labels])
@@ -304,7 +304,7 @@ class OctnetreeManager(INetManager):
         # todo assert every xyz is in octant at least one ocnant
 
         xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octs]
-        labels_per_oct = [get_mask_for_blending(xyzs, oct, oct_core, direction) * manager.soft_predict(xyzs, use_sigmoid)[1]
+        labels_per_oct = [get_mask_for_blending(xyzs, oct, oct_core, direction) * manager.soft_predict(xyzs, use_sigmoid)
                               for oct, oct_core, manager, xyzs, direction in zip(self.octs, self.octs_core, self.network_managers, xyzs_per_oct, directions)]
 
         flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
@@ -319,7 +319,7 @@ class OctnetreeManager(INetManager):
                 dict[xyz_data] = label
 
         labels = np.array([dict[xyz.tobytes()] for xyz in xyzs])
-        return xyzs, labels
+        return labels
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):

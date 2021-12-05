@@ -79,7 +79,7 @@ class Renderer3D:
 
     def add_model_hard_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=0.05, octant=None):
         xyzs = get_xyzs_in_octant(octant, sampling_resolution_3d)
-        xyzs, labels = network_manager.hard_predict(xyzs)
+        labels = network_manager.hard_predict(xyzs)
 
         self.ax.scatter(*xyzs[labels].T, alpha=alpha, color='blue')
 
@@ -91,7 +91,7 @@ class Renderer3D:
         z = np.linspace(-1, 1, sampling_resolution_3d[2])
 
         xyzs = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-        xyzs, labels = network_manager.soft_predict(xyzs)
+        labels = network_manager.soft_predict(xyzs)
 
         self.ax.scatter(*xyzs.T, c=labels, cmap="Blues", alpha=alpha)
 

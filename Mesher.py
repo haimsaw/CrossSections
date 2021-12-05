@@ -18,7 +18,7 @@ def _get_mesh(labels, level, spacing):
 def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
-    xyzs, labels = net_manager.soft_predict(xyzs)
+    labels = net_manager.soft_predict(xyzs)
     argsorted_xyzs = np.lexsort((xyzs.T[2], xyzs.T[1], xyzs.T[0]))
 
     # use spacing to match original shape boundaries
