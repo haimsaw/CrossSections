@@ -191,10 +191,3 @@ class RasterizedCslDataset(Dataset):
 
         return xyz, label
 
-    def get_indices_in_oct(self, oct):
-
-        map = (self.xyzs[:, 0] >= oct[1][0]) & (self.xyzs[:, 0] <= oct[0][0]) \
-              & (self.xyzs[:, 1] >= oct[1][1]) & (self.xyzs[:, 1] <= oct[0][1]) \
-              & (self.xyzs[:, 2] >= oct[1][0]) & (self.xyzs[:, 0] <= oct[0][2])
-
-        return np.nonzero(map)[0]

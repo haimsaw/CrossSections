@@ -36,9 +36,17 @@ class OctNode:
 
     def train_leaf(self, *, dataset, lr, scheduler_step, n_epochs):
         assert self.is_leaf
+        sampler = SubsetRandomSampler(self.indices_in_oct(dataset.xyzs))
 
-        self.haim_net_manager.prepare_for_training(dataset, lr, scheduler_step)
+        self.haim_net_manager.prepare_for_training(dataset, sampler, lr, scheduler_step)
         self.haim_net_manager.train_network(epochs=n_epochs)
+
+    def indices_in_oct(self, xyzs):
+        map = (xyzs[:, 0] >= self.oct[1][0]) & (xyzs[:, 0] <= self.oct[0][0]) \
+              & (xyzs[:, 1] >= self.oct[1][1]) & (xyzs[:, 1] <= self.oct[0][1]) \
+              & (xyzs[:, 2] >= self.oct[1][2]) & (xyzs[:, 2] <= self.oct[0][2])
+
+        return np.nonzero(map)[0]
 
     def split_node(self):
         new_radius = self.radius/2
@@ -83,7 +91,7 @@ class OctnetTree(INetManager):
     def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder):
         super().__init__(csl)
         self.csl = csl
-        self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
+        self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
     def train_leaves(self, sampling_resolution, sampling_margin, **train_kwargs):
@@ -115,8 +123,8 @@ class OctnetTree(INetManager):
     def soft_predict(self, xyzs, use_sigmoid=True):
         leaves = self._get_leaves()
 
-        xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, node.oct)] for node in leaves]
-        labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core, direction) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
+        labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core, direction)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs, direction in zip(leaves, xyzs_per_oct, self.branches_directions)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)

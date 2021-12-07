@@ -32,7 +32,7 @@ class INetManager:
     def requires_grad_(self, requires_grad): raise NotImplementedError
 
     @abstractmethod
-    def prepare_for_training(self, dataset, lr, scheduler_step): raise NotImplementedError
+    def prepare_for_training(self, dataset, sampler, lr, scheduler_step): raise NotImplementedError
 
     @abstractmethod
     def train_network(self, epochs): raise NotImplementedError
@@ -109,12 +109,7 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, dataset, lr, scheduler_step):
-
-        # todo use the fact that dataset is lexorted
-        # sampler = SubsetRandomSampler([i for i, (x, _) in enumerate(dataset) if is_in_octant(x, self.octant)])
-
-        sampler = SubsetRandomSampler(dataset.get_indices_in_oct(self.octant))
+    def prepare_for_training(self, dataset, sampler, lr, scheduler_step):
         self.data_loader = DataLoader(dataset, batch_size=128, sampler=sampler)
 
         self.module.init_weights()
