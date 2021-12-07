@@ -32,7 +32,7 @@ class INetManager:
     def requires_grad_(self, requires_grad): raise NotImplementedError
 
     @abstractmethod
-    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr, scheduler_step): raise NotImplementedError
+    def prepare_for_training(self, dataset, lr, scheduler_step): raise NotImplementedError
 
     @abstractmethod
     def train_network(self, epochs): raise NotImplementedError
@@ -52,7 +52,7 @@ class INetManager:
 
 
 class HaimNetManager(INetManager):
-    def __init__(self, csl, hidden_layers, embedder, residual_module=None, octant=None, verbose=False):
+    def __init__(self, csl, hidden_layers, embedder, residual_module, octant, verbose=False):
         super().__init__(csl, verbose)
 
         self.save_path = "trained_model.pt"
@@ -68,7 +68,6 @@ class HaimNetManager(INetManager):
         self.scheduler_step = 0
 
         self.data_loader = None
-        self.dataset = None
 
         self.total_epochs = 0
         self.epochs_with_refine = []
@@ -110,15 +109,13 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, sampling_resolution, sampling_margin, lr, scheduler_step):
-        # todo - calc dataset once per layer
-        self.dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
-                                            octant=self.octant, target_transform=torch.tensor, transform=torch.tensor)
+    def prepare_for_training(self, dataset, lr, scheduler_step):
 
-        # todo list comp is super slow
-        sampler = SubsetRandomSampler([i for i, (x, _) in enumerate(self.dataset) if is_in_octant(x, self.octant)])
+        # todo use the fact that dataset is lexorted
+        # sampler = SubsetRandomSampler([i for i, (x, _) in enumerate(dataset) if is_in_octant(x, self.octant)])
 
-        self.data_loader = DataLoader(self.dataset, batch_size=128, sampler=sampler)
+        sampler = SubsetRandomSampler(dataset.get_indices_in_oct(self.octant))
+        self.data_loader = DataLoader(dataset, batch_size=128, sampler=sampler)
 
         self.module.init_weights()
 
@@ -175,20 +172,6 @@ class HaimNetManager(INetManager):
             batch_labels = torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)
             label_pred = np.concatenate((label_pred, batch_labels.detach().cpu().numpy().reshape(-1)))
         return label_pred
-
-    @torch.no_grad()
-    def refine_sampling(self, threshold=0.5):
-        self.module.eval()
-
-        # next epoch will be with the refined dataset
-        self.epochs_with_refine.append(self.total_epochs + 1)
-        size_before = len(self.dataset)
-        self.refinements_num += 1
-
-        errored_xyz, _ = self.get_train_errors(threshold)
-
-        self.dataset.refine_cells(errored_xyz)
-        print(f'refine_sampling before={size_before}, after={len(self.dataset)}, n_refinements = {self.refinements_num}')
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):

@@ -22,8 +22,7 @@ class Cell:
         self.pixel_radius = pixel_radius
 
         self.labeler = labeler
-        self.xyz_transformer = xyz_transformer
-        self.xyz = self.xyz_transformer(np.array([self.pixel_center]))[0]
+        self.xyz = xyz_transformer(np.array([self.pixel_center]))[0]
 
     @property
     def label(self):
@@ -36,23 +35,12 @@ class Cell:
         labels = self.labeler(sampels)
         return sum(labels)/accuracy
 
-    def split_cell(self):
-        new_cell_radius = self.pixel_radius / 2
-        new_centers = np.array([[1, 1],
-                            [1, -1],
-                            [-1, 1],
-                            [-1, -1]]) * new_cell_radius + self.pixel_center
-
-        # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
-
-        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer) for xy, label in new_centers]
-
 
 class IRasterizer:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_rasterazation_cells(self, resolution, margin, octant=None): raise NotImplementedError
+    def get_rasterazation_cells(self, resolution, margin): raise NotImplementedError
 
 
 class EmptyPlaneRasterizer(IRasterizer):
@@ -83,9 +71,6 @@ class EmptyPlaneRasterizer(IRasterizer):
 
     def _get_pixels(self, resolution, margin):
         '''
-
-        :param resolution:
-        :param margin:
         :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
         '''
         projected_vertices = self.plane.project(self.csl.all_vertices)
@@ -104,7 +89,7 @@ class EmptyPlaneRasterizer(IRasterizer):
 
         return xys, pixel_radius
 
-    def get_rasterazation_cells(self, resolution, margin, octant=None):
+    def get_rasterazation_cells(self, resolution, margin):
         xys, pixel_radius = self._get_pixels(resolution, margin)
 
         if self.plane.plane_normal[0] != 0:
@@ -118,8 +103,7 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
 
         # todo the filter is not efficent
-        return list(filter(lambda cell: is_in_octant(cell.xyz, octant),
-                      [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]))
+        return [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -130,14 +114,9 @@ class PlaneRasterizer(IRasterizer):
 
     def _get_voxels(self, resolution, margin):
         '''
-
-        :param resolution:
-        :param margin:
         :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
         '''
-        # top, bottom = add_margin(*get_top_bottom(self.pca_projected_vertices), margin)
-        top = [1, 1]
-        bottom = [-1, -1]
+        top, bottom = add_margin(*get_top_bottom(self.pca_projected_vertices), margin)
 
         xs = np.linspace(bottom[0], top[0], resolution[0], endpoint=False)
         ys = np.linspace(bottom[1], top[1], resolution[1], endpoint=False)
@@ -174,24 +153,24 @@ class PlaneRasterizer(IRasterizer):
             return labels
         return labeler
 
-    def get_rasterazation_cells(self, resolution, margin, octant=None):
+    def get_rasterazation_cells(self, resolution, margin):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
 
-        # todo the filter is not efficent
-        return list(filter(lambda cell: is_in_octant(cell.xyz, octant),
-                      [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]))
+        return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]
 
 
 class RasterizedCslDataset(Dataset):
-    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, octant=None, transform=None, target_transform=None):
+    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
         self.csl = csl
 
         cells = []
         for plane in csl.planes:
-            cells += rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin, octant)
+            cells += rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
 
         self.cells = np.array(cells)
+
+        self.xyzs = np.array([cell.xyz for cell in self.cells])
 
         self.transform = transform
         self.target_transform = target_transform
@@ -212,17 +191,10 @@ class RasterizedCslDataset(Dataset):
 
         return xyz, label
 
-    # todo - not correct anymore, refined cells might end up in wrong octant
-    def refine_cells(self, xyz_to_refine):
-        # xyz_to_refine = set(xyz_to_refine)
+    def get_indices_in_oct(self, oct):
 
-        new_cells = []
-        for cell in self.cells:
-            # todo quadratic - can improve by converting xyz_to_refine to set
-            if cell.xyz in xyz_to_refine:
-                new_cells += cell.split_cell()
-            else:
-                new_cells.append(cell)
+        map = (self.xyzs[:, 0] >= oct[1][0]) & (self.xyzs[:, 0] <= oct[0][0]) \
+              & (self.xyzs[:, 1] >= oct[1][1]) & (self.xyzs[:, 1] <= oct[0][1]) \
+              & (self.xyzs[:, 2] >= oct[1][0]) & (self.xyzs[:, 0] <= oct[0][2])
 
-        self.cells = np.array(new_cells)
-
+        return np.nonzero(map)[0]

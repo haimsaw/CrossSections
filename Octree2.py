@@ -9,11 +9,6 @@ class OctNode:
         # top bottom = center +- radius
         self.center = center
 
-        res = None if parent is None else parent.haim_net_manager.module
-
-        # todo make this private
-        self.haim_net_manager = HaimNetManager(csl, residual_module=res, **haimnet_kwargs)
-
         self.csl = csl
         self.radius = radius
         self.overlap_margin = overlap_margin
@@ -22,6 +17,10 @@ class OctNode:
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
         self.haim_net_kwargs = haimnet_kwargs
         self.is_leaf = True
+
+        # todo make this private
+        res = None if parent is None else parent.haim_net_manager.module
+        self.haim_net_manager = HaimNetManager(csl, residual_module=res, octant=self.oct, **haimnet_kwargs)
 
     def __str__(self):
         return f"position: {self.center}, radius: {self.radius}"
@@ -35,10 +34,10 @@ class OctNode:
     def oct_core(self):
         return np.stack((self.center + self.radius, self.center - self.radius))
 
-    def train_leaf(self, *, sampling_resolution, sampling_margin, lr, scheduler_step, n_epochs):
+    def train_leaf(self, *, dataset, lr, scheduler_step, n_epochs):
         assert self.is_leaf
 
-        self.haim_net_manager.prepare_for_training(sampling_resolution, sampling_margin, lr, scheduler_step)
+        self.haim_net_manager.prepare_for_training(dataset, lr, scheduler_step)
         self.haim_net_manager.train_network(epochs=n_epochs)
 
     def split_node(self):
@@ -87,11 +86,16 @@ class OctnetTree(INetManager):
         self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), overlap_margin=overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
-    def train_leaves(self, **train_kwargs):
+    def train_leaves(self, sampling_resolution, sampling_margin, **train_kwargs):
+        # todo save these in a list of levels (for get error)?
+        # todo extract this to OctnetTree.prepere for training
+        dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
+                                       target_transform=torch.tensor, transform=torch.tensor)
+
         leaves = self._get_leaves()
         for i, leaf in enumerate(leaves):
-            print(f"\nleaf: {i}/{len(leaves)} ")
-            leaf.train_leaf(**train_kwargs)
+            print(f"\nleaf: {i}/{len(leaves) - 1} ")
+            leaf.train_leaf(dataset=dataset, **train_kwargs)
 
     def add_level(self):
         [leaf.split_node() for leaf in self._get_leaves()]
@@ -115,7 +119,7 @@ class OctnetTree(INetManager):
         labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core, direction) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs, direction in zip(leaves, xyzs_per_oct, self.branches_directions)]
 
-        return self._merge_oct_predictions(labels_per_oct, xyzs, xyzs_per_oct)
+        return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):
@@ -123,6 +127,7 @@ class OctnetTree(INetManager):
         errored_labels = np.empty(0, dtype=bool)
 
         for leaf in self._get_leaves():
+            # todo handle ovelapping?
             net_errors_xyzs, net_errors_labels = leaf.haim_net_manager.get_train_errors()
 
             errored_xyzs = np.concatenate((errored_xyzs, net_errors_xyzs))
@@ -136,7 +141,7 @@ class OctnetTree(INetManager):
             print(f"leaf: {i}")
             leaf.haim_net_manager.show_train_losses()
 
-    def _merge_oct_predictions(self, labels_per_oct, xyzs, xyzs_per_oct):
+    def _merge_oct_predictions(self, xyzs, labels_per_oct, xyzs_per_oct):
         flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
         flatten_labels = (label for labels in labels_per_oct for label in labels)
         dict = {}

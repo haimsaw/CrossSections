@@ -26,7 +26,7 @@ def get_csl(bounding_planes_margin):
 
 def main():
     bounding_planes_margin = 0.05
-    sampling_margin = 0.5
+    sampling_margin = bounding_planes_margin
     lr = 1e-2
     root_sampling_resolution_2d = (30, 30)
     l1_sampling_reolution_2d = (30, 30)
@@ -39,15 +39,14 @@ def main():
 
     csl = get_csl(bounding_planes_margin)
 
-    '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
-    renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
+    # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
-    renderer.add_rasterized_scene(csl, (64, 64), sampling_margin, show_empty_planes=False, show_outside_shape=False)
+    renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=True, show_outside_shape=False)
     renderer.show()
-    '''
+
 
     tree = OctnetTree(csl, overlap_margin, hidden_layers, embedder)
     tree.train_leaves(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
@@ -63,8 +62,8 @@ def main():
     tree.add_level()
     tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
-    tree.add_level()
-    tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
+    #tree.add_level()
+    #tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
     # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
 
