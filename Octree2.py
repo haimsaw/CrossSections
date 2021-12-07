@@ -48,13 +48,6 @@ class OctNode:
             index |= 1
         return index
 
-    def train_leaf(self, *, dataset, lr, scheduler_step, n_epochs):
-        assert self.is_leaf
-        sampler = SubsetRandomSampler(self.indices_in_oct(dataset.xyzs))
-
-        self.haim_net_manager.prepare_for_training(dataset, sampler, lr, scheduler_step)
-        self.haim_net_manager.train_network(epochs=n_epochs)
-
     def indices_in_oct(self, xyzs):
         map = (xyzs[:, 0] >= self.oct[1][0]) & (xyzs[:, 0] <= self.oct[0][0]) \
               & (xyzs[:, 1] >= self.oct[1][1]) & (xyzs[:, 1] <= self.oct[0][1]) \
@@ -140,25 +133,28 @@ class OctnetTree(INetManager):
         self.csl = csl
 
         self.root = None
+        self.current_dataset = None
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
-    def train_leaves(self, sampling_resolution, sampling_margin, **train_kwargs):
-        # todo save these in a list of levels (for get error)?
-        # todo extract this to OctnetTree.prepere for training
-        dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
-                                       target_transform=torch.tensor, transform=torch.tensor)
-
+    def train_network(self, epochs):
         leaves = self._get_leaves()
         for i, leaf in enumerate(leaves):
             print(f"\nleaf: {i}/{len(leaves) - 1} ")
-            leaf.train_leaf(dataset=dataset, **train_kwargs)
+            leaf.haim_net_manager.train_network(epochs=epochs)
 
     # todo this shoud be prepere for train
-    def add_level(self, oct_overlap_margin, hidden_layers, embedder):
+    def prepare_for_training(self, oct_overlap_margin, hidden_layers, embedder):
         if self.root is None:
             self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
         else:
             [leaf.split_node(oct_overlap_margin, hidden_layers, embedder) for leaf in self._get_leaves()]
+
+        # todo save these in a list of levels (for get error)?
+        self.current_dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
+                                       target_transform=torch.tensor, transform=torch.tensor)
+        for leaf in self._get_leaves():
+            sampler = SubsetRandomSampler(leaf.indices_in_oct(self.current_dataset.xyzs))
+            leaf.haim_net_manager.prepare_for_training(self.current_dataset, sampler, lr, scheduler_step)
 
     def _get_leaves(self):
         leaves = []
