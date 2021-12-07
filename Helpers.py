@@ -121,13 +121,3 @@ def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
     points = []
 
     return wights
-
-
-class OctTree:
-    def __init__(self, root):
-        pass
-
-
-class Oct:
-    def __init__(self, oct_core, oct_with_margin):
-        pass

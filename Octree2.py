@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from NetManager import *
 
@@ -9,6 +10,8 @@ class OctNode:
         self.center = center
 
         res = None if parent is None else parent.haim_net_manager.module
+
+        # todo make this private
         self.haim_net_manager = HaimNetManager(csl, residual_module=res, **haimnet_kwargs)
 
         self.csl = csl
@@ -85,31 +88,53 @@ class OctnetTree(INetManager):
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
     def train_leaves(self, **train_kwargs):
-        [leaf.train_leaf(**train_kwargs) for leaf in self.get_leaves()]
+        leaves = self._get_leaves()
+        for i, leaf in enumerate(leaves):
+            print(f"\nleaf: {i}/{len(leaves)} ")
+            leaf.train_leaf(**train_kwargs)
 
     def add_level(self):
-        [leaf.split_node() for leaf in self.get_leaves()]
+        [leaf.split_node() for leaf in self._get_leaves()]
 
-    def get_leaves(self):
+    def _get_leaves(self):
         leaves = []
-        self._get_leaves(self.root, leaves)
+        self.__get_leaves(self.root, leaves)
         return leaves
 
-    def _get_leaves(self, node, acc):
+    def __get_leaves(self, node, acc):
         if node.is_leaf:
             acc.append(node)
         else:
-            [self._get_leaves(child, acc) for child in node.branches]
+            [self.__get_leaves(child, acc) for child in node.branches]
 
     @torch.no_grad()
     def soft_predict(self, xyzs, use_sigmoid=True):
-        leaves = self.get_leaves()
+        leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, node.oct)] for node in leaves]
         labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core, direction) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs, direction in zip(leaves, xyzs_per_oct, self.branches_directions)]
 
         return self._merge_oct_predictions(labels_per_oct, xyzs, xyzs_per_oct)
+
+    @torch.no_grad()
+    def get_train_errors(self, threshold=0.5):
+        errored_xyzs = np.empty((0, 3), dtype=bool)
+        errored_labels = np.empty(0, dtype=bool)
+
+        for leaf in self._get_leaves():
+            net_errors_xyzs, net_errors_labels = leaf.haim_net_manager.get_train_errors()
+
+            errored_xyzs = np.concatenate((errored_xyzs, net_errors_xyzs))
+            errored_labels = np.concatenate((errored_labels, net_errors_labels))
+
+        return errored_xyzs, errored_labels
+
+    def show_train_losses(self):
+        # todo - aggregate all losses
+        for i, leaf in enumerate(self._get_leaves()):
+            print(f"leaf: {i}")
+            leaf.haim_net_manager.show_train_losses()
 
     def _merge_oct_predictions(self, labels_per_oct, xyzs, xyzs_per_oct):
         flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)

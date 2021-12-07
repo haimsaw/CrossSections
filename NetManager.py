@@ -134,7 +134,7 @@ class HaimNetManager(INetManager):
 
     def train_network(self, epochs):
         if not self.verbose:
-            print('\nn_epochs' + '.' * epochs)
+            print('n_epochs' + '.' * epochs)
             print('_running', end="")
 
         self.module.train()
@@ -145,7 +145,7 @@ class HaimNetManager(INetManager):
             self.total_epochs += 1
 
         if not self.verbose:
-            print(f'\ntotal epochs={self.total_epochs}')
+            print(f'total epochs={self.total_epochs}')
 
     def show_train_losses(self):
         colors = ['red' if i in self.epochs_with_refine else 'blue' for i in range(len(self.train_losses))]
@@ -208,86 +208,3 @@ class HaimNetManager(INetManager):
             errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
 
         return errored_xyzs, errored_labels.reshape(-1)
-
-
-class OctnetManager(INetManager):
-
-    def __init__(self, csl, hidden_layers, network_manager_root, embedder, verbose=False):
-        super().__init__(csl, verbose)
-
-        # todo find better way to devied to octans
-
-        # self.octanes = get_octets(*add_margin(*get_top_bottom(csl.all_vertices), sampling_margin))
-        self.octs, self.octs_core = get_octs(np.array([1, 1, 1]), np.array([-1, -1, -1]), 0.2)
-        # print("octanes=", self.octanes)
-
-        self.network_managers = [HaimNetManager(csl, hidden_layers, residual_module=network_manager_root.module, octant=octant, embedder=embedder)
-                                 for octant in self.octs]
-
-    def prepare_for_training(self, sampling_resolution_2d, sampling_margin, lr, scheduler_step):
-        for network_manager in self.network_managers:
-            network_manager.prepare_for_training(sampling_resolution_2d, sampling_margin, lr, scheduler_step)
-
-    def train_network(self, epochs):
-        for i, network_manager in enumerate(self.network_managers):
-            print(f"manager: {i}")
-            network_manager.train_network(epochs=epochs)
-
-    def show_train_losses(self):
-        for i, network_manager in enumerate(self.network_managers):
-            print(f"manager: {i}")
-            network_manager.show_train_losses()
-
-    @torch.no_grad()
-    def soft_predict_old(self, xyzs, use_sigmoid=True):
-        # change the order of xyzs
-        # todo assert every xyz is in octant at least one ocnant
-
-        xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, oct)] for oct in self.octs]
-
-        labels_per_oct = [manager.soft_predict(xyzs, use_sigmoid) for manager, xyzs in zip(self.network_managers, xyzs_per_oct)]
-
-        xyzs = np.array([xyz for xyzs in xyzs_per_oct for xyz in xyzs])
-        labels = np.array([label for labels in labels_per_oct for label in labels])
-
-        return xyzs, labels
-
-    @torch.no_grad()
-    def soft_predict(self, xyzs, use_sigmoid=True):
-        directions = ["+++", "-++", "--+", "+-+", "++-", "-+-", "---", "+--"]
-
-        # change the order of xyzs
-        # todo assert every xyz is in octant at least one ocnant
-
-        xyzs_per_oct = [xyzs[is_in_octant_list(xyzs, octant)] for octant in self.octs]
-        labels_per_oct = [get_mask_for_blending(xyzs, oct, oct_core, direction) * manager.soft_predict(xyzs, use_sigmoid)
-                              for oct, oct_core, manager, xyzs, direction in zip(self.octs, self.octs_core, self.network_managers, xyzs_per_oct, directions)]
-        flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
-        flatten_labels = (label for labels in labels_per_oct for label in labels)
-
-        dict = {}
-        for xyz, label in zip(flatten_xyzs, flatten_labels):
-            xyz_data = xyz.tobytes()
-            if xyz_data in dict:
-                dict[xyz_data] += label
-            else:
-                dict[xyz_data] = label
-
-        labels = np.array([dict[xyz.tobytes()] for xyz in xyzs])
-        return labels
-
-
-    @torch.no_grad()
-    def get_train_errors(self, threshold=0.5):
-        # todo self.module.eval()
-        errored_xyzs = np.empty((0, 3), dtype=bool)
-        errored_labels = np.empty(0, dtype=bool)
-
-        for network_manager in self.network_managers:
-            net_errors_xyzs, net_errors_labels = network_manager.get_train_errors()
-
-            errored_xyzs = np.concatenate((errored_xyzs, net_errors_xyzs))
-            errored_labels = np.concatenate((errored_labels, net_errors_labels))
-
-        return errored_xyzs, errored_labels
-
