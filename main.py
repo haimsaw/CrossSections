@@ -1,3 +1,5 @@
+import numpy as np
+
 from CSL import *
 from Renderer import Renderer3D
 from NetManager import *
@@ -48,6 +50,9 @@ def main():
     renderer.show()
     '''
 
+    xyzs = get_xyzs_in_octant(np.array([[0.9]*3, [-.9]*3]), (50, 50, 50))
+
+
     tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
     tree.train_leaves(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
@@ -58,7 +63,6 @@ def main():
     # renderer.add_model_errors(network_manager_root)
     #renderer.show()
 
-    xyzs = get_xyzs_in_octant(None, (20, 20, 20))
     labels = tree.soft_predict(xyzs)
     fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')
@@ -74,7 +78,6 @@ def main():
     tree.add_level()
     tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
-    xyzs = get_xyzs_in_octant(None, (20, 20, 20))
     labels = tree.soft_predict(xyzs)
     fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')
@@ -97,7 +100,6 @@ def main():
     tree.add_level()
     tree.train_leaves(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
-    xyzs = get_xyzs_in_octant(None, (20, 20, 20))
     labels = tree.soft_predict(xyzs)
     fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')

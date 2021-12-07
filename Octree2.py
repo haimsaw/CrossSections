@@ -124,8 +124,8 @@ class OctnetTree(INetManager):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
-        labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core, direction)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
-                          for node, xyzs, direction in zip(leaves, xyzs_per_oct, self.branches_directions)]
+        labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+                          for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
 

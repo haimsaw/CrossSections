@@ -21,7 +21,7 @@ def get_xyzs_in_octant(octant, sampling_resolution_3d):
     return xyzs
 
 
-def get_mask_for_blending_old(xyzs, oct, oct_core, oct_direction):
+def get_mask_for_blending_old(xyzs, oct, oct_core):
     # return labels for blending in the x direction
     # xyzs are in octant+overlap
     # todo this assumes that octree depth is 1
@@ -39,8 +39,9 @@ def get_mask_for_blending_old(xyzs, oct, oct_core, oct_direction):
     line_getter_neg = lambda i: lambda xyz: xyz[i] * 1 / (non_blending_end[i] - margin_end[i]) + margin_end[i] / (margin_end[i] - non_blending_end[i])
 
     lines = []
-    for i, direction in enumerate(oct_direction):
-        lines.append(line_getter_pos(i) if direction == '+' else line_getter_neg(i))
+    for i in range(3):
+        lines.append( line_getter_neg(i))
+        lines.append(line_getter_pos(i))
 
     wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
 
