@@ -102,7 +102,6 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        # todo the filter is not efficent
         return [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]
 
 

@@ -45,7 +45,6 @@ class INetManager:
 
     @torch.no_grad()
     def hard_predict(self, xyzs, threshold=0.5):
-        # todo should threshold = 0.0 if threshold=true?
         # todo self.module.eval()
         soft_labels = self.soft_predict(xyzs)
         return soft_labels > threshold
@@ -137,7 +136,7 @@ class HaimNetManager(INetManager):
             self.total_epochs += 1
 
         if not self.verbose:
-            print(f'total epochs={self.total_epochs}')
+            print(f'\ntotal epochs={self.total_epochs}')
 
     def show_train_losses(self):
         colors = ['red' if i in self.epochs_with_refine else 'blue' for i in range(len(self.train_losses))]
@@ -156,7 +155,6 @@ class HaimNetManager(INetManager):
 
     @torch.no_grad()
     def soft_predict(self, xyzs, use_sigmoid=True):
-        # change the order of xyzs
         # todo assert in octant
 
         self.module.eval()

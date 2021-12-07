@@ -24,8 +24,6 @@ def get_xyzs_in_octant(octant, sampling_resolution_3d):
 def get_mask_for_blending_old(xyzs, oct, oct_core):
     # return labels for blending in the x direction
     # xyzs are in octant+overlap
-    # todo this assumes that octree depth is 1
-    # todo refactor this
 
     core_end = oct_core[0]
     core_start = oct_core[1]
@@ -52,7 +50,6 @@ def get_mask_for_blending(xyzs, oct, oct_core, oct_direction):
     # return labels for blending in the x direction
     # xyzs are in octant+overlap
     # todo this assumes that octree depth is 1
-    # todo refactor this
 
     # 3 1d interpolation (1 chose 3)
     # 3 2d interpolation (2 chose 3)

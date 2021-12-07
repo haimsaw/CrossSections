@@ -50,8 +50,7 @@ def main():
     renderer.show()
     '''
 
-    xyzs = get_xyzs_in_octant(np.array([[0.9]*3, [-.9]*3]), (50, 50, 50))
-
+    xyzs = get_xyzs_in_octant(np.array([[0.8]*3, [-.8]*3]), (50, 50, 50))
 
     tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
     tree.train_leaves(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
@@ -118,7 +117,7 @@ def main():
     renderer = Renderer3D()
     renderer.add_mesh(mesh)
     renderer.show()
-    # mesh.save('mesh.stl')
+    mesh.save('mesh.stl')
 
 
 if __name__ == "__main__":

@@ -18,7 +18,6 @@ class OctNode:
         self.haim_net_kwargs = haimnet_kwargs
         self.is_leaf = True
 
-        # todo make this private
         res = None if parent is None else parent.haim_net_manager.module
         self.haim_net_manager = HaimNetManager(csl, residual_module=res, octant=self.oct, **haimnet_kwargs)
 
@@ -91,6 +90,8 @@ class OctnetTree(INetManager):
     def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder):
         super().__init__(csl)
         self.csl = csl
+
+        # todo initilize root in add_level
         self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
