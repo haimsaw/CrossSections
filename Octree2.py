@@ -5,13 +5,13 @@ from NetManager import *
 
 
 class OctNode:
-    def __init__(self, csl, center, parent, radius, overlap_margin, **haimnet_kwargs):
+    def __init__(self, csl, center, parent, radius, oct_overlap_margin, **haimnet_kwargs):
         # top bottom = center +- radius
         self.center = center
 
         self.csl = csl
         self.radius = radius
-        self.overlap_margin = overlap_margin
+        self.oct_overlap_margin = oct_overlap_margin
         self.branches = None
         self.parent = parent
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
@@ -27,7 +27,7 @@ class OctNode:
 
     @property
     def oct(self):
-        radius_with_margin = self.radius * (1 + self.overlap_margin)
+        radius_with_margin = self.radius * (1 + self.oct_overlap_margin)
         return np.stack((self.center + radius_with_margin, self.center - radius_with_margin))
 
     @property
@@ -48,7 +48,7 @@ class OctNode:
         centers = [np.array([top[i] if d == '+' else btm[i] for i, d in enumerate(branch)])
                    for branch in self.branches_directions]
 
-        self.branches = [OctNode(self.csl, center, self, new_radius, self.overlap_margin, **self.haim_net_kwargs)
+        self.branches = [OctNode(self.csl, center, self, new_radius, self.oct_overlap_margin, **self.haim_net_kwargs)
                          for center in centers]
 
         self.is_leaf = False
@@ -80,10 +80,10 @@ class OctnetTree(INetManager):
         z:      - + - + - + - +
         https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
         """
-    def __init__(self, csl, overlap_margin, hidden_layers, embedder):
+    def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder):
         super().__init__(csl)
         self.csl = csl
-        self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), overlap_margin=overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
+        self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
     def train_leaves(self, sampling_resolution, sampling_margin, **train_kwargs):

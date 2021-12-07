@@ -35,7 +35,7 @@ def main():
     n_epochs = 1
     embedder = get_embedder(10)
     scheduler_step = 5
-    overlap_margin = 0.2
+    oct_overlap_margin = 0.2
 
     csl = get_csl(bounding_planes_margin)
 
@@ -44,11 +44,11 @@ def main():
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
-    renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=True, show_outside_shape=False)
+    renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=True, show_outside_shape=True)
     renderer.show()
 
 
-    tree = OctnetTree(csl, overlap_margin, hidden_layers, embedder)
+    tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
     tree.train_leaves(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
     '''
     mesh = marching_cubes(network_manager_root, sampling_resolution_3d)

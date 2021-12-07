@@ -116,7 +116,7 @@ class PlaneRasterizer(IRasterizer):
         '''
         :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
         '''
-        top, bottom = add_margin(*get_top_bottom(self.pca_projected_vertices), margin)
+        top, bottom = add_margin(np.array([1, 1]), np.array([-1, -1]), margin)
 
         xs = np.linspace(bottom[0], top[0], resolution[0], endpoint=False)
         ys = np.linspace(bottom[1], top[1], resolution[1], endpoint=False)
