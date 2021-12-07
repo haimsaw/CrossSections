@@ -52,7 +52,8 @@ def main():
 
     xyzs = get_xyzs_in_octant(np.array([[0.8]*3, [-.8]*3]), (50, 50, 50))
 
-    tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
+    tree = OctnetTree(csl)
+    tree.add_level(oct_overlap_margin, hidden_layers, embedder)
     tree.train_leaves(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
 
     # mesh = marching_cubes(network_manager_root, sampling_resolution_3d)

@@ -15,7 +15,6 @@ class OctNode:
         self.branches = None
         self.parent = parent
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
-        self.haim_net_kwargs = haimnet_kwargs
         self.is_leaf = True
 
         res = None if parent is None else parent.haim_net_manager.module
@@ -33,34 +32,6 @@ class OctNode:
     def oct_core(self):
         return np.stack((self.center + self.radius, self.center - self.radius))
 
-    def train_leaf(self, *, dataset, lr, scheduler_step, n_epochs):
-        assert self.is_leaf
-        sampler = SubsetRandomSampler(self.indices_in_oct(dataset.xyzs))
-
-        self.haim_net_manager.prepare_for_training(dataset, sampler, lr, scheduler_step)
-        self.haim_net_manager.train_network(epochs=n_epochs)
-
-    def indices_in_oct(self, xyzs):
-        map = (xyzs[:, 0] >= self.oct[1][0]) & (xyzs[:, 0] <= self.oct[0][0]) \
-              & (xyzs[:, 1] >= self.oct[1][1]) & (xyzs[:, 1] <= self.oct[0][1]) \
-              & (xyzs[:, 2] >= self.oct[1][2]) & (xyzs[:, 2] <= self.oct[0][2])
-
-        return np.nonzero(map)[0]
-
-    def split_node(self):
-        new_radius = self.radius/2
-        top = self.center + new_radius
-        btm = self.center - new_radius
-
-        centers = [np.array([top[i] if d == '+' else btm[i] for i, d in enumerate(branch)])
-                   for branch in self.branches_directions]
-
-        self.branches = [OctNode(self.csl, center, self, new_radius, self.oct_overlap_margin, **self.haim_net_kwargs)
-                         for center in centers]
-
-        self.is_leaf = False
-        self.haim_net_manager.requires_grad_(False)
-
     @staticmethod
     def _find_branch(root, position):
         """
@@ -77,6 +48,83 @@ class OctNode:
             index |= 1
         return index
 
+    def train_leaf(self, *, dataset, lr, scheduler_step, n_epochs):
+        assert self.is_leaf
+        sampler = SubsetRandomSampler(self.indices_in_oct(dataset.xyzs))
+
+        self.haim_net_manager.prepare_for_training(dataset, sampler, lr, scheduler_step)
+        self.haim_net_manager.train_network(epochs=n_epochs)
+
+    def indices_in_oct(self, xyzs):
+        map = (xyzs[:, 0] >= self.oct[1][0]) & (xyzs[:, 0] <= self.oct[0][0]) \
+              & (xyzs[:, 1] >= self.oct[1][1]) & (xyzs[:, 1] <= self.oct[0][1]) \
+              & (xyzs[:, 2] >= self.oct[1][2]) & (xyzs[:, 2] <= self.oct[0][2])
+
+        return np.nonzero(map)[0]
+
+    def split_node(self, oct_overlap_margin, hidden_layers, embedder):
+        new_radius = self.radius/2
+        top = self.center + new_radius
+        btm = self.center - new_radius
+
+        centers = [np.array([top[i] if d == '+' else btm[i] for i, d in enumerate(branch)])
+                   for branch in self.branches_directions]
+
+        self.branches = [OctNode(self.csl, center, self, new_radius, oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
+                         for center in centers]
+
+        self.is_leaf = False
+        self.haim_net_manager.requires_grad_(False)
+
+    def get_mask_for_blending_old(self, xyzs):
+        # return labels for blending in the x direction
+        # xyzs are in octant+overlap
+
+        core_end = self.oct_core[0]
+        core_start = self.oct_core[1]
+        margin_end = self.oct[0]
+        margin_start = self.oct[1]
+
+        non_blending_start = 2 * core_start - margin_start
+        non_blending_end = 2 * core_end - margin_end
+
+        line_getter_pos = lambda i: lambda xyz: xyz[i] * 1 / (non_blending_start[i] - margin_start[i]) + margin_start[i] / (margin_start[i] - non_blending_start[i])
+        line_getter_neg = lambda i: lambda xyz: xyz[i] * 1 / (non_blending_end[i] - margin_end[i]) + margin_end[i] / (margin_end[i] - non_blending_end[i])
+
+        lines = []
+        for i in range(3):
+            lines.append( line_getter_neg(i))
+            lines.append(line_getter_pos(i))
+
+        wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
+
+        return wights
+
+    def get_mask_for_blending(self, xyzs):
+        # return labels for blending in the x direction
+        # xyzs are in octant+overlap
+        # todo this assumes that octree depth is 1
+
+        # 3 1d interpolation (1 chose 3)
+        # 3 2d interpolation (2 chose 3)
+        # 1 3d interpolation (3 chose 2)
+
+        core_start = self.oct_core[1]
+        core_end = self.oct_core[0]
+
+        margin_start = self.oct[1]
+        margin_end = self.oct[0]
+
+        non_blending_start = 2 * core_start - margin_start
+        non_blending_end = 2 * core_end - margin_end
+
+        wights = np.full(xyzs.shape, 1.0)
+
+        # 3d interpolation
+        points = []
+
+        return wights
+
 
 class OctnetTree(INetManager):
     """ Branches (or children) follow a predictable pattern to make accesses simple.
@@ -87,12 +135,11 @@ class OctnetTree(INetManager):
         z:      - + - + - + - +
         https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
         """
-    def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder):
+    def __init__(self, csl):
         super().__init__(csl)
         self.csl = csl
 
-        # todo initilize root in add_level
-        self.root = OctNode(csl=csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
+        self.root = None
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
 
     def train_leaves(self, sampling_resolution, sampling_margin, **train_kwargs):
@@ -106,8 +153,12 @@ class OctnetTree(INetManager):
             print(f"\nleaf: {i}/{len(leaves) - 1} ")
             leaf.train_leaf(dataset=dataset, **train_kwargs)
 
-    def add_level(self):
-        [leaf.split_node() for leaf in self._get_leaves()]
+    # todo this shoud be prepere for train
+    def add_level(self, oct_overlap_margin, hidden_layers, embedder):
+        if self.root is None:
+            self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
+        else:
+            [leaf.split_node(oct_overlap_margin, hidden_layers, embedder) for leaf in self._get_leaves()]
 
     def _get_leaves(self):
         leaves = []
@@ -125,7 +176,7 @@ class OctnetTree(INetManager):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
-        labels_per_oct = [get_mask_for_blending_old(xyzs, node.oct, node.oct_core)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        labels_per_oct = [node.get_mask_for_blending_old(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
