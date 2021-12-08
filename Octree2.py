@@ -48,10 +48,11 @@ class OctNode:
             index |= 1
         return index
 
-    def indices_in_oct(self, xyzs):
-        map = (xyzs[:, 0] >= self.oct[1][0]) & (xyzs[:, 0] <= self.oct[0][0]) \
-              & (xyzs[:, 1] >= self.oct[1][1]) & (xyzs[:, 1] <= self.oct[0][1]) \
-              & (xyzs[:, 2] >= self.oct[1][2]) & (xyzs[:, 2] <= self.oct[0][2])
+    def indices_in_oct(self, xyzs, is_core=False):
+        oct = self.oct_core if is_core else self.oct
+        map = (xyzs[:, 0] >= oct[1][0]) & (xyzs[:, 0] <= oct[0][0]) \
+              & (xyzs[:, 1] >= oct[1][1]) & (xyzs[:, 1] <= oct[0][1]) \
+              & (xyzs[:, 2] >= oct[1][2]) & (xyzs[:, 2] <= oct[0][2])
 
         return np.nonzero(map)[0]
 
@@ -90,7 +91,8 @@ class OctNode:
             lines.append(line_getter_pos(i))
 
         wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
-
+        # wights = np.array([1 for xyz in xyzs])
+        # wights = np.full(len(xyzs), 0.0)[self.indices_in_oct(xyzs, is_core = True)] = 1.0
         return wights
 
     def get_mask_for_blending(self, xyzs):
@@ -128,33 +130,21 @@ class OctnetTree(INetManager):
         z:      - + - + - + - +
         https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
         """
-    def __init__(self, csl):
+    def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder):
         super().__init__(csl)
         self.csl = csl
 
         self.root = None
-        self.current_dataset = None
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
+        self.oct_overlap_margin = oct_overlap_margin
+        self.hidden_layers = hidden_layers
+        self.embedder = embedder
 
-    def train_network(self, epochs):
-        leaves = self._get_leaves()
-        for i, leaf in enumerate(leaves):
-            print(f"\nleaf: {i}/{len(leaves) - 1} ")
-            leaf.haim_net_manager.train_network(epochs=epochs)
-
-    # todo this shoud be prepere for train
-    def prepare_for_training(self, oct_overlap_margin, hidden_layers, embedder):
+    def _add_level(self):
         if self.root is None:
-            self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
+            self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=self.oct_overlap_margin, hidden_layers=self.hidden_layers, embedder=self.embedder)
         else:
-            [leaf.split_node(oct_overlap_margin, hidden_layers, embedder) for leaf in self._get_leaves()]
-
-        # todo save these in a list of levels (for get error)?
-        self.current_dataset = RasterizedCslDataset(self.csl, sampling_resolution=sampling_resolution, sampling_margin=sampling_margin,
-                                       target_transform=torch.tensor, transform=torch.tensor)
-        for leaf in self._get_leaves():
-            sampler = SubsetRandomSampler(leaf.indices_in_oct(self.current_dataset.xyzs))
-            leaf.haim_net_manager.prepare_for_training(self.current_dataset, sampler, lr, scheduler_step)
+            [leaf.split_node(self.oct_overlap_margin, self.hidden_layers, self.embedder) for leaf in self._get_leaves()]
 
     def _get_leaves(self):
         leaves = []
@@ -166,6 +156,18 @@ class OctnetTree(INetManager):
             acc.append(node)
         else:
             [self.__get_leaves(child, acc) for child in node.branches]
+
+    def train_network(self, epochs):
+        leaves = self._get_leaves()
+        for i, leaf in enumerate(leaves):
+            print(f"\nleaf: {i}/{len(leaves) - 1} ")
+            leaf.haim_net_manager.train_network(epochs=epochs)
+
+    def prepare_for_training(self, dataset, lr, scheduler_step, sampler=None):
+        self._add_level()
+        for leaf in self._get_leaves():
+            sampler = SubsetRandomSampler(leaf.indices_in_oct(dataset.xyzs))
+            leaf.haim_net_manager.prepare_for_training(dataset, lr, scheduler_step, sampler)
 
     @torch.no_grad()
     def soft_predict(self, xyzs, use_sigmoid=True):
@@ -197,7 +199,8 @@ class OctnetTree(INetManager):
             print(f"leaf: {i}")
             leaf.haim_net_manager.show_train_losses()
 
-    def _merge_oct_predictions(self, xyzs, labels_per_oct, xyzs_per_oct):
+    @staticmethod
+    def _merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct):
         flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
         flatten_labels = (label for labels in labels_per_oct for label in labels)
         dict = {}

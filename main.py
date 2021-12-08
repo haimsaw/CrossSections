@@ -31,10 +31,12 @@ def main():
     sampling_margin = bounding_planes_margin
     lr = 1e-2
     root_sampling_resolution_2d = (30, 30)
-    l1_sampling_reolution_2d = (30, 30)
+    l1_sampling_resolution_2d = (30, 30)
+    l2_sampling_resolution_2d = (30, 30)
+
     sampling_resolution_3d = (30, 30, 30)
     hidden_layers = [16, 32, 32, 32]
-    n_epochs = 0
+    epochs = 1
     embedder = get_embedder(10)
     scheduler_step = 5
     oct_overlap_margin = 0.2
@@ -52,9 +54,13 @@ def main():
 
     xyzs = get_xyzs_in_octant(np.array([[0.8]*3, [-.8]*3]), (50, 50, 50))
 
-    tree = OctnetTree(csl)
-    tree.prepare_for_training(oct_overlap_margin, hidden_layers, embedder)
-    tree.train_network(sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
+    tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
+
+    dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
+                                   target_transform=torch.tensor, transform=torch.tensor)
+
+    tree.prepare_for_training(dataset, lr, scheduler_step)
+    tree.train_network(epochs=epochs)
 
     # mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
     #renderer = Renderer3D()
@@ -65,9 +71,11 @@ def main():
 
     draw_blending_errors(tree, xyzs)
 
-    tree.prepare_for_training(oct_overlap_margin, hidden_layers, embedder)
-    tree.train_network(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
+    dataset = RasterizedCslDataset(csl, sampling_resolution=l1_sampling_resolution_2d, sampling_margin=sampling_margin,
+                                   target_transform=torch.tensor, transform=torch.tensor)
 
+    tree.prepare_for_training(dataset, lr, scheduler_step)
+    tree.train_network(epochs=epochs)
     draw_blending_errors(tree, xyzs)
 
     # renderer = Renderer3D()
@@ -77,8 +85,11 @@ def main():
     #renderer.add_model_soft_prediction(tree, (20, 20, 20))
     #renderer.show()
 
-    tree.prepare_for_training(oct_overlap_margin, hidden_layers, embedder)
-    tree.train_network(sampling_resolution=l1_sampling_reolution_2d, sampling_margin=sampling_margin, lr=lr, scheduler_step=scheduler_step, n_epochs=n_epochs)
+    dataset = RasterizedCslDataset(csl, sampling_resolution=l2_sampling_resolution_2d, sampling_margin=sampling_margin,
+                                   target_transform=torch.tensor, transform=torch.tensor)
+
+    tree.prepare_for_training(dataset, lr, scheduler_step)
+    tree.train_network(epochs=epochs)
 
     draw_blending_errors(tree, xyzs)
 
