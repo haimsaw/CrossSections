@@ -1,11 +1,11 @@
 import numpy as np
 import torch
-
+from scipy.interpolate import RegularGridInterpolator
 from NetManager import *
 
 
 class OctNode:
-    def __init__(self, csl, center, parent, radius, oct_overlap_margin, **haimnet_kwargs):
+    def __init__(self, csl, center, parent, radius, oct_overlap_margin, path, **haimnet_kwargs):
         # top bottom = center +- radius
         self.center = center
 
@@ -13,9 +13,9 @@ class OctNode:
         self.radius = radius
         self.oct_overlap_margin = oct_overlap_margin
         self.branches = None
-        self.parent = parent
         self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
         self.is_leaf = True
+        self.path = path
 
         res = None if parent is None else parent.haim_net_manager.module
         self.haim_net_manager = HaimNetManager(csl, residual_module=res, octant=self.oct, **haimnet_kwargs)
@@ -64,8 +64,8 @@ class OctNode:
         centers = [np.array([top[i] if d == '+' else btm[i] for i, d in enumerate(branch)])
                    for branch in self.branches_directions]
 
-        self.branches = [OctNode(self.csl, center, self, new_radius, oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder)
-                         for center in centers]
+        self.branches = [OctNode(self.csl, center, self, new_radius, oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder, path=self.path + (direction,))
+                         for center, direction in zip(centers, self.branches_directions)]
 
         self.is_leaf = False
         self.haim_net_manager.requires_grad_(False)
@@ -90,8 +90,8 @@ class OctNode:
             lines.append( line_getter_neg(i))
             lines.append(line_getter_pos(i))
 
-        wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
-        # wights = np.array([1 for xyz in xyzs])
+        # wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
+        wights = np.full(len(xyzs), 1.0)
         # wights = np.full(len(xyzs), 0.0)[self.indices_in_oct(xyzs, is_core = True)] = 1.0
         return wights
 
@@ -100,9 +100,14 @@ class OctNode:
         # xyzs are in octant+overlap
         # todo this assumes that octree depth is 1
 
-        # 3 1d interpolation (1 chose 3)
-        # 3 2d interpolation (2 chose 3)
-        # 1 3d interpolation (3 chose 2)
+        if len(self.path) == 0 or self.path[-1] != (-1, -1, -1):
+            # self is root - noting to blend
+            return np.full(len(xyzs), 1.0)
+
+        # if not corner-
+        # 6 1d interpolation (face)
+        # 12 2d interpolation (edge)
+        # 8 3d interpolation (vertices)
 
         core_start = self.oct_core[1]
         core_end = self.oct_core[0]
@@ -113,11 +118,20 @@ class OctNode:
         non_blending_start = 2 * core_start - margin_start
         non_blending_end = 2 * core_end - margin_end
 
-        wights = np.full(xyzs.shape, 1.0)
+        x = np.linspace(-0.1, 0.1, 2)
+        y = np.linspace(-0.1, 0.1, 2)
+        z = np.linspace(-0.1, 0.1, 2)
+        xg, yg, zg = np.meshgrid(x, y, z, indexing='ij', sparse=True)
+        # data = f(xg, yg, zg)
 
         # 3d interpolation
-        points = []
+        points = (x, y, z)  # all points on the cube
+        data = np.full((2, 2, 2), 0.0)
+        idx = [0 if d == '-' else 1 for d in self.path[0]]
+        data[idx] = 1.0
 
+        my_interpolating_function = RegularGridInterpolator(points, data, bounds_error=False, fill_value=1.0)
+        wights = my_interpolating_function(xyzs)
         return wights
 
 
@@ -142,7 +156,7 @@ class OctnetTree(INetManager):
 
     def _add_level(self):
         if self.root is None:
-            self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=self.oct_overlap_margin, hidden_layers=self.hidden_layers, embedder=self.embedder)
+            self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=self.oct_overlap_margin, hidden_layers=self.hidden_layers, embedder=self.embedder, path=tuple())
         else:
             [leaf.split_node(self.oct_overlap_margin, self.hidden_layers, self.embedder) for leaf in self._get_leaves()]
 
@@ -174,7 +188,7 @@ class OctnetTree(INetManager):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
-        labels_per_oct = [node.get_mask_for_blending_old(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        labels_per_oct = [node.get_mask_for_blending(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)

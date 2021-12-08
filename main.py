@@ -34,16 +34,17 @@ def main():
     l1_sampling_resolution_2d = (30, 30)
     l2_sampling_resolution_2d = (30, 30)
 
-    sampling_resolution_3d = (30, 30, 30)
+    sampling_resolution_3d = (50, 50, 50)
     hidden_layers = [16, 32, 32, 32]
-    epochs = 1
-    embedder = get_embedder(10)
+    epochs = 0
+    embedder = get_embedder(4)
     scheduler_step = 5
     oct_overlap_margin = 0.2
 
     csl = get_csl(bounding_planes_margin)
 
-    '''renderer = Renderer3D()
+    '''
+    renderer = Renderer3D()
     renderer.add_scene(csl)
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
@@ -52,55 +53,25 @@ def main():
     renderer.show()
     '''
 
-    xyzs = get_xyzs_in_octant(np.array([[0.8]*3, [-.8]*3]), (50, 50, 50))
-
+    xyzs = get_xyzs_in_octant(np.array([[0.1]*3, [-.1]*3]), sampling_resolution_3d)
+    #xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
     tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
 
-    dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
-                                   target_transform=torch.tensor, transform=torch.tensor)
+    for _ in range(2):
+        # todo root_sampling_resolution_2d
+        dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
+                                       target_transform=torch.tensor, transform=torch.tensor)
 
-    tree.prepare_for_training(dataset, lr, scheduler_step)
-    tree.train_network(epochs=epochs)
+        tree.prepare_for_training(dataset, lr, scheduler_step)
+        tree.train_network(epochs=epochs)
+        draw_blending_errors(tree, xyzs)
 
     # mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
-    #renderer = Renderer3D()
-    # renderer.add_mesh(mesh)
-    # renderer.add_scene(csl)
-    # renderer.add_model_errors(network_manager_root)
-    #renderer.show()
-
-    draw_blending_errors(tree, xyzs)
-
-    dataset = RasterizedCslDataset(csl, sampling_resolution=l1_sampling_resolution_2d, sampling_margin=sampling_margin,
-                                   target_transform=torch.tensor, transform=torch.tensor)
-
-    tree.prepare_for_training(dataset, lr, scheduler_step)
-    tree.train_network(epochs=epochs)
-    draw_blending_errors(tree, xyzs)
-
     # renderer = Renderer3D()
     # renderer.add_mesh(mesh)
     # renderer.add_scene(csl)
     # renderer.add_model_errors(network_manager_root)
-    #renderer.add_model_soft_prediction(tree, (20, 20, 20))
-    #renderer.show()
-
-    dataset = RasterizedCslDataset(csl, sampling_resolution=l2_sampling_resolution_2d, sampling_margin=sampling_margin,
-                                   target_transform=torch.tensor, transform=torch.tensor)
-
-    tree.prepare_for_training(dataset, lr, scheduler_step)
-    tree.train_network(epochs=epochs)
-
-    draw_blending_errors(tree, xyzs)
-
-    # Renderer.draw_model_and_scene(network_manager, csl, sampling_resolution=(50, 50, 50), model_alpha=0.05)
-
-    mesh = marching_cubes(tree, sampling_resolution_3d)
-    renderer = Renderer3D()
-    renderer.add_mesh(mesh)
-    renderer.show()
-    mesh.save('mesh.stl')
-
+    # renderer.show()
 
 def draw_blending_errors(tree, xyzs):
     labels = tree.soft_predict(xyzs)

@@ -99,13 +99,7 @@ class Renderer3D:
 
         collection = Poly3DCollection(my_mesh.vectors, alpha=alpha)
         collection.set_edgecolor('b')
-        #collection.set_facecolor('k')
-
-
         self.ax.add_collection3d(collection)
-
-        scale = my_mesh.points.flatten()
-        #self.ax.auto_scale_xyz(scale, scale, scale)
 
     def add_model_errors(self, network_manager: INetManager):
         errored_xyz, errored_labels = network_manager.get_train_errors()
