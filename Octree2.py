@@ -25,7 +25,7 @@ class OctNode:
 
     @property
     def oct(self):
-        radius_with_margin = self.radius * (1 + self.oct_overlap_margin)
+        radius_with_margin = self.radius * (1 + 2 * self.oct_overlap_margin)
         return np.stack((self.center + radius_with_margin, self.center - radius_with_margin))
 
     @property
@@ -100,9 +100,12 @@ class OctNode:
         # xyzs are in octant+overlap
         # todo this assumes that octree depth is 1
 
-        if len(self.path) == 0 or self.path[-1] != (-1, -1, -1):
+        if len(self.path) == 0:
             # self is root - noting to blend
             return np.full(len(xyzs), 1.0)
+        # todo remove this
+        #if self.path[-1] != '---':
+            #return np.full(len(xyzs), 0.0)
 
         # if not corner-
         # 6 1d interpolation (face)
@@ -118,19 +121,19 @@ class OctNode:
         non_blending_start = 2 * core_start - margin_start
         non_blending_end = 2 * core_end - margin_end
 
-        x = np.linspace(-0.1, 0.1, 2)
-        y = np.linspace(-0.1, 0.1, 2)
-        z = np.linspace(-0.1, 0.1, 2)
+        x = np.linspace(-0.2, 0.2, 2)
+        y = np.linspace(-0.2, 0.2, 2)
+        z = np.linspace(-0.2, 0.2, 2)
         xg, yg, zg = np.meshgrid(x, y, z, indexing='ij', sparse=True)
         # data = f(xg, yg, zg)
 
         # 3d interpolation
         points = (x, y, z)  # all points on the cube
-        data = np.full((2, 2, 2), 0.0)
-        idx = [0 if d == '-' else 1 for d in self.path[0]]
-        data[idx] = 1.0
+        values = np.full((2, 2, 2), 0.0)
+        idx = tuple(0 if d == '-' else 1 for d in self.path[0])
+        values[idx] = 1.0
 
-        my_interpolating_function = RegularGridInterpolator(points, data, bounds_error=False, fill_value=1.0)
+        my_interpolating_function = RegularGridInterpolator(points, values, bounds_error=False, fill_value=1.0)
         wights = my_interpolating_function(xyzs)
         return wights
 
@@ -188,7 +191,7 @@ class OctnetTree(INetManager):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
-        labels_per_oct = [node.get_mask_for_blending(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        labels_per_oct = [node.get_mask_for_blending(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid) # todo this
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)

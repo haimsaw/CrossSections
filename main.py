@@ -10,22 +10,6 @@ from stl import mesh as mesh2
 from Octree2 import *
 
 
-def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
-    # csl = CSL("csl-files/ParallelEightMore.csl")
-    # csl = CSL("csl-files/SideBishop.csl")
-    # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
-    # csl = CSL("csl-files/rocker-arm.csl")
-    # csl = CSL("csl-files/Abdomen.csl")
-    # csl = CSL("csl-files/Vetebrae.csl")
-    # csl = CSL("csl-files/Skull-20.csl")
-    # csl = CSL("csl-files/Brain.csl")
-    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
-    return csl
-
-
 def main():
     bounding_planes_margin = 0.05
     sampling_margin = bounding_planes_margin
@@ -53,14 +37,16 @@ def main():
     renderer.show()
     '''
 
-    xyzs = get_xyzs_in_octant(np.array([[0.1]*3, [-.1]*3]), sampling_resolution_3d)
-    #xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
+    #xyzs = get_xyzs_in_octant(np.array([[0.2]*3, [-.2]*3]), sampling_resolution_3d)
+    xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
     tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
 
-    for _ in range(2):
-        # todo root_sampling_resolution_2d
-        dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
-                                       target_transform=torch.tensor, transform=torch.tensor)
+
+    # todo root_sampling_resolution_2d
+    # todo put in loop
+    dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
+                                   target_transform=torch.tensor, transform=torch.tensor)
+    for _ in range(3):
 
         tree.prepare_for_training(dataset, lr, scheduler_step)
         tree.train_network(epochs=epochs)
@@ -73,6 +59,7 @@ def main():
     # renderer.add_model_errors(network_manager_root)
     # renderer.show()
 
+
 def draw_blending_errors(tree, xyzs):
     labels = tree.soft_predict(xyzs)
     fig = plt.figure(figsize=(15, 15))
@@ -83,9 +70,24 @@ def draw_blending_errors(tree, xyzs):
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    ax.scatter(*xyzs[labels != 1].T, c=labels[labels != 1], alpha=0.1)
+    ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.01)
     plt.show()
 
+
+def get_csl(bounding_planes_margin):
+    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEightMore.csl")
+    # csl = CSL("csl-files/SideBishop.csl")
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/rocker-arm.csl")
+    # csl = CSL("csl-files/Abdomen.csl")
+    # csl = CSL("csl-files/Vetebrae.csl")
+    # csl = CSL("csl-files/Skull-20.csl")
+    # csl = CSL("csl-files/Brain.csl")
+    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
+    return csl
 
 if __name__ == "__main__":
     main()
