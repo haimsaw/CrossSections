@@ -37,8 +37,10 @@ def main():
     renderer.show()
     '''
 
-    xyzs_1 = get_xyzs_in_octant(np.array([[0.2]*3, [-0.2]*3]), sampling_resolution_3d)
-    xyzs_2 = get_xyzs_in_octant(None, sampling_resolution_3d)
+    xyzs_small = get_xyzs_in_octant(np.array([[0.2]*3, [-0.2]*3]), sampling_resolution_3d)
+    xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.7]*3, [0.3]*3]), sampling_resolution_3d)
+
+    xyzs_all = get_xyzs_in_octant(None, sampling_resolution_3d)
 
     tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
 
@@ -52,8 +54,12 @@ def main():
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
 
-    draw_blending_errors(tree, xyzs_1)
-    draw_blending_errors(tree, xyzs_2)
+    # draw_blending_errors(tree, xyzs_small)
+
+    tree.prepare_for_training(dataset, lr, scheduler_step)
+    tree.train_network(epochs=epochs)
+    draw_blending_errors(tree, xyzs_small_depth2)
+
 
 
     # mesh = marching_cubes(network_manager_root, sampling_resolution_3d)

@@ -13,7 +13,8 @@ class OctNode:
         self.radius = radius
         self.oct_overlap_margin = oct_overlap_margin
         self.branches = None
-        self.branches_directions = ("---", "--+", "-+-", "-++", "+--", "+-+", "++-", "+++")
+        self.branches_directions = ((-1, -1, -1), (-1, -1, +1), (-1, +1, -1), (-1, +1, +1),
+                                    (+1, -1, -1), (+1, -1, +1), (+1, +1, -1), (+1, +1, +1))
         self.is_leaf = True
         self.path = path
 
@@ -22,6 +23,10 @@ class OctNode:
 
     def __str__(self):
         return f"position: {self.center}, radius: {self.radius}"
+
+    @property
+    def depth(self):
+        return len(self.path)
 
     @property
     def oct(self):
@@ -61,7 +66,7 @@ class OctNode:
         top = self.center + new_radius
         btm = self.center - new_radius
 
-        centers = [np.array([top[i] if d == '+' else btm[i] for i, d in enumerate(branch)])
+        centers = [np.array([top[i] if d == +1 else btm[i] for i, d in enumerate(branch)])
                    for branch in self.branches_directions]
 
         self.branches = [OctNode(self.csl, center, self, new_radius, oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder, path=self.path + (direction,))
@@ -100,19 +105,16 @@ class OctNode:
         # xyzs are in octant+overlap
         # todo this assumes that octree depth is 1
 
-        if len(self.path) == 0:
+        if self.depth == 0:
             # self is root - noting to blend
             return np.full(len(xyzs), 1.0)
-        # todo remove this
-        #if self.path[-1] != '---':
-            #return np.full(len(xyzs), 0.0)
 
         # if not corner-
         # 6 1d interpolation (face)
         # 12 2d interpolation (edge)
         # 8 3d interpolation (vertices)
 
-        core_start = self.oct_core[1]
+        '''core_start = self.oct_core[1]
         core_end = self.oct_core[0]
 
         margin_start = self.oct[1]
@@ -120,35 +122,47 @@ class OctNode:
 
         non_blending_start = 2 * core_start - margin_start
         non_blending_end = 2 * core_end - margin_end
+        '''
 
         # vertices interpolation
-        x = np.linspace(-0.2, 0.2, 2)
-        y = np.linspace(-0.2, 0.2, 2)
-        z = np.linspace(-0.2, 0.2, 2)
+        interpolating_wights = []
+        for vertex_overlap_oct in self._overlapping_octs_around_vertices():
+            x = np.linspace(vertex_overlap_oct[1][0], vertex_overlap_oct[0][0], 2)
+            y = np.linspace(vertex_overlap_oct[1][1], vertex_overlap_oct[0][1], 2)
+            z = np.linspace(vertex_overlap_oct[1][2], vertex_overlap_oct[0][2], 2)
 
-        points = (x, y, z)
-        corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
+            points = (x, y, z)
+            corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
 
-        values = np.full(8, 0.0)
-        values[corners_in_oct] = 1.0
-        values = values.reshape((2, 2, 2))
+            values = np.full(8, 0.0)
+            values[corners_in_oct] = 1.0
+            values = values.reshape((2, 2, 2))
 
-        '''
-        points = (x, y, z)  # all points on the cube
-        values = np.full((2, 2, 2), 0.0)
-        idx = tuple(0 if d == '-' else 1 for d in self.path[0])
-        values[idx] = 1.0'''
+            my_interpolating_function = RegularGridInterpolator(points, values, bounds_error=False, fill_value=1.0)
+            interpolating_wights.append(my_interpolating_function(xyzs))
 
-        my_interpolating_function = RegularGridInterpolator(points, values, bounds_error=False, fill_value=1.0)
-        wights_vertices = my_interpolating_function(xyzs)
-
-        for _ in range(3):
-            x = np.linspace(-0.2, 0.2, 2)
-            y = np.linspace(-1.0, -0.2, 2)
-            z = np.linspace(-1.0, -0.2, 2)
-
-        wights = wights_vertices
+        wights = [min(ws) for ws in zip(*interpolating_wights)]
         return wights
+
+    def _overlapping_octs_around_vertices(self):
+        if self.depth == 0:
+            return []
+
+        # +1 for boundary in the pos dir, -1 neg dir, 0 non boundary
+        boundaries_per_direction = (np.sum(np.array(self.path).T, axis=1) / self.depth).astype(int)
+
+        # todo property 2*self.radius*overlapping
+        overlap_radius = np.array([0.2 if self.depth == 1 else 0.05]*3)
+
+        unit_cube_vertices = get_xyzs_in_octant(None, (2, 2, 2))
+        vertices = np.array([self.center + direction * self.radius for direction in unit_cube_vertices])
+
+        # if a certain unit_cube_vertices has a dimension aligned with boundaries_per_direction the vertex
+        # corresponding to this direction is on the boundary
+        is_on_boundary = [np.any(np.equal(direction, boundaries_per_direction)) for direction in unit_cube_vertices]
+
+        return [[vertex+overlap_radius, vertex-overlap_radius]
+                for vertex, on_boundary in zip(vertices, is_on_boundary) if not on_boundary]
 
 
 class OctnetTree(INetManager):
