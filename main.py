@@ -37,20 +37,24 @@ def main():
     renderer.show()
     '''
 
-    #xyzs = get_xyzs_in_octant(np.array([[0.2]*3, [-.2]*3]), sampling_resolution_3d)
-    xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
+    xyzs_1 = get_xyzs_in_octant(np.array([[0.2]*3, [-0.2]*3]), sampling_resolution_3d)
+    xyzs_2 = get_xyzs_in_octant(None, sampling_resolution_3d)
+
     tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
 
-
     # todo root_sampling_resolution_2d
-    # todo put in loop
     dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
-    for _ in range(3):
 
-        tree.prepare_for_training(dataset, lr, scheduler_step)
-        tree.train_network(epochs=epochs)
-        draw_blending_errors(tree, xyzs)
+    tree.prepare_for_training(dataset, lr, scheduler_step)
+    tree.train_network(epochs=epochs)
+
+    tree.prepare_for_training(dataset, lr, scheduler_step)
+    tree.train_network(epochs=epochs)
+
+    draw_blending_errors(tree, xyzs_1)
+    draw_blending_errors(tree, xyzs_2)
+
 
     # mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
     # renderer = Renderer3D()
@@ -70,7 +74,7 @@ def draw_blending_errors(tree, xyzs):
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.01)
+    ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.1)
     plt.show()
 
 

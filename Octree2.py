@@ -90,8 +90,8 @@ class OctNode:
             lines.append( line_getter_neg(i))
             lines.append(line_getter_pos(i))
 
-        # wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
-        wights = np.full(len(xyzs), 1.0)
+        wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
+        # wights = np.full(len(xyzs), 1.0)
         # wights = np.full(len(xyzs), 0.0)[self.indices_in_oct(xyzs, is_core = True)] = 1.0
         return wights
 
@@ -121,20 +121,33 @@ class OctNode:
         non_blending_start = 2 * core_start - margin_start
         non_blending_end = 2 * core_end - margin_end
 
+        # vertices interpolation
         x = np.linspace(-0.2, 0.2, 2)
         y = np.linspace(-0.2, 0.2, 2)
         z = np.linspace(-0.2, 0.2, 2)
-        xg, yg, zg = np.meshgrid(x, y, z, indexing='ij', sparse=True)
-        # data = f(xg, yg, zg)
 
-        # 3d interpolation
+        points = (x, y, z)
+        corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
+
+        values = np.full(8, 0.0)
+        values[corners_in_oct] = 1.0
+        values = values.reshape((2, 2, 2))
+
+        '''
         points = (x, y, z)  # all points on the cube
         values = np.full((2, 2, 2), 0.0)
         idx = tuple(0 if d == '-' else 1 for d in self.path[0])
-        values[idx] = 1.0
+        values[idx] = 1.0'''
 
         my_interpolating_function = RegularGridInterpolator(points, values, bounds_error=False, fill_value=1.0)
-        wights = my_interpolating_function(xyzs)
+        wights_vertices = my_interpolating_function(xyzs)
+
+        for _ in range(3):
+            x = np.linspace(-0.2, 0.2, 2)
+            y = np.linspace(-1.0, -0.2, 2)
+            z = np.linspace(-1.0, -0.2, 2)
+
+        wights = wights_vertices
         return wights
 
 
