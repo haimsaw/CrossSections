@@ -33,14 +33,6 @@ class Renderer3D:
         self.ax, self.fig = _get_3d_ax()
 
     def save(self, filename):
-        """
-        to show fig.pickle file:
-        import pickle
-        import matplotlib.pyplot as plt
-        figx = pickle.load(open(filename, 'rb'))
-        figx.show()
-        """
-
         pickle.dump(self.fig, open(filename, 'wb'))
 
     def add_scene(self, csl):

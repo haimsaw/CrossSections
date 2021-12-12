@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from scipy.interpolate import RegularGridInterpolator
 from NetManager import *
 
@@ -37,6 +36,11 @@ class OctNode:
     def oct_core(self):
         return np.stack((self.center + self.radius, self.center - self.radius))
 
+    @property
+    def _boundaries_per_direction(self):
+        # +1 for boundary in the pos dir, -1 neg dir, 0 non boundary
+        return (np.sum(np.array(self.path).T, axis=1) / self.depth).astype(int)
+
     @staticmethod
     def _find_branch(root, position):
         """
@@ -62,7 +66,7 @@ class OctNode:
         return np.nonzero(map)[0]
 
     def split_node(self, oct_overlap_margin, hidden_layers, embedder):
-        new_radius = self.radius/2
+        new_radius = self.radius / 2
         top = self.center + new_radius
         btm = self.center - new_radius
 
@@ -92,7 +96,7 @@ class OctNode:
 
         lines = []
         for i in range(3):
-            lines.append( line_getter_neg(i))
+            lines.append(line_getter_neg(i))
             lines.append(line_getter_pos(i))
 
         wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
@@ -128,7 +132,7 @@ class OctNode:
         for vertex_overlap_oct in self._overlapping_octs_around_vertices():
             interpolating_wights.append(self._get_interpolation_wights(vertex_overlap_oct, xyzs))
 
-        # todo this assums that all interpolation_octs are not interesting
+        # todo this assumes that all interpolation_octs are not interesting
         wights = [min(ws) for ws in zip(*interpolating_wights)]
         return wights
 
@@ -148,20 +152,17 @@ class OctNode:
         if self.depth == 0:
             return []
 
-        # +1 for boundary in the pos dir, -1 neg dir, 0 non boundary
-        boundaries_per_direction = (np.sum(np.array(self.path).T, axis=1) / self.depth).astype(int)
-
         # todo property 2*self.radius*overlapping
-        overlap_radius = np.array([0.2 if self.depth == 1 else 0.05]*3)
+        overlap_radius = np.array([0.2 if self.depth == 1 else 0.05] * 3)
 
         unit_cube_vertices = get_xyzs_in_octant(None, (2, 2, 2))
         vertices = np.array([self.center + direction * self.radius for direction in unit_cube_vertices])
 
         # if a certain unit_cube_vertices has a dimension aligned with boundaries_per_direction the vertex
         # corresponding to this direction is on the boundary
-        is_on_boundary = [np.any(np.equal(direction, boundaries_per_direction)) for direction in unit_cube_vertices]
+        is_on_boundary = [np.any(np.equal(direction, self._boundaries_per_direction)) for direction in unit_cube_vertices]
 
-        return [[vertex+overlap_radius, vertex-overlap_radius]
+        return [[vertex + overlap_radius, vertex - overlap_radius]
                 for vertex, on_boundary in zip(vertices, is_on_boundary) if not on_boundary]
 
 
@@ -174,6 +175,7 @@ class OctnetTree(INetManager):
         z:      - + - + - + - +
         https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
         """
+
     def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder):
         super().__init__(csl)
         self.csl = csl
@@ -229,7 +231,7 @@ class OctnetTree(INetManager):
         errored_labels = np.empty(0, dtype=bool)
 
         for leaf in self._get_leaves():
-            # todo handle ovelapping?
+            # todo handle overlapping?
             net_errors_xyzs, net_errors_labels = leaf.haim_net_manager.get_train_errors()
 
             errored_xyzs = np.concatenate((errored_xyzs, net_errors_xyzs))
@@ -247,14 +249,12 @@ class OctnetTree(INetManager):
     def _merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct):
         flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
         flatten_labels = (label for labels in labels_per_oct for label in labels)
-        dict = {}
+        aggregator = {}
         for xyz, label in zip(flatten_xyzs, flatten_labels):
             xyz_data = xyz.tobytes()
-            if xyz_data in dict:
-                dict[xyz_data] += label
+            if xyz_data in aggregator:
+                aggregator[xyz_data] += label
             else:
-                dict[xyz_data] = label
-        labels = np.array([dict[xyz.tobytes()] for xyz in xyzs])
+                aggregator[xyz_data] = label
+        labels = np.array([aggregator[xyz.tobytes()] for xyz in xyzs])
         return labels
-
-

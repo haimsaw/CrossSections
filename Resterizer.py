@@ -143,6 +143,7 @@ class PlaneRasterizer(IRasterizer):
                     [0, 0]]
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
 
+        # noinspection PyTypeChecker
         def labeler(xys):
             mask = Path(shape_vertices, shape_codes).contains_points(xys)
             if len(hole_vertices) > 0:
