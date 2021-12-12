@@ -152,8 +152,8 @@ class OctNode:
             interpolating_wights.append(self._get_interpolation_wights(vertex_overlap_oct, xyzs))
 
         # edges interpolation
-        for edge_overlap_oct in self._overlapping_octs_around_edges():
-            interpolating_wights.append(self._get_interpolation_wights(edge_overlap_oct, xyzs))
+        #for edge_overlap_oct in self._overlapping_octs_around_edges():
+        #    interpolating_wights.append(self._get_interpolation_wights(edge_overlap_oct, xyzs))
 
         # this assumes that all interpolation_octs are not interesting
         wights = [min(ws) for ws in zip(*interpolating_wights)]
@@ -179,7 +179,7 @@ class OctNode:
         overlap_radius = np.array([0.2 if self.depth == 1 else 0.05] * 3)
 
         return [[vertex + overlap_radius, vertex - overlap_radius]
-                for vertex, on_boundary in zip(self._vertices) if not on_boundary]
+                for vertex, on_boundary in zip(*self._vertices) if not on_boundary]
 
     def _overlapping_octs_around_edges(self):
         if self.depth == 0:
