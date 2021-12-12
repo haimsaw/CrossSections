@@ -18,7 +18,7 @@ def main():
     l1_sampling_resolution_2d = (30, 30)
     l2_sampling_resolution_2d = (30, 30)
 
-    sampling_resolution_3d = (100, 100, 100)
+    sampling_resolution_3d = (50, 50, 50)
     hidden_layers = [16, 32, 32, 32]
     epochs = 0
     embedder = get_embedder(4)
@@ -54,7 +54,7 @@ def main():
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
 
-    # draw_blending_errors(tree, xyzs_small)
+    draw_blending_errors(tree, xyzs_all)
 
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)

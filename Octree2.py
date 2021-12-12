@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from NetManager import *
+from itertools import combinations
 
 
 class OctNode:
@@ -12,8 +13,6 @@ class OctNode:
         self.radius = radius
         self.oct_overlap_margin = oct_overlap_margin
         self.branches = None
-        self.branches_directions = ((-1, -1, -1), (-1, -1, +1), (-1, +1, -1), (-1, +1, +1),
-                                    (+1, -1, -1), (+1, -1, +1), (+1, +1, -1), (+1, +1, +1))
         self.is_leaf = True
         self.path = path
 
@@ -21,7 +20,30 @@ class OctNode:
         self.haim_net_manager = HaimNetManager(csl, residual_module=res, octant=self.oct, **haimnet_kwargs)
 
     def __str__(self):
-        return f"position: {self.center}, radius: {self.radius}"
+        return f"pos: {self.center}, radius: {self.radius}, path={self.path}"
+
+    @staticmethod
+    def _find_branch(root, position):
+        """
+        helper function
+        returns an index corresponding to a branch
+        pointing in the direction we want to go
+        """
+        index = 0
+        if position[0] >= root.position[0]:
+            index |= 4
+        if position[1] >= root.position[1]:
+            index |= 2
+        if position[2] >= root.position[2]:
+            index |= 1
+        return index
+
+    @property
+    def _directions(self):
+        dirs = np.array(((-1, -1, -1), (-1, -1, +1), (-1, +1, -1), (-1, +1, +1),
+                        (+1, -1, -1), (+1, -1, +1), (+1, +1, -1), (+1, +1, +1)))
+        dirs.flags.writeable = False
+        return dirs
 
     @property
     def depth(self):
@@ -41,21 +63,18 @@ class OctNode:
         # +1 for boundary in the pos dir, -1 neg dir, 0 non boundary
         return (np.sum(np.array(self.path).T, axis=1) / self.depth).astype(int)
 
-    @staticmethod
-    def _find_branch(root, position):
-        """
-        helper function
-        returns an index corresponding to a branch
-        pointing in the direction we want to go
-        """
-        index = 0
-        if position[0] >= root.position[0]:
-            index |= 4
-        if position[1] >= root.position[1]:
-            index |= 2
-        if position[2] >= root.position[2]:
-            index |= 1
-        return index
+    @property
+    def _vertices(self):
+
+        # each branch corresponds to a vertex in the same direction
+        vertices_directions = self._directions
+
+        vertices = np.array([self.center + direction * self.radius for direction in vertices_directions])
+
+        # if a certain vertices_directions has a dimension aligned with boundaries_per_direction the vertex
+        # corresponding to this direction is on the boundary
+        is_on_boundary = [np.any(np.equal(direction, self._boundaries_per_direction)) for direction in vertices_directions]
+        return vertices, is_on_boundary
 
     def indices_in_oct(self, xyzs, is_core=False):
         oct = self.oct_core if is_core else self.oct
@@ -71,10 +90,10 @@ class OctNode:
         btm = self.center - new_radius
 
         centers = [np.array([top[i] if d == +1 else btm[i] for i, d in enumerate(branch)])
-                   for branch in self.branches_directions]
+                   for branch in self._directions]
 
         self.branches = [OctNode(self.csl, center, self, new_radius, oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder, path=self.path + (direction,))
-                         for center, direction in zip(centers, self.branches_directions)]
+                         for center, direction in zip(centers, self._directions)]
 
         self.is_leaf = False
         self.haim_net_manager.requires_grad_(False)
@@ -132,7 +151,11 @@ class OctNode:
         for vertex_overlap_oct in self._overlapping_octs_around_vertices():
             interpolating_wights.append(self._get_interpolation_wights(vertex_overlap_oct, xyzs))
 
-        # todo this assumes that all interpolation_octs are not interesting
+        # edges interpolation
+        for edge_overlap_oct in self._overlapping_octs_around_edges():
+            interpolating_wights.append(self._get_interpolation_wights(edge_overlap_oct, xyzs))
+
+        # this assumes that all interpolation_octs are not interesting
         wights = [min(ws) for ws in zip(*interpolating_wights)]
         return wights
 
@@ -155,15 +178,26 @@ class OctNode:
         # todo property 2*self.radius*overlapping
         overlap_radius = np.array([0.2 if self.depth == 1 else 0.05] * 3)
 
-        unit_cube_vertices = get_xyzs_in_octant(None, (2, 2, 2))
-        vertices = np.array([self.center + direction * self.radius for direction in unit_cube_vertices])
-
-        # if a certain unit_cube_vertices has a dimension aligned with boundaries_per_direction the vertex
-        # corresponding to this direction is on the boundary
-        is_on_boundary = [np.any(np.equal(direction, self._boundaries_per_direction)) for direction in unit_cube_vertices]
-
         return [[vertex + overlap_radius, vertex - overlap_radius]
-                for vertex, on_boundary in zip(vertices, is_on_boundary) if not on_boundary]
+                for vertex, on_boundary in zip(self._vertices) if not on_boundary]
+
+    def _overlapping_octs_around_edges(self):
+        if self.depth == 0:
+            return []
+        vertices, vertices_is_on_boundary = self._vertices
+        edges_directions = self._directions
+
+        legal_edges = [sum(d1 * d2) == 1 for d1, d2 in combinations((edges_directions, edges_directions), 2)]
+
+        edges = combinations((vertices, vertices), 2)
+
+        # an edge is on the boundary iff both of its vertices are on the boundary
+        edges_on_boundary = [b1 and b2 for b1, b2 in combinations((vertices_is_on_boundary, vertices_is_on_boundary), 2)]
+
+        # consider only edges on from adjacent vertices (no diagonals)
+        # edge is not a diagonals if its vertices agree in two coordinates
+
+        return None
 
 
 class OctnetTree(INetManager):
@@ -220,7 +254,7 @@ class OctnetTree(INetManager):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
-        labels_per_oct = [node.get_mask_for_blending(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid) # todo this
+        labels_per_oct = [node.get_mask_for_blending(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid) # todo HAIM this
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
