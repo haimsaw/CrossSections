@@ -126,22 +126,23 @@ class OctNode:
         # vertices interpolation
         interpolating_wights = []
         for vertex_overlap_oct in self._overlapping_octs_around_vertices():
-            x = np.linspace(vertex_overlap_oct[1][0], vertex_overlap_oct[0][0], 2)
-            y = np.linspace(vertex_overlap_oct[1][1], vertex_overlap_oct[0][1], 2)
-            z = np.linspace(vertex_overlap_oct[1][2], vertex_overlap_oct[0][2], 2)
+            interpolating_wights.append(self._get_interpolation_wights(vertex_overlap_oct, xyzs))
 
-            points = (x, y, z)
-            corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
-
-            values = np.full(8, 0.0)
-            values[corners_in_oct] = 1.0
-            values = values.reshape((2, 2, 2))
-
-            my_interpolating_function = RegularGridInterpolator(points, values, bounds_error=False, fill_value=1.0)
-            interpolating_wights.append(my_interpolating_function(xyzs))
-
+        # todo this assums that all interpolation_octs are not interesting
         wights = [min(ws) for ws in zip(*interpolating_wights)]
         return wights
+
+    def _get_interpolation_wights(self, interpolation_oct, xyzs):
+        x = np.linspace(interpolation_oct[1][0], interpolation_oct[0][0], 2)
+        y = np.linspace(interpolation_oct[1][1], interpolation_oct[0][1], 2)
+        z = np.linspace(interpolation_oct[1][2], interpolation_oct[0][2], 2)
+        points = (x, y, z)
+        corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
+        values = np.full(8, 0.0)
+        values[corners_in_oct] = 1.0
+        values = values.reshape((2, 2, 2))
+        my_interpolating_function = RegularGridInterpolator(points, values, bounds_error=False, fill_value=1.0)
+        return my_interpolating_function(xyzs)
 
     def _overlapping_octs_around_vertices(self):
         if self.depth == 0:
