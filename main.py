@@ -18,7 +18,7 @@ def main():
     l1_sampling_resolution_2d = (30, 30)
     l2_sampling_resolution_2d = (30, 30)
 
-    sampling_resolution_3d = (50, 50, 50)
+    sampling_resolution_3d = (100, 100, 100)
     hidden_layers = [16, 32, 32, 32]
     epochs = 0
     embedder = get_embedder(4)
@@ -38,7 +38,7 @@ def main():
     '''
 
     xyzs_small = get_xyzs_in_octant(np.array([[0.2]*3, [-0.2]*3]), sampling_resolution_3d)
-    xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.7]*3, [0.3]*3]), sampling_resolution_3d)
+    xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.55]*3, [0.45]*3]), sampling_resolution_3d)
 
     xyzs_all = get_xyzs_in_octant(None, sampling_resolution_3d)
 
@@ -72,15 +72,16 @@ def main():
 
 def draw_blending_errors(tree, xyzs):
     labels = tree.soft_predict(xyzs)
+    print(f'max={max(labels)}, min={min(labels)}, n={len(labels)}')
     fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')
-    ax.set_xlim3d(-1, 1)
-    ax.set_ylim3d(-1, 1)
-    ax.set_zlim3d(-1, 1)
+    #ax.set_xlim3d(-1, 1)
+    #ax.set_ylim3d(-1, 1)
+    #ax.set_zlim3d(-1, 1)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.1)
+    ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.2)
     plt.show()
 
 

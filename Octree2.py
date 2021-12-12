@@ -103,7 +103,6 @@ class OctNode:
     def get_mask_for_blending(self, xyzs):
         # return labels for blending in the x direction
         # xyzs are in octant+overlap
-        # todo this assumes that octree depth is 1
 
         if self.depth == 0:
             # self is root - noting to blend
