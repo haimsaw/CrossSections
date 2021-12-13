@@ -58,6 +58,7 @@ def main():
 
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
+
     draw_blending_errors(tree, xyzs_small_depth2)
 
 

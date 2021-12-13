@@ -6,7 +6,6 @@ from itertools import combinations
 
 class OctNode:
     def __init__(self, csl, center, parent, radius, oct_overlap_margin, path, **haimnet_kwargs):
-        # top bottom = center +- radius
         self.center = center
 
         self.csl = csl
@@ -75,6 +74,31 @@ class OctNode:
         # corresponding to this direction is on the boundary
         is_on_boundary = [np.any(np.equal(direction, self._boundaries_per_direction)) for direction in vertices_directions]
         return vertices, is_on_boundary
+
+    @property
+    def _edges(self):
+        if self.depth == 0:
+            return []
+
+        vertices, vertices_is_on_boundary = self._vertices
+        edges_directions = self._directions
+
+        # consider only edges on from adjacent vertices (no diagonals)
+        # edge is not a diagonals if its vertices agree in two coordinates
+        legal_edges = [sum(d1 * d2) == 1 for d1, d2 in combinations(edges_directions, 2)]
+
+        edges = list(combinations(vertices, 2))
+
+
+        edges = [edge for edge, is_legal in zip(edges, legal_edges) if is_legal]
+        is_edge_verts_on_boundary = [(b1, b2) for (b1, b2), is_legal in zip(combinations(vertices_is_on_boundary, 2), legal_edges) if is_legal]
+
+        return edges, is_edge_verts_on_boundary
+
+    @property
+    def _overlap_radius(self):
+        # todo HAIM property 2*self.radius*overlapping
+        return np.array([0.2 if self.depth == 1 else 0.05] * 3)
 
     def indices_in_oct(self, xyzs, is_core=False):
         oct = self.oct_core if is_core else self.oct
@@ -146,37 +170,39 @@ class OctNode:
         non_blending_end = 2 * core_end - margin_end
         '''
 
-        # vertices interpolation
+        # todo this is not memory efficient
         interpolating_wights = []
+
         for vertex_overlap_oct in self._overlapping_octs_around_vertices():
-            interpolating_wights.append(self._get_interpolation_wights(vertex_overlap_oct, xyzs))
+            interpolating_wights.append(self._interpolate_oct_wights(vertex_overlap_oct, xyzs))
 
-        # edges interpolation
-        #for edge_overlap_oct in self._overlapping_octs_around_edges():
-        #    interpolating_wights.append(self._get_interpolation_wights(edge_overlap_oct, xyzs))
+        for edge_overlap_oct in self._overlapping_octs_around_edges():
+            interpolating_wights.append(self._interpolate_oct_wights(edge_overlap_oct, xyzs))
 
-        # this assumes that all interpolation_octs are not interesting
+        for face_overlap_oct in self._overlapping_octs_around_faces():
+            interpolating_wights.append(self._interpolate_oct_wights(face_overlap_oct, xyzs))
+
+        # TODO this assumes that all interpolation_octs are not interesting
         wights = [min(ws) for ws in zip(*interpolating_wights)]
         return wights
 
-    def _get_interpolation_wights(self, interpolation_oct, xyzs):
+    def _interpolate_oct_wights(self, interpolation_oct, xyzs):
         x = np.linspace(interpolation_oct[1][0], interpolation_oct[0][0], 2)
         y = np.linspace(interpolation_oct[1][1], interpolation_oct[0][1], 2)
         z = np.linspace(interpolation_oct[1][2], interpolation_oct[0][2], 2)
-        points = (x, y, z)
+
         corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
+
         values = np.full(8, 0.0)
         values[corners_in_oct] = 1.0
-        values = values.reshape((2, 2, 2))
-        my_interpolating_function = RegularGridInterpolator(points, values, bounds_error=False, fill_value=1.0)
-        return my_interpolating_function(xyzs)
+
+        return RegularGridInterpolator((x, y, z), values.reshape((2, 2, 2)), bounds_error=False, fill_value=1.0)(xyzs)
 
     def _overlapping_octs_around_vertices(self):
         if self.depth == 0:
             return []
 
-        # todo property 2*self.radius*overlapping
-        overlap_radius = np.array([0.2 if self.depth == 1 else 0.05] * 3)
+        overlap_radius = self._overlap_radius
 
         return [[vertex + overlap_radius, vertex - overlap_radius]
                 for vertex, on_boundary in zip(*self._vertices) if not on_boundary]
@@ -184,20 +210,21 @@ class OctNode:
     def _overlapping_octs_around_edges(self):
         if self.depth == 0:
             return []
-        vertices, vertices_is_on_boundary = self._vertices
-        edges_directions = self._directions
 
-        legal_edges = [sum(d1 * d2) == 1 for d1, d2 in combinations((edges_directions, edges_directions), 2)]
-
-        edges = combinations((vertices, vertices), 2)
+        edges, is_edge_verts_on_boundary = self._edges
+        overlap_radius = self._overlap_radius
 
         # an edge is on the boundary iff both of its vertices are on the boundary
-        edges_on_boundary = [b1 and b2 for b1, b2 in combinations((vertices_is_on_boundary, vertices_is_on_boundary), 2)]
+        edges_on_boundary = [b1 and b2 for b1, b2 in is_edge_verts_on_boundary]
 
-        # consider only edges on from adjacent vertices (no diagonals)
-        # edge is not a diagonals if its vertices agree in two coordinates
+        # todo HAIM no need to take margin on vertices on boundary
+        edges_octs = [[np.maximum(*edge) + overlap_radius, np.minimum(*edge) - overlap_radius]
+                      for edge, is_boundary in zip(edges, edges_on_boundary) if is_boundary]
 
-        return None
+        return edges_octs
+
+    def _overlapping_octs_around_faces(self):
+        return []
 
 
 class OctnetTree(INetManager):
