@@ -81,13 +81,13 @@ class OctNode:
             return []
 
         vertices, vertices_is_on_boundary = self._vertices
-        edges_directions = self._directions
-
-        # consider only edges on from adjacent vertices (no diagonals)
-        # edge is not a diagonal if its vertices agree in two coordinates
-        legal_edges = [sum(d1 * d2) == 1 for d1, d2 in combinations(edges_directions, 2)]
+        verts_directions = self._directions
 
         edges = list(combinations(vertices, 2))
+
+        # consider only edges on adjacent vertices (no diagonals)
+        # edge is not a diagonal if its vertices agree in two coordinates
+        legal_edges = [sum(d1 * d2) == 1 for d1, d2 in combinations(verts_directions, 2)]
 
         edges = [edge for edge, is_legal in zip(edges, legal_edges) if is_legal]
         is_edge_verts_on_boundary = [(b1, b2) for (b1, b2), is_legal in zip(combinations(vertices_is_on_boundary, 2), legal_edges) if is_legal]
@@ -95,9 +95,28 @@ class OctNode:
         return edges, is_edge_verts_on_boundary
 
     @property
+    def _faces(self):
+        if self.depth == 0:
+            return []
+
+        vertices, vertices_is_on_boundary = self._vertices
+        verts_directions = self._directions
+
+        faces = list(combinations(vertices, 4))
+
+        # consider only legal combinations of verts - faces on adjacent vertices
+        # faces is legal if its vertices agree on one coordinates
+        legal_faces = [max(np.abs(np.sum(dirs, axis=0))) == 4 for dirs in combinations(verts_directions, 4)]
+
+        faces = [edge for edge, is_legal in zip(faces, legal_faces) if is_legal]
+        is_face_verts_on_boundary = [(b1, b2, b3, b4) for (b1, b2, b3, b4), is_legal in zip(combinations(vertices_is_on_boundary, 4), legal_faces) if is_legal]
+
+        return faces, is_face_verts_on_boundary
+
+    @property
     def _overlap_radius(self):
         # todo HAIM property 2*self.radius*overlapping
-        return np.array([0.2 if self.depth == 1 else 0.05] * 3)
+        return np.array([0.25 if self.depth == 1 else 0.125] * 3)
 
     def indices_in_oct(self, xyzs, is_core=False):
         oct = self.oct_core if is_core else self.oct
@@ -108,6 +127,8 @@ class OctNode:
         return np.nonzero(map)[0]
 
     def split_node(self, oct_overlap_margin, hidden_layers, embedder):
+        self.haim_net_manager.requires_grad_(False)
+
         new_radius = self.radius / 2
         top = self.center + new_radius
         btm = self.center - new_radius
@@ -119,32 +140,6 @@ class OctNode:
                          for center, direction in zip(centers, self._directions)]
 
         self.is_leaf = False
-        self.haim_net_manager.requires_grad_(False)
-
-    def get_mask_for_blending_old(self, xyzs):
-        # return labels for blending in the x direction
-        # xyzs are in octant+overlap
-
-        core_end = self.oct_core[0]
-        core_start = self.oct_core[1]
-        margin_end = self.oct[0]
-        margin_start = self.oct[1]
-
-        non_blending_start = 2 * core_start - margin_start
-        non_blending_end = 2 * core_end - margin_end
-
-        line_getter_pos = lambda i: lambda xyz: xyz[i] * 1 / (non_blending_start[i] - margin_start[i]) + margin_start[i] / (margin_start[i] - non_blending_start[i])
-        line_getter_neg = lambda i: lambda xyz: xyz[i] * 1 / (non_blending_end[i] - margin_end[i]) + margin_end[i] / (margin_end[i] - non_blending_end[i])
-
-        lines = []
-        for i in range(3):
-            lines.append(line_getter_neg(i))
-            lines.append(line_getter_pos(i))
-
-        wights = np.array([min(1, *[l(xyz) for l in lines]) for xyz in xyzs])
-        # wights = np.full(len(xyzs), 1.0)
-        # wights = np.full(len(xyzs), 0.0)[self.indices_in_oct(xyzs, is_core = True)] = 1.0
-        return wights
 
     def get_mask_for_blending(self, xyzs):
         # return labels for blending in the x direction
@@ -159,29 +154,20 @@ class OctNode:
         # 12 2d interpolation (edge)
         # 8 3d interpolation (vertices)
 
-        '''core_start = self.oct_core[1]
-        core_end = self.oct_core[0]
-
-        margin_start = self.oct[1]
-        margin_end = self.oct[0]
-
-        non_blending_start = 2 * core_start - margin_start
-        non_blending_end = 2 * core_end - margin_end
-        '''
-
         # todo this is not memory efficient
         interpolating_wights = []
 
-        for vertex_overlap_oct in self._overlapping_octs_around_vertices():
-            interpolating_wights.append(self._interpolate_oct_wights(vertex_overlap_oct, xyzs))
+        #for face_overlap_oct in self._overlapping_octs_around_faces():
+        #    interpolating_wights.append(self._interpolate_oct_wights(face_overlap_oct, xyzs))
 
         for edge_overlap_oct in self._overlapping_octs_around_edges():
             interpolating_wights.append(self._interpolate_oct_wights(edge_overlap_oct, xyzs))
 
-        for face_overlap_oct in self._overlapping_octs_around_faces():
-            interpolating_wights.append(self._interpolate_oct_wights(face_overlap_oct, xyzs))
+        for vertex_overlap_oct in self._overlapping_octs_around_vertices():
+            interpolating_wights.append(self._interpolate_oct_wights(vertex_overlap_oct, xyzs))
 
-        # TODO this assumes that all interpolation_octs are not interesting
+
+        # TODO this assumes that all interpolation_octs are not intersecting
         wights = [min(ws) for ws in zip(*interpolating_wights)]
         return wights
 
@@ -190,6 +176,8 @@ class OctNode:
         y = np.linspace(interpolation_oct[1][1], interpolation_oct[0][1], 2)
         z = np.linspace(interpolation_oct[1][2], interpolation_oct[0][2], 2)
 
+        # todo - numericly error 0.5-0.7 = -1.9999
+        # todo - this should be core - once _overlapping_octs_around_... will be fixed
         corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
 
         values = np.full(8, 0.0)
@@ -210,20 +198,39 @@ class OctNode:
         if self.depth == 0:
             return []
 
-        edges, is_edge_verts_on_boundary = self._edges
         overlap_radius = self._overlap_radius
 
-        # an edge is on the boundary iff both of its vertices are on the boundary
-        edges_on_boundary = [b1 and b2 for b1, b2 in is_edge_verts_on_boundary]
+        edges_octs = []
+        for edge, (is_boundary1, is_boundary2) in zip(*self._edges):
 
-        # todo HAIM no need to take margin on vertices on boundary
-        edges_octs = [[np.maximum(*edge) + overlap_radius, np.minimum(*edge) - overlap_radius]
-                      for edge, is_boundary in zip(edges, edges_on_boundary) if not is_boundary]
+            # an edge is on the boundary iff both of its vertices are on the boundary
+            if not (is_boundary1 and is_boundary2):
+                # todo HAIM no need to take margin on vertices on boundary
+                # remove overlapping around vertices
+                padding = np.where(edge[0] == edge[1], overlap_radius, -overlap_radius)
+                edges_octs.append([np.amax(edge, axis=0) + padding,
+                                   np.amin(edge, axis=0) - padding])
 
         return edges_octs
 
     def _overlapping_octs_around_faces(self):
-        return []
+        if self.depth == 0:
+            return []
+
+        overlap_radius = self._overlap_radius
+
+        # todo HAIM no need to take margin on vertices on boundary
+        # todo HAIM should remove overlapping with edges
+        faces_octs = []
+        for face, (b1, b2, b3, b4) in zip(*self._faces):
+            # a face is on the boundary iff all of its vertices are on the boundary
+            if not (b1 and b2 and b3 and b4):
+                # remove overlapping around edges
+                padding = np.where(face[0] == face[1] == face[2] == face[3], overlap_radius, -overlap_radius)
+                faces_octs.append([np.amax(face, axis=0) + padding,
+                                   np.amin(face, axis=0) - padding])
+
+        return faces_octs
 
 
 class OctnetTree(INetManager):
@@ -245,12 +252,15 @@ class OctnetTree(INetManager):
         self.oct_overlap_margin = oct_overlap_margin
         self.hidden_layers = hidden_layers
         self.embedder = embedder
+        self.depth = None
 
     def _add_level(self):
         if self.root is None:
             self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]), oct_overlap_margin=self.oct_overlap_margin, hidden_layers=self.hidden_layers, embedder=self.embedder, path=tuple())
+            self.depth = 0
         else:
             [leaf.split_node(self.oct_overlap_margin, self.hidden_layers, self.embedder) for leaf in self._get_leaves()]
+            self.depth += 1
 
     def _get_leaves(self):
         leaves = []

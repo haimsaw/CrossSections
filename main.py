@@ -23,7 +23,7 @@ def main():
     epochs = 0
     embedder = get_embedder(4)
     scheduler_step = 5
-    oct_overlap_margin = 0.2
+    oct_overlap_margin = 0.25
 
     csl = get_csl(bounding_planes_margin)
 
@@ -37,7 +37,10 @@ def main():
     renderer.show()
     '''
 
-    xyzs_small = get_xyzs_in_octant(np.array([[0.2]*3, [-0.2]*3]), sampling_resolution_3d)
+    xyzs_vertex = get_xyzs_in_octant(np.array([[0.25]*3, [-0.25]*3]), sampling_resolution_3d)
+    xyzs_edge = get_xyzs_in_octant(np.array([[0.25, 0.25, 0.75], [-0.25, -0.25, -0.75]]), sampling_resolution_3d)
+    xyzs_no_boundary = get_xyzs_in_octant(np.array([[0.75]*3, [-0.75]*3]), sampling_resolution_3d)
+
     xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.55]*3, [0.45]*3]), sampling_resolution_3d)
 
     xyzs_all = get_xyzs_in_octant(None, sampling_resolution_3d)
@@ -54,12 +57,15 @@ def main():
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
 
+    draw_blending_errors(tree, xyzs_vertex)
+    draw_blending_errors(tree, xyzs_edge)
+    draw_blending_errors(tree, xyzs_no_boundary)
     draw_blending_errors(tree, xyzs_all)
 
-    tree.prepare_for_training(dataset, lr, scheduler_step)
-    tree.train_network(epochs=epochs)
+    # tree.prepare_for_training(dataset, lr, scheduler_step)
+    # tree.train_network(epochs=epochs)
 
-    draw_blending_errors(tree, xyzs_small_depth2)
+    # draw_blending_errors(tree, xyzs_all)
 
 
 
@@ -73,7 +79,7 @@ def main():
 
 def draw_blending_errors(tree, xyzs):
     labels = tree.soft_predict(xyzs)
-    print(f'max={max(labels)}, min={min(labels)}, n={len(labels)}')
+    print(f'max={max(labels)}, min={min(labels)}, n={len(labels)} depth={tree.depth}')
     fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')
     #ax.set_xlim3d(-1, 1)
@@ -82,7 +88,8 @@ def draw_blending_errors(tree, xyzs):
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.2)
+    #ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.2)
+    ax.scatter(*xyzs[(labels != 1)].T, c=labels[(labels != 1)], alpha=0.2)
     plt.show()
 
 
