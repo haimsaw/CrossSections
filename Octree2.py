@@ -84,11 +84,10 @@ class OctNode:
         edges_directions = self._directions
 
         # consider only edges on from adjacent vertices (no diagonals)
-        # edge is not a diagonals if its vertices agree in two coordinates
+        # edge is not a diagonal if its vertices agree in two coordinates
         legal_edges = [sum(d1 * d2) == 1 for d1, d2 in combinations(edges_directions, 2)]
 
         edges = list(combinations(vertices, 2))
-
 
         edges = [edge for edge, is_legal in zip(edges, legal_edges) if is_legal]
         is_edge_verts_on_boundary = [(b1, b2) for (b1, b2), is_legal in zip(combinations(vertices_is_on_boundary, 2), legal_edges) if is_legal]
@@ -219,7 +218,7 @@ class OctNode:
 
         # todo HAIM no need to take margin on vertices on boundary
         edges_octs = [[np.maximum(*edge) + overlap_radius, np.minimum(*edge) - overlap_radius]
-                      for edge, is_boundary in zip(edges, edges_on_boundary) if is_boundary]
+                      for edge, is_boundary in zip(edges, edges_on_boundary) if not is_boundary]
 
         return edges_octs
 
