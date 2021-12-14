@@ -23,7 +23,7 @@ def main():
     epochs = 0
     embedder = get_embedder(4)
     scheduler_step = 5
-    oct_overlap_margin = 0.25
+    oct_overlap_margin = 0.25  # should be 1/2^k
 
     csl = get_csl(bounding_planes_margin)
 
@@ -40,7 +40,7 @@ def main():
     xyzs_vertex = get_xyzs_in_octant(np.array([[0.25]*3, [-0.25]*3]), sampling_resolution_3d)
     xyzs_edge = get_xyzs_in_octant(np.array([[0.25, 0.25, 0.75], [-0.25, -0.25, -0.75]]), sampling_resolution_3d)
     xyzs_no_boundary = get_xyzs_in_octant(np.array([[0.75]*3, [-0.75]*3]), sampling_resolution_3d)
-
+    xyzs_no_boundary_l2 = get_xyzs_in_octant(np.array([[0.875]*3, [-0.875]*3]), sampling_resolution_3d)
     xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.55]*3, [0.45]*3]), sampling_resolution_3d)
 
     xyzs_all = get_xyzs_in_octant(None, sampling_resolution_3d)
@@ -57,15 +57,17 @@ def main():
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
 
-    draw_blending_errors(tree, xyzs_vertex)
-    draw_blending_errors(tree, xyzs_edge)
-    draw_blending_errors(tree, xyzs_no_boundary)
+    #draw_blending_errors(tree, xyzs_vertex)
+    #draw_blending_errors(tree, xyzs_edge)
+    #draw_blending_errors(tree, xyzs_no_boundary)
     draw_blending_errors(tree, xyzs_all)
 
-    # tree.prepare_for_training(dataset, lr, scheduler_step)
-    # tree.train_network(epochs=epochs)
+    tree.prepare_for_training(dataset, lr, scheduler_step)
+    tree.train_network(epochs=epochs)
 
-    # draw_blending_errors(tree, xyzs_all)
+    draw_blending_errors(tree, xyzs_no_boundary_l2)
+    draw_blending_errors(tree, xyzs_all)
+
 
 
 
@@ -111,3 +113,14 @@ def get_csl(bounding_planes_margin):
 
 if __name__ == "__main__":
     main()
+
+'''
+todo
+check if tree is helping or its just capacity 
+
+Use sinusoidal activations (SIREN)
+Scale & translate each octant to fit [-1,1]^3
+Sheared weights / find a way to use symmetries 
+Use loss from the upper level to determine depth \#epochs
+
+'''

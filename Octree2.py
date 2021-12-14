@@ -115,8 +115,8 @@ class OctNode:
 
     @property
     def _overlap_radius(self):
-        # todo HAIM property 2*self.radius*overlapping
-        return np.array([0.25 if self.depth == 1 else 0.125] * 3)
+        return 2 * self.radius * self.oct_overlap_margin
+        #return np.array([0.25 if self.depth == 1 else 0.125] * 3)
 
     def indices_in_oct(self, xyzs, is_core=False):
         oct = self.oct_core if is_core else self.oct
@@ -157,8 +157,8 @@ class OctNode:
         # todo this is not memory efficient
         interpolating_wights = []
 
-        #for face_overlap_oct in self._overlapping_octs_around_faces():
-        #    interpolating_wights.append(self._interpolate_oct_wights(face_overlap_oct, xyzs))
+        for face_overlap_oct in self._overlapping_octs_around_faces():
+            interpolating_wights.append(self._interpolate_oct_wights(face_overlap_oct, xyzs))
 
         for edge_overlap_oct in self._overlapping_octs_around_edges():
             interpolating_wights.append(self._interpolate_oct_wights(edge_overlap_oct, xyzs))
@@ -166,8 +166,7 @@ class OctNode:
         for vertex_overlap_oct in self._overlapping_octs_around_vertices():
             interpolating_wights.append(self._interpolate_oct_wights(vertex_overlap_oct, xyzs))
 
-
-        # TODO this assumes that all interpolation_octs are not intersecting
+        # this assumes that all interpolation_octs are not intersecting
         wights = [min(ws) for ws in zip(*interpolating_wights)]
         return wights
 
@@ -176,8 +175,6 @@ class OctNode:
         y = np.linspace(interpolation_oct[1][1], interpolation_oct[0][1], 2)
         z = np.linspace(interpolation_oct[1][2], interpolation_oct[0][2], 2)
 
-        # todo - numericly error 0.5-0.7 = -1.9999
-        # todo - this should be core - once _overlapping_octs_around_... will be fixed
         corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
 
         values = np.full(8, 0.0)
@@ -219,14 +216,15 @@ class OctNode:
 
         overlap_radius = self._overlap_radius
 
-        # todo HAIM no need to take margin on vertices on boundary
-        # todo HAIM should remove overlapping with edges
         faces_octs = []
         for face, (b1, b2, b3, b4) in zip(*self._faces):
             # a face is on the boundary iff all of its vertices are on the boundary
             if not (b1 and b2 and b3 and b4):
                 # remove overlapping around edges
-                padding = np.where(face[0] == face[1] == face[2] == face[3], overlap_radius, -overlap_radius)
+                # todo HAIM do not to take margin on vertices on boundary
+                padding = np.where((face[0] == face[1]) & (face[0] == face[2]) & (face[0] == face[3]),
+                                   overlap_radius, -overlap_radius)
+
                 faces_octs.append([np.amax(face, axis=0) + padding,
                                    np.amin(face, axis=0) - padding])
 
@@ -290,7 +288,7 @@ class OctnetTree(INetManager):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
-        labels_per_oct = [node.get_mask_for_blending(xyzs)  # * node.haim_net_manager.soft_predict(xyzs, use_sigmoid) # todo HAIM this
+        labels_per_oct = [node.get_mask_for_blending(xyzs)  * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
@@ -310,10 +308,10 @@ class OctnetTree(INetManager):
         return errored_xyzs, errored_labels
 
     def show_train_losses(self):
-        # todo - aggregate all losses
-        for i, leaf in enumerate(self._get_leaves()):
-            print(f"leaf: {i}")
-            leaf.haim_net_manager.show_train_losses()
+        losses_per_leaf = [leaf.haim_net_manager.train_losses for leaf in self._get_leaves()]
+        losses = np.mean(losses_per_leaf, axis=0)
+        plt.bar(range(len(losses)), losses)
+        plt.show()
 
     @staticmethod
     def _merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct):

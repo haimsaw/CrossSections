@@ -1,18 +1,17 @@
+import math
 import torch
 from torch import nn
 from itertools import chain
 from Helpers import *
 
 
-def initializer(m):
-    if isinstance(m, nn.Linear):
-        torch.nn.init.xavier_uniform_(m.weight)
-        # torch.nn.init.constant_(m.weight, 1)
-        m.bias.data.fill_(0.1)
-    elif isinstance(m, nn.LeakyReLU) or isinstance(m, nn.Sequential):
-        return
-    else:
-        assert False
+class Sine(nn.Module):
+    def __init(self):
+        super().__init__()
+
+    def forward(self, input):
+        # See paper sec. 3.2, final paragraph, and supplement Sec. 1.5 for discussion of factor 30
+        return torch.sin(30 * input)
 
 
 class HaimNet(nn.Module):
@@ -40,6 +39,21 @@ class HaimNet(nn.Module):
             return self.linear_relu(embbeded) + torch.sigmoid(self.residual_module(xyzs))
         else:
             return self.linear_relu(embbeded)
+
+
+def initializer(m):
+    if isinstance(m, nn.Linear):
+        torch.nn.init.xavier_uniform_(m.weight)
+        torch.nn.init.xavier_uniform_(m.bias)
+
+
+def siren_initializer(m):
+    if isinstance(m, nn.Linear):
+
+        w_std = (1 / m.in_features) if self.is_first else (math.sqrt(6 / m.in_features))
+
+        torch.nn.init.uniform_(m.weight, -w_std, w_std)
+        torch.nn.init.uniform_(m.bias, -w_std, w_std)
 
 
 # https://github.com/yenchenlin/nerf-pytorch/blob/a15fd7cb363e93f933012fd1f1ad5395302f63a4/run_nerf_helpers.py#L48

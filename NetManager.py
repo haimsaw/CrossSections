@@ -69,9 +69,7 @@ class HaimNetManager(INetManager):
         self.data_loader = None
 
         self.total_epochs = 0
-        self.epochs_with_refine = []
         self.train_losses = []
-        self.refinements_num = 0
 
         self.is_training_ready = False
 
@@ -103,7 +101,7 @@ class HaimNetManager(INetManager):
         if epoch > 0 and epoch % self.scheduler_step == 0:
             self.lr_scheduler.step()
 
-        total_loss = running_loss/size
+        total_loss = running_loss / size
         if self.verbose:
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
@@ -139,8 +137,7 @@ class HaimNetManager(INetManager):
             print(f'\ntotal epochs={self.total_epochs}')
 
     def show_train_losses(self):
-        colors = ['red' if i in self.epochs_with_refine else 'blue' for i in range(len(self.train_losses))]
-        plt.bar(range(len(self.train_losses)), self.train_losses, color=colors)
+        plt.bar(range(len(self.train_losses)), self.train_losses)
         plt.show()
 
     def load_from_disk(self):
@@ -175,8 +172,8 @@ class HaimNetManager(INetManager):
         for xyzs, label in self.data_loader:
             xyzs, label = xyzs.to(self.device), label.to(self.device)
 
-            #xyzs, label_pred = self.hard_predict(xyzs, threshold)
-            label_pred = self.module(xyzs) > threshold # todo use self.hard_predict (not returning a tensor)
+            # xyzs, label_pred = self.hard_predict(xyzs, threshold)
+            label_pred = self.module(xyzs) > threshold  # todo use self.hard_predict (not returning a tensor)
 
             errors = (label != label_pred).view(-1)
 
