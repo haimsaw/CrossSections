@@ -78,11 +78,7 @@ class Renderer3D:
     def add_model_soft_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=1.0):
         # todo not working
 
-        x = np.linspace(-1, 1, sampling_resolution_3d[0])
-        y = np.linspace(-1, 1, sampling_resolution_3d[1])
-        z = np.linspace(-1, 1, sampling_resolution_3d[2])
-
-        xyzs = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
+        xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
         labels = network_manager.soft_predict(xyzs)
 
         self.ax.scatter(*xyzs.T, c=labels, cmap="Blues", alpha=alpha)

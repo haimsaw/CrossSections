@@ -167,20 +167,24 @@ class OctNode:
             interpolating_wights.append(self._interpolate_oct_wights(vertex_overlap_oct, xyzs))
 
         # this assumes that all interpolation_octs are not intersecting
-        wights = [min(ws) for ws in zip(*interpolating_wights)]
+        wights = np.array([min(ws) for ws in zip(*interpolating_wights)])
         return wights
 
     def _interpolate_oct_wights(self, interpolation_oct, xyzs):
-        x = np.linspace(interpolation_oct[1][0], interpolation_oct[0][0], 2)
-        y = np.linspace(interpolation_oct[1][1], interpolation_oct[0][1], 2)
-        z = np.linspace(interpolation_oct[1][2], interpolation_oct[0][2], 2)
+        interpolation_oct = np.array(interpolation_oct)
+        x = np.flip(interpolation_oct[..., 0])
+        y = np.flip(interpolation_oct[..., 1])
+        z = np.flip(interpolation_oct[..., 2])
 
-        corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3)), is_core=True)
+        corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1).reshape((-1, 3)), is_core=True)
 
         values = np.full(8, 0.0)
         values[corners_in_oct] = 1.0
+        interpulator = RegularGridInterpolator((x, y, z), values.reshape((2, 2, 2)), bounds_error=False, fill_value=1.0)
 
-        return RegularGridInterpolator((x, y, z), values.reshape((2, 2, 2)), bounds_error=False, fill_value=1.0)(xyzs)
+
+        #todo haim assert np.all(interpulator(np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1).reshape((-1, 3))) == values)
+        return interpulator(xyzs)
 
     def _overlapping_octs_around_vertices(self):
         if self.depth == 0:
@@ -288,8 +292,11 @@ class OctnetTree(INetManager):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
-        labels_per_oct = [node.get_mask_for_blending(xyzs)  * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
-                          for node, xyzs in zip(leaves, xyzs_per_oct)]
+
+        #labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        #                  for node, xyzs in zip(leaves, xyzs_per_oct)]
+        labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0 if np.all(node.path[-1] == (-1, -1, -1)) else 0)
+                          for node, xyzs in zip(leaves, xyzs_per_oct)] #todo HAIM
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
 

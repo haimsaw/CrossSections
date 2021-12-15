@@ -18,7 +18,7 @@ def main():
     l1_sampling_resolution_2d = (30, 30)
     l2_sampling_resolution_2d = (30, 30)
 
-    sampling_resolution_3d = (50, 50, 50)
+    sampling_resolution_3d = (40, 40, 40)
     hidden_layers = [16, 32, 32, 32]
     epochs = 0
     embedder = get_embedder(4)
@@ -42,32 +42,41 @@ def main():
     xyzs_no_boundary = get_xyzs_in_octant(np.array([[0.75]*3, [-0.75]*3]), sampling_resolution_3d)
     xyzs_no_boundary_l2 = get_xyzs_in_octant(np.array([[0.875]*3, [-0.875]*3]), sampling_resolution_3d)
     xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.55]*3, [0.45]*3]), sampling_resolution_3d)
+    xyzs_few_planes = get_xyzs_in_octant([[1.0, 1.0, 0], [-1.0, -1.0, -1]], (50, 50, 4))
+    xyzs_one_plane = get_xyzs_in_octant([[1.0, 1.0, -0.25], [-1.0, -1.0, -0.25]], (40, 40, 1))
 
     xyzs_all = get_xyzs_in_octant(None, sampling_resolution_3d)
 
     tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
 
     # todo root_sampling_resolution_2d
+    # level 0:
     dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
 
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
 
+    # draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
+
+    # level 1
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
 
     #draw_blending_errors(tree, xyzs_vertex)
     #draw_blending_errors(tree, xyzs_edge)
-    #draw_blending_errors(tree, xyzs_no_boundary)
-    draw_blending_errors(tree, xyzs_all)
+    draw_blending_errors(tree, xyzs_one_plane, f'{tree.depth} xyzs_one_plane ')
 
+    draw_blending_errors(tree, xyzs_few_planes, f'{tree.depth} xyzs_few_planes ')
+    draw_blending_errors(tree, xyzs_no_boundary, f'{tree.depth} xyzs_no_boundary ')
+    draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
+
+    # level 3
     tree.prepare_for_training(dataset, lr, scheduler_step)
     tree.train_network(epochs=epochs)
 
-    draw_blending_errors(tree, xyzs_no_boundary_l2)
-    draw_blending_errors(tree, xyzs_all)
-
+    draw_blending_errors(tree, xyzs_no_boundary_l2, f'{tree.depth} xyzs_no_boundary_l2 ')
+    draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
 
 
 
@@ -79,11 +88,14 @@ def main():
     # renderer.show()
 
 
-def draw_blending_errors(tree, xyzs):
+def draw_blending_errors(tree, xyzs, title):
     labels = tree.soft_predict(xyzs)
     print(f'max={max(labels)}, min={min(labels)}, n={len(labels)} depth={tree.depth}')
+
     fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')
+    ax.set_title(title)
+
     #ax.set_xlim3d(-1, 1)
     #ax.set_ylim3d(-1, 1)
     #ax.set_zlim3d(-1, 1)
@@ -91,7 +103,7 @@ def draw_blending_errors(tree, xyzs):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     #ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.2)
-    ax.scatter(*xyzs[(labels != 1)].T, c=labels[(labels != 1)], alpha=0.2)
+    ax.scatter(*xyzs.T, c=labels, alpha=0.2)
     plt.show()
 
 

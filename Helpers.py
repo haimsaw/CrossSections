@@ -11,13 +11,11 @@ def add_margin(top, bottom, margin):
     return top + margin * (top - bottom),  bottom - margin * (top - bottom)
 
 
-def get_xyzs_in_octant(octant, sampling_resolution_3d):
-    x = np.linspace(-1, 1, sampling_resolution_3d[0])
-    y = np.linspace(-1, 1, sampling_resolution_3d[1])
-    z = np.linspace(-1, 1, sampling_resolution_3d[2])
-    xyzs = np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
-    if octant is not None:
-        xyzs = xyzs[np.all(np.logical_and(xyzs <= octant[0], octant[1] <= xyzs), axis=1)]
-    return xyzs
-
+def get_xyzs_in_octant(oct, sampling_resolution_3d):
+    if oct is None:
+        oct = [[1.0] * 3, [-1.0] * 3]
+    x = np.linspace(oct[1][0], oct[0][0], sampling_resolution_3d[0])
+    y = np.linspace(oct[1][1], oct[0][1], sampling_resolution_3d[1])
+    z = np.linspace(oct[1][2], oct[0][2], sampling_resolution_3d[2])
+    return np.stack(np.meshgrid(x, y, z), axis=-1).reshape((-1, 3))
 
