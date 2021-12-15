@@ -44,7 +44,8 @@ class HaimNet(nn.Module):
 def initializer(m):
     if isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform_(m.weight)
-        torch.nn.init.xavier_uniform_(m.bias)
+        torch.nn.init.uniform_(m.bias, 0, 1)
+        # m.bias.data.fill_(0.1)
 
 
 def siren_initializer(m):
