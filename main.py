@@ -7,7 +7,7 @@ from Mesher import *
 from Helpers import *
 from Modules import *
 from stl import mesh as mesh2
-from Octree2 import *
+from OctnetTree import *
 
 
 def main():
