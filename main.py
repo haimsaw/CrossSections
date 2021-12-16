@@ -135,5 +135,5 @@ Use sinusoidal activations (SIREN)
 Scale & translate each octant to fit [-1,1]^3
 Sheared weights / find a way to use symmetries 
 Use loss from the upper level to determine depth \#epochs
-
+save results directly to drive
 '''

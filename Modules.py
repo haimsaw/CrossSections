@@ -2,7 +2,6 @@ import math
 import torch
 from torch import nn
 from itertools import chain
-from Helpers import *
 
 
 class Sine(nn.Module):
@@ -50,9 +49,9 @@ class HaimNet(nn.Module):
         if self.is_siren:
             self.function.apply(siren_initializer)
 
-            w_std = 1 / self.first_laye.in_features
-            torch.nn.init.uniform_(self.first_laye.weight, -w_std, w_std)
-            torch.nn.init.uniform_(self.first_laye.bias, -w_std, w_std)
+            w_std = 1 / self.first_layer.in_features
+            torch.nn.init.uniform_(self.first_layer.weight, -w_std, w_std)
+            torch.nn.init.uniform_(self.first_layer.bias, -w_std, w_std)
 
         else:
             self.function.apply(initializer)
