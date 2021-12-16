@@ -24,6 +24,7 @@ def main():
     embedder = get_embedder(4)
     scheduler_step = 5
     oct_overlap_margin = 0.25  # should be 1/2^k
+    is_siren = False
 
     csl = get_csl(bounding_planes_margin)
 
@@ -47,7 +48,7 @@ def main():
 
     xyzs_all = get_xyzs_in_octant(None, sampling_resolution_3d)
 
-    tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder)
+    tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder, is_siren)
 
     # todo root_sampling_resolution_2d
     # level 0:

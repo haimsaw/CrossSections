@@ -15,30 +15,40 @@ class Sine(nn.Module):
 
 
 class HaimNet(nn.Module):
-    def __init__(self, hidden_layers, residual_module, embedder):
+    def __init__(self, hidden_layers, residual_module, embedder, is_siren):
         super().__init__()
 
         self.embedder = embedder
+        self.is_siren = is_siren
 
         n_neurons = [self.embedder.out_dim] + hidden_layers + [1]
 
         neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
-        activations = [nn.LeakyReLU() for i in range(len(n_neurons) - 2)]
+        activations = [Sine() if is_siren else nn.LeakyReLU() for _ in range(len(n_neurons) - 2)]
         layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], 1)]
-        self.linear_relu = nn.Sequential(*layers)
+        self.function = nn.Sequential(*layers)
+        self.first_layer = neurons[0]
 
         assert residual_module is None or next(residual_module.parameters()).requires_grad is False
         self.residual_module = residual_module
 
     def init_weights(self):
-        self.linear_relu.apply(initializer)
+        if self.is_siren:
+            self.function.apply(siren_initializer)
+
+            w_std = 1 / self.first_laye.in_features
+            torch.nn.init.uniform_(self.first_laye.weight, -w_std, w_std)
+            torch.nn.init.uniform_(self.first_laye.bias, -w_std, w_std)
+
+        else:
+            self.function.apply(initializer)
 
     def forward(self, xyzs):
         embbeded = self.embedder(xyzs)
         if self.residual_module is not None:
-            return self.linear_relu(embbeded) + torch.sigmoid(self.residual_module(xyzs))
+            return self.function(embbeded) + torch.sigmoid(self.residual_module(xyzs))
         else:
-            return self.linear_relu(embbeded)
+            return self.function(embbeded)
 
 
 def initializer(m):
@@ -50,9 +60,7 @@ def initializer(m):
 
 def siren_initializer(m):
     if isinstance(m, nn.Linear):
-
-        w_std = (1 / m.in_features) if self.is_first else (math.sqrt(6 / m.in_features))
-
+        w_std = math.sqrt(6 / m.in_features)
         torch.nn.init.uniform_(m.weight, -w_std, w_std)
         torch.nn.init.uniform_(m.bias, -w_std, w_std)
 

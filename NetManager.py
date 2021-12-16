@@ -51,13 +51,13 @@ class INetManager:
 
 
 class HaimNetManager(INetManager):
-    def __init__(self, csl, hidden_layers, embedder, residual_module, octant, verbose=False):
+    def __init__(self, csl, hidden_layers, embedder, residual_module, octant, is_siren, verbose=False):
         super().__init__(csl, verbose)
 
         self.save_path = "trained_model.pt"
         self.octant = octant
 
-        self.module = HaimNet(hidden_layers, residual_module, embedder)
+        self.module = HaimNet(hidden_layers, residual_module, embedder, is_siren)
         self.module.double()
         self.module.to(self.device)
 
