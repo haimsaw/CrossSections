@@ -154,7 +154,7 @@ class OctNode:
         # 12 2d interpolation (edge)
         # 8 3d interpolation (vertices)
 
-        # todo this is not memory efficient
+        # this is not memory efficient
         interpolating_wights = []
 
         for face_overlap_oct in self._overlapping_octs_around_faces():
@@ -176,15 +176,15 @@ class OctNode:
         y = np.flip(interpolation_oct[..., 1])
         z = np.flip(interpolation_oct[..., 2])
 
-        corners_in_oct = self.indices_in_oct(np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1).reshape((-1, 3)), is_core=True)
+        corners = np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1).reshape((-1, 3))
+        corners_in_oct = self.indices_in_oct(corners, is_core=True)
 
         values = np.full(8, 0.0)
         values[corners_in_oct] = 1.0
-        interpulator = RegularGridInterpolator((x, y, z), values.reshape((2, 2, 2)), bounds_error=False, fill_value=1.0)
+        interpolator = RegularGridInterpolator((x, y, z), values.reshape((2, 2, 2)), bounds_error=False, fill_value=1.0)
 
-
-        #todo haim assert np.all(interpulator(np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1).reshape((-1, 3))) == values)
-        return interpulator(xyzs)
+        assert np.all(interpolator(corners.reshape((-1, 3))) == values)
+        return interpolator(xyzs)
 
     def _overlapping_octs_around_vertices(self):
         if self.depth == 0:
@@ -296,7 +296,7 @@ class OctnetTree(INetManager):
         #labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
         #                  for node, xyzs in zip(leaves, xyzs_per_oct)]
         labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0 if np.all(node.path[-1] == (-1, -1, -1)) else 0)
-                          for node, xyzs in zip(leaves, xyzs_per_oct)] #todo HAIM
+                          for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
 

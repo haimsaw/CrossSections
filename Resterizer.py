@@ -136,12 +136,12 @@ class PlaneRasterizer(IRasterizer):
                 # last vertex is ignored
                 shape_vertices += list(self.pca_projected_vertices[component.vertices_indices_in_component]) + [
                     [0, 0]]
-                shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
+                shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]
             else:
                 # last vertex is ignored
                 hole_vertices += list(self.pca_projected_vertices[component.vertices_indices_in_component]) + [
                     [0, 0]]
-                hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]  # todo iter
+                hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]
 
         # noinspection PyTypeChecker
         def labeler(xys):
