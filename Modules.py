@@ -14,6 +14,20 @@ class Sine(nn.Module):
         return torch.sin(30 * input)
 
 
+def initializer(m):
+    if isinstance(m, nn.Linear):
+        torch.nn.init.xavier_uniform_(m.weight)
+        torch.nn.init.uniform_(m.bias, 0, 1)
+        # m.bias.data.fill_(0.1)
+
+
+def siren_initializer(m):
+    if isinstance(m, nn.Linear):
+        w_std = math.sqrt(6 / m.in_features)
+        torch.nn.init.uniform_(m.weight, -w_std, w_std)
+        torch.nn.init.uniform_(m.bias, -w_std, w_std)
+
+
 class HaimNet(nn.Module):
     def __init__(self, hidden_layers, residual_module, embedder, is_siren):
         super().__init__()
@@ -49,20 +63,6 @@ class HaimNet(nn.Module):
             return self.function(embbeded) + torch.sigmoid(self.residual_module(xyzs))
         else:
             return self.function(embbeded)
-
-
-def initializer(m):
-    if isinstance(m, nn.Linear):
-        torch.nn.init.xavier_uniform_(m.weight)
-        torch.nn.init.uniform_(m.bias, 0, 1)
-        # m.bias.data.fill_(0.1)
-
-
-def siren_initializer(m):
-    if isinstance(m, nn.Linear):
-        w_std = math.sqrt(6 / m.in_features)
-        torch.nn.init.uniform_(m.weight, -w_std, w_std)
-        torch.nn.init.uniform_(m.bias, -w_std, w_std)
 
 
 # https://github.com/yenchenlin/nerf-pytorch/blob/a15fd7cb363e93f933012fd1f1ad5395302f63a4/run_nerf_helpers.py#L48
