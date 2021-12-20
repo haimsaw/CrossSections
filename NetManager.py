@@ -20,7 +20,7 @@ class INetManager:
         self.verbose = verbose
 
     @abstractmethod
-    def show_train_losses(self): raise NotImplementedError
+    def show_train_losses(self, save_path): raise NotImplementedError
 
     @abstractmethod
     def load_from_disk(self): raise NotImplementedError
@@ -136,8 +136,10 @@ class HaimNetManager(INetManager):
         if not self.verbose:
             print(f'\ntotal epochs={self.total_epochs}')
 
-    def show_train_losses(self):
+    def show_train_losses(self, save_path):
         plt.bar(range(len(self.train_losses)), self.train_losses)
+        if save_path is not None:
+            plt.savefig(save_path + f"losses")
         plt.show()
 
     def load_from_disk(self):

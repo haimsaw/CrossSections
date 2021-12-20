@@ -40,7 +40,7 @@ class OctNode:
     @property
     def _directions(self):
         dirs = np.array(((-1, -1, -1), (-1, -1, +1), (-1, +1, -1), (-1, +1, +1),
-                        (+1, -1, -1), (+1, -1, +1), (+1, +1, -1), (+1, +1, +1)))
+                         (+1, -1, -1), (+1, -1, +1), (+1, +1, -1), (+1, +1, +1)))
         dirs.flags.writeable = False
         return dirs
 
@@ -116,7 +116,7 @@ class OctNode:
     @property
     def _overlap_radius(self):
         return 2 * self.radius * self.oct_overlap_margin
-        #return np.array([0.25 if self.depth == 1 else 0.125] * 3)
+        # return np.array([0.25 if self.depth == 1 else 0.125] * 3)
 
     def indices_in_oct(self, xyzs, is_core=False):
         oct = self.oct_core if is_core else self.oct
@@ -296,10 +296,10 @@ class OctnetTree(INetManager):
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
 
-        #labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
-        #                  for node, xyzs in zip(leaves, xyzs_per_oct)]
-        labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0 if np.all(node.path[-1] == (-1, -1, -1)) else 0)
+        labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
+        # labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0 if np.all(node.path[-1] == (-1, -1, -1)) else 0)
+        #                  for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
 
@@ -317,10 +317,12 @@ class OctnetTree(INetManager):
 
         return errored_xyzs, errored_labels
 
-    def show_train_losses(self):
+    def show_train_losses(self, save_path):
         losses_per_leaf = [leaf.haim_net_manager.train_losses for leaf in self._get_leaves()]
         losses = np.mean(losses_per_leaf, axis=0)
         plt.bar(range(len(losses)), losses)
+        if save_path is not None:
+            plt.savefig(save_path + f"losses_l{self.depth}")
         plt.show()
 
     @staticmethod

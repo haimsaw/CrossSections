@@ -120,6 +120,7 @@ class Plane:
 
 class CSL:
     def __init__(self, filename):
+        self.model_name = filename.split('/')[-1].split('.')[0]
         with open(filename, 'r') as csl_file:
             csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
             assert next(csl_file).strip() == "CSLC"

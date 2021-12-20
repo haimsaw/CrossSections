@@ -1,3 +1,7 @@
+from datetime import datetime
+import json
+import os
+
 import numpy as np
 
 from CSL import *
@@ -11,22 +15,40 @@ from OctnetTree import *
 
 
 def main():
-    bounding_planes_margin = 0.05
-    sampling_margin = bounding_planes_margin
-    lr = 1e-2
-    root_sampling_resolution_2d = (30, 30)
-    l1_sampling_resolution_2d = (30, 30)
-    l2_sampling_resolution_2d = (30, 30)
+    hp = {
+        # sampling
+        'bounding_planes_margin': 0.05,
+        'sampling_margin': 0.05,  # same as bounding_planes_margin
+        'oct_overlap_margin': 0.25,
 
-    sampling_resolution_3d = (40, 40, 40)
-    hidden_layers = [16, 32, 32, 32]
-    epochs = 0
-    embedder = get_embedder(4)
-    scheduler_step = 5
-    oct_overlap_margin = 0.25  # should be 1/2^k
-    is_siren = False
+        # resulitions
+        'root_sampling_resolution_2d': (32, 32),
+        'sampling_resolution_3d': (100, 100, 100),
 
-    csl = get_csl(bounding_planes_margin)
+        # architecture
+        'num_embbeding_freqs': 4,
+        'hidden_layers': [64, 64, 64, 64, 64],
+        'is_siren': False,
+
+        # training
+        'epochs': 5,
+        'scheduler_step': 5,
+        'lr': 1e-2,
+
+        'now': str(datetime.now()),
+    }
+
+    csl = get_csl(hp['bounding_planes_margin'])
+
+    renderer = Renderer3D()
+    renderer.add_scene(csl)
+    renderer.save_animation()
+    return
+
+    save_path = csl.model_name + ' ' + hp['now'] + '/'
+    os.mkdir(save_path)
+    with open(save_path + 'hyperparams.json', 'w') as f:
+        f.write(json.dumps(hp, indent=4))
 
     '''
     renderer = Renderer3D()
@@ -34,35 +56,35 @@ def main():
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
-    renderer.add_rasterized_scene(csl, root_sampling_resolution_2d, sampling_margin, show_empty_planes=True, show_outside_shape=True)
+    renderer.add_rasterized_scene(csl, hp['root_sampling_resolution_2d'], hp['sampling_margin'], show_empty_planes=True, show_outside_shape=True)
     renderer.show()
     '''
 
-    xyzs_vertex = get_xyzs_in_octant(np.array([[0.25]*3, [-0.25]*3]), sampling_resolution_3d)
-    xyzs_edge = get_xyzs_in_octant(np.array([[0.25, 0.25, 0.75], [-0.25, -0.25, -0.75]]), sampling_resolution_3d)
-    xyzs_no_boundary = get_xyzs_in_octant(np.array([[0.75]*3, [-0.75]*3]), sampling_resolution_3d)
-    xyzs_no_boundary_l2 = get_xyzs_in_octant(np.array([[0.875]*3, [-0.875]*3]), sampling_resolution_3d)
-    xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.55]*3, [0.45]*3]), sampling_resolution_3d)
+    xyzs_vertex = get_xyzs_in_octant(np.array([[0.25]*3, [-0.25]*3]), hp['sampling_resolution_3d'])
+    xyzs_edge = get_xyzs_in_octant(np.array([[0.25, 0.25, 0.75], [-0.25, -0.25, -0.75]]), hp['sampling_resolution_3d'])
+    xyzs_no_boundary = get_xyzs_in_octant(np.array([[0.75]*3, [-0.75]*3]), hp['sampling_resolution_3d'])
+    xyzs_no_boundary_l2 = get_xyzs_in_octant(np.array([[0.875]*3, [-0.875]*3]), hp['sampling_resolution_3d'])
+    xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.55]*3, [0.45]*3]), hp['sampling_resolution_3d'])
     xyzs_few_planes = get_xyzs_in_octant([[1.0, 1.0, 0], [-1.0, -1.0, -1]], (50, 50, 4))
     xyzs_one_plane = get_xyzs_in_octant([[1.0, 1.0, -0.25], [-1.0, -1.0, -0.25]], (40, 40, 1))
 
-    xyzs_all = get_xyzs_in_octant(None, sampling_resolution_3d)
+    xyzs_all = get_xyzs_in_octant(None, hp['sampling_resolution_3d'])
 
-    tree = OctnetTree(csl, oct_overlap_margin, hidden_layers, embedder, is_siren)
+    tree = OctnetTree(csl, hp['oct_overlap_margin'], hp['hidden_layers'], get_embedder(hp['num_embbeding_freqs']), hp['is_siren'])
 
-    # todo root_sampling_resolution_2d
+    # todo hp['root_sampling_resolution_2d']
     # level 0:
-    dataset = RasterizedCslDataset(csl, sampling_resolution=root_sampling_resolution_2d, sampling_margin=sampling_margin,
+    dataset = RasterizedCslDataset(csl, sampling_resolution=hp['root_sampling_resolution_2d'], sampling_margin=hp['sampling_margin'],
                                    target_transform=torch.tensor, transform=torch.tensor)
 
-    tree.prepare_for_training(dataset, lr, scheduler_step)
-    tree.train_network(epochs=epochs)
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
+    tree.train_network(epochs=hp['epochs'])
 
     # draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
 
     # level 1
-    tree.prepare_for_training(dataset, lr, scheduler_step)
-    tree.train_network(epochs=epochs)
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
+    tree.train_network(epochs=hp['epochs'])
 
     #draw_blending_errors(tree, xyzs_vertex)
     #draw_blending_errors(tree, xyzs_edge)
@@ -73,15 +95,15 @@ def main():
     draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
 
     # level 3
-    tree.prepare_for_training(dataset, lr, scheduler_step)
-    tree.train_network(epochs=epochs)
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
+    tree.train_network(epochs=hp['epochs'])
 
     draw_blending_errors(tree, xyzs_no_boundary_l2, f'{tree.depth} xyzs_no_boundary_l2 ')
     draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
 
 
 
-    # mesh = marching_cubes(network_manager_root, sampling_resolution_3d)
+    # mesh = marching_cubes(network_manager_root, hp['sampling_resolution_3d'])
     # renderer = Renderer3D()
     # renderer.add_mesh(mesh)
     # renderer.add_scene(csl)
@@ -134,6 +156,6 @@ check if tree is helping or its just capacity
 Use sinusoidal activations (SIREN)
 Scale & translate each octant to fit [-1,1]^3
 Sheared weights / find a way to use symmetries 
-Use loss from the upper level to determine depth \#epochs
+Use loss from the upper level to determine depth \ #epochs
 save results directly to drive
 '''

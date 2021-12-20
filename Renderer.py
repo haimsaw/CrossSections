@@ -1,5 +1,4 @@
-from math import radians
-from random import random
+
 from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +7,8 @@ import inspect
 from Resterizer import rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
-import pickle
+
+import matplotlib.animation as animation
 
 # region 3d
 
@@ -31,12 +31,10 @@ def _get_3d_ax():
 class Renderer3D:
     def __init__(self):
         self.ax, self.fig = _get_3d_ax()
-
-    def save(self, filename):
-        pickle.dump(self.fig, open(filename, 'wb'))
+        self.description = []
 
     def add_scene(self, csl):
-
+        self.description.append('scene')
         # colors = [[random(), random(), random()] for _ in range(csl.n_labels + 1)]
 
         for plane in csl.planes:
@@ -50,12 +48,14 @@ class Renderer3D:
                     # ax.plot_surface(*vertices.T, color='green')
 
     def add_dataset(self, dataset):
+        self.description.append('dataset')
 
         xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == 1])
 
         self.ax.scatter(*xyzs.T, color="blue")
 
     def add_rasterized_scene(self, csl, sampling_resolution_2d, sampling_margin, show_empty_planes=True, show_outside_shape=False, alpha=0.1):
+        self.description.append('rasterized_scene')
 
         for plane in csl.planes:
             cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, sampling_margin)
@@ -70,6 +70,7 @@ class Renderer3D:
                 self.ax.scatter(*xyzs.T, color="purple", alpha=alpha/2)
 
     def add_model_hard_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=0.05, octant=None):
+        self.description.append('hard_prediction')
         xyzs = get_xyzs_in_octant(octant, sampling_resolution_3d)
         labels = network_manager.hard_predict(xyzs)
 
@@ -77,25 +78,35 @@ class Renderer3D:
 
     def add_model_soft_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=1.0):
         # todo not working
-
+        self.description.append('soft_prediction')
         xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
         labels = network_manager.soft_predict(xyzs)
 
         self.ax.scatter(*xyzs.T, c=labels, cmap="Blues", alpha=alpha)
 
     def add_mesh(self, my_mesh, alpha=0.2):
-
+        self.description.append('mesh')
         collection = Poly3DCollection(my_mesh.vectors, alpha=alpha)
         collection.set_edgecolor('b')
         self.ax.add_collection3d(collection)
 
     def add_model_errors(self, network_manager: INetManager):
+        self.description.append('model_errors')
         errored_xyz, errored_labels = network_manager.get_train_errors()
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
     def show(self):
         plt.show()
+
+    def save_animation(self, save_path, level):
+
+        def rotate(angle):
+            self.ax.view_init(azim=angle)
+
+        name = save_path + f'l{level}' + ' '.join(self.description) + '.gif'
+        rot_animation = animation.FuncAnimation(self.fig, rotate, frames=np.arange(0, 362, 2), interval=100)
+        rot_animation.save(name, dpi=80, writer='imagemagick')
 
 # endregion
 
