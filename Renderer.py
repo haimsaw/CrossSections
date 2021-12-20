@@ -14,7 +14,7 @@ import matplotlib.animation as animation
 
 
 def _get_3d_ax():
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(15, 15))
     ax = plt.axes(projection='3d')
     fig.suptitle(inspect.stack()[1][3])
     ax.set_xlim3d(-1, 1)
@@ -101,12 +101,15 @@ class Renderer3D:
 
     def save_animation(self, save_path, level):
 
-        def rotate(angle):
-            self.ax.view_init(azim=angle)
+        for elev in [-60, 0, 60]:
 
-        name = save_path + f'l{level}' + ' '.join(self.description) + '.gif'
-        rot_animation = animation.FuncAnimation(self.fig, rotate, frames=np.arange(0, 362, 2), interval=100)
-        rot_animation.save(name, dpi=80, writer='imagemagick')
+            def rotate(angle):
+                self.ax.view_init(elev=elev, azim=angle+30)
+
+            name = save_path + '_'.join(self.description) + f'_elev{elev}' + f'_l{level}' + '.gif'
+            rot_animation = animation.FuncAnimation(self.fig, rotate, frames=range(0, 365, 5), interval=100)
+            rot_animation.save(name, dpi=80, writer='imagemagick')
+
 
 # endregion
 
