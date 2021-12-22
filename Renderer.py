@@ -106,8 +106,8 @@ class Renderer3D:
                 self.ax.view_init(elev=elev, azim=angle)
 
             name = save_path + '_'.join(self.description) + f'_l{level}' + f'_elev{elev}' + '.gif'
-            rot_animation = animation.FuncAnimation(self.fig, rotate, frames=range(0, 365, 5), interval=100)
-            rot_animation.save(name, dpi=80, writer='imagemagick')
+            rot_animation = animation.FuncAnimation(self.fig, rotate, frames=range(0, 360, 5), interval=100)
+            rot_animation.save(name, writer='imagemagick')
         self.ax.view_init()
 
 # endregion

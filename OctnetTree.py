@@ -281,7 +281,7 @@ class OctnetTree(INetManager):
     def train_network(self, epochs):
         leaves = self._get_leaves()
         for i, leaf in enumerate(leaves):
-            print(f"\nleaf: {i}/{len(leaves) - 1} ")
+            print(f"\nleaf: {i}/{len(leaves) - 1} {leaf.path}")
             leaf.haim_net_manager.train_network(epochs=epochs)
 
     def prepare_for_training(self, dataset, lr, scheduler_step, sampler=None):
