@@ -32,7 +32,7 @@ class INetManager:
     def requires_grad_(self, requires_grad): raise NotImplementedError
 
     @abstractmethod
-    def prepare_for_training(self, dataset, lr, scheduler_step, sampler): raise NotImplementedError
+    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, sampler): raise NotImplementedError
 
     @abstractmethod
     def train_network(self, epochs): raise NotImplementedError
@@ -106,7 +106,7 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, dataset, lr, scheduler_step, sampler):
+    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, sampler):
         self.data_loader = DataLoader(dataset, batch_size=128, sampler=sampler)
 
         self.module.init_weights()
@@ -115,7 +115,7 @@ class HaimNetManager(INetManager):
         # self.loss_fn = nn.CrossEntropyLoss()
         self.loss_fn = nn.BCEWithLogitsLoss()
 
-        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=lr)
+        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=lr, weight_decay=weight_decay)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
         self.scheduler_step = scheduler_step
 

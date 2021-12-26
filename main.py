@@ -34,6 +34,7 @@ def main():
         'epochs': 1,
         'scheduler_step': 5,
         'lr': 1e-2,
+        'weight_decay': 1e-3,  # l2 regularization
 
         'now': str(datetime.now()),
     }
@@ -146,7 +147,7 @@ todo
 check if tree is helping or its just capacity 
 
 serialize a tree (in case collab crashes)
-dual contouring  + increse sampling (in prev work he used 2d= 216, 3d=300)
+dual contouring  + increase sampling (in prev work he used 2d= 216, 3d=300)
 
 Sheared weights / find a way to use symmetries 
 reduce capacity of lower levels
