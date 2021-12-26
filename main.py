@@ -153,7 +153,7 @@ Sheared weights / find a way to use symmetries
 reduce capacity of lower levels
 
 smooth loss - sink horn 
-ADAM - whight decay 
+ADAM - whight decay fine tuning 
 
 Use sinusoidal activations (SIREN/SAPE)
 Scale & translate each octant to fit [-1,1]^3
