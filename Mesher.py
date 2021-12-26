@@ -3,6 +3,7 @@ from stl import mesh as mesh2
 from Helpers import *
 from skimage import measure
 from NetManager import INetManager
+from mcdc.dual_contour_3d import dual_contour_3d
 
 
 def _get_mesh(labels, level, spacing):
@@ -16,6 +17,7 @@ def _get_mesh(labels, level, spacing):
 
 
 def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
+    dual_contour_3d(None, None)
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
     labels = net_manager.soft_predict(xyzs)

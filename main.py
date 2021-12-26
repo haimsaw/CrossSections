@@ -31,7 +31,7 @@ def main():
         'is_siren': False,
 
         # training
-        'epochs': 1,
+        'epochs': 0,
         'scheduler_step': 5,
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization
@@ -72,10 +72,11 @@ def main():
     dataset = RasterizedCslDataset(csl, sampling_resolution=hp['root_sampling_resolution_2d'], sampling_margin=hp['sampling_margin'],
                                    target_transform=torch.tensor, transform=torch.tensor)
 
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
     # draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
+    mesh = marching_cubes(tree, hp['sampling_resolution_3d'])
 
     # level 1
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
@@ -146,14 +147,16 @@ if __name__ == "__main__":
 todo
 check if tree is helping or its just capacity 
 
+fix blending on boundaries 
+
 serialize a tree (in case collab crashes)
 dual contouring  + increase sampling (in prev work he used 2d= 216, 3d=300)
 
 Sheared weights / find a way to use symmetries 
-reduce capacity of lower levels
+reduce capacity of lower levels (make #params in each level equal)
 
 smooth loss - sink horn 
-ADAM - whight decay fine tuning 
+ADAM - weight decay fine tuning 
 
 Use sinusoidal activations (SIREN/SAPE)
 Scale & translate each octant to fit [-1,1]^3
@@ -161,5 +164,5 @@ Scale & translate each octant to fit [-1,1]^3
 Use loss from the upper level to determine depth \ #epochs
 
 mashlab for showing mashes 
-read nrefs articals 
+nerfs literature review  
 '''
