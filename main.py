@@ -23,7 +23,7 @@ def main():
 
         # resulitions
         'root_sampling_resolution_2d': (32, 32),
-        'sampling_resolution_3d': (100, 100, 100),
+        'sampling_resolution_3d': (50, 50, 50),
 
         # architecture
         'num_embbeding_freqs': 4,
@@ -31,7 +31,7 @@ def main():
         'is_siren': False,
 
         # training
-        'epochs': 0,
+        'epochs': 3,
         'scheduler_step': 5,
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization

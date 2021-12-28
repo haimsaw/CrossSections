@@ -34,20 +34,23 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
     labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
 
     xyzs = map(tuple, xyzs)
-    dic = dict(zip(xyzs, labels))
 
     center = np.array([0.0, 0.0, 0.0])
     radius = 15.0
 
-    def f(x, y, z):
-        #return dic[(x, y, z)]
-        x = np.array([x, y, z])
-        d = x - center
-        return np.dot(d, d) - radius ** 2
+    '''
+    dual_contour_3d uses grid points as coordinates
+    so i j k are the indexs for the the label (and not the actual point)  
+    '''
+    def f(i, j, k):
+        return labels[i][j][k]
 
     def df(x, y, z):
         x = np.array([x, y, z])
         d = x - center
         return d / math.sqrt(np.dot(d, d))
 
-    return dual_contour_3d(f, df, sampling_resolution_3d, -20, 20, -20, 20, -20, 20)
+    return dual_contour_3d(f, df, sampling_resolution_3d,
+                           0, sampling_resolution_3d[0]-1,
+                           0, sampling_resolution_3d[1]-1,
+                           0, sampling_resolution_3d[2]-1)
