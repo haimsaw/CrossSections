@@ -1,7 +1,7 @@
 from datetime import datetime
 import json
 import os
-
+import mcdc.utils_3d as utils_3d
 import numpy as np
 
 from CSL import *
@@ -75,9 +75,11 @@ def main():
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
-    # draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
-    mesh = marching_cubes(tree, hp['sampling_resolution_3d'])
+    mesh = dual_contouring(tree, hp['sampling_resolution_3d'])
+    with open("output.obj", "w") as f:
+        utils_3d.make_obj(f, mesh)
 
+    return
     # level 1
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
     tree.train_network(epochs=hp['epochs'])

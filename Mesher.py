@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from stl import mesh as mesh2
 from Helpers import *
@@ -17,12 +19,35 @@ def _get_mesh(labels, level, spacing):
 
 
 def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
-    dual_contour_3d(None, None)
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
     labels = net_manager.soft_predict(xyzs)
-    argsorted_xyzs = np.lexsort((xyzs.T[2], xyzs.T[1], xyzs.T[0]))
+    # argsorted_xyzs = np.lexsort((xyzs.T[2], xyzs.T[1], xyzs.T[0]))
 
     # use spacing to match original shape boundaries
-    return _get_mesh(labels[argsorted_xyzs].reshape(sampling_resolution_3d), level=0.5, spacing=[2/res for res in sampling_resolution_3d])
+    #return _get_mesh(labels[argsorted_xyzs].reshape(sampling_resolution_3d), level=0.5, spacing=[2/res for res in sampling_resolution_3d])
+    return _get_mesh(labels.reshape(sampling_resolution_3d), level=0.5, spacing=[2/res for res in sampling_resolution_3d])
 
+
+def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
+    xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
+    labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
+
+    xyzs = map(tuple, xyzs)
+    dic = dict(zip(xyzs, labels))
+
+    center = np.array([0.0, 0.0, 0.0])
+    radius = 15.0
+
+    def f(x, y, z):
+        #return dic[(x, y, z)]
+        x = np.array([x, y, z])
+        d = x - center
+        return np.dot(d, d) - radius ** 2
+
+    def df(x, y, z):
+        x = np.array([x, y, z])
+        d = x - center
+        return d / math.sqrt(np.dot(d, d))
+
+    return dual_contour_3d(f, df, sampling_resolution_3d, -20, 20, -20, 20, -20, 20)

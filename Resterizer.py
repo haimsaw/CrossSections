@@ -30,7 +30,11 @@ class Cell:
             self._label = self._get_label()
         return self._label
 
-    def _get_label(self, accuracy=1000):
+    '''
+    using Hoeffding's inequality we get that for the result to be in range of +- eps=0.1 from actual value w.p 1-alpha=1-0.001=99.9%
+    we need 380=math.log(2/alpha)/(2*eps*eps) samples 
+    '''
+    def _get_label(self, accuracy=400):
         sampels = np.random.random_sample((accuracy, 2)) * self.pixel_radius + self.pixel_center
         labels = self.labeler(sampels)
         return sum(labels)/accuracy
