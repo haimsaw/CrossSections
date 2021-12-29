@@ -56,10 +56,10 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
         d = np.array([x, y, z]) - center
         return d / math.sqrt(np.dot(d, d))
 
-    def get_f_normal(xyzs_for_normal):
-        grads = net_manager.grad_wrt_input(np.array(xyzs_for_normal))
-        xyz_to_grad = dict(zip(map(tuple, xyzs_for_normal), grads))
-        return lambda i, j, k: xyz_to_grad[(i, j, k)]
+    def get_f_normal(ijks_for_normal):
+        xyzs_for_normal = (np.array(ijks_for_normal).T / sampling_resolution_3d).T # todo haim this wont work :( # todo haim - is this correct?
+        ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), net_manager.grad_wrt_input(xyzs_for_normal)))
+        return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
     return dual_contour_3d(f, get_f_normal, sampling_resolution_3d,
                            0, sampling_resolution_3d[0]-1,
