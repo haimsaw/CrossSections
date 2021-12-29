@@ -56,7 +56,12 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
         d = np.array([x, y, z]) - center
         return d / math.sqrt(np.dot(d, d))
 
-    return dual_contour_3d(f, df,
+    def get_f_normal(xyzs_for_normal):
+        grads = net_manager.grad_wrt_input(np.array(xyzs_for_normal))
+        xyz_to_grad = dict(zip(map(tuple, xyzs_for_normal), grads))
+        return lambda i, j, k: xyz_to_grad[(i, j, k)]
+
+    return dual_contour_3d(f, get_f_normal,
                            0, sampling_resolution_3d[0]-1,
                            0, sampling_resolution_3d[1]-1,
                            0, sampling_resolution_3d[2]-1)
