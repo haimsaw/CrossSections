@@ -32,28 +32,31 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
 def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
     labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
+    grads = net_manager.grad_wrt_input(xyzs)
 
     # set level is at 0
     labels = labels * 2 - 1
 
     xyzs = map(tuple, xyzs)
 
-    center = np.array([0.0, 0.0, 0.0])
-    radius = 15.0
+    center = np.array([25.0, 25.0, 25.0])
+    radius = 25
 
     '''
     dual_contour_3d uses grid points as coordinates
-    so i j k are the indexs for the the label (and not the actual point)  
+    so i j k are the indices for the the label (and not the actual point)  
     '''
     def f(i, j, k):
         return labels[i][j][k]
 
+        d = np.array([i, j, k]) - center
+        return np.dot(d, d) - radius ** 2
+
     def df(x, y, z):
-        x = np.array([x, y, z])
-        d = x - center
+        d = np.array([x, y, z]) - center
         return d / math.sqrt(np.dot(d, d))
 
-    return dual_contour_3d(f, df, sampling_resolution_3d,
+    return dual_contour_3d(f, df,
                            0, sampling_resolution_3d[0]-1,
                            0, sampling_resolution_3d[1]-1,
                            0, sampling_resolution_3d[2]-1)

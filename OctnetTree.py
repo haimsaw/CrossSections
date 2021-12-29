@@ -301,7 +301,18 @@ class OctnetTree(INetManager):
         # labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0 if np.all(node.path[-1] == (-1, -1, -1)) else 0)
         #                  for node, xyzs in zip(leaves, xyzs_per_oct)]
 
-        return self._merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct)
+        return self._merge_per_oct_vals(xyzs, xyzs_per_oct, labels_per_oct)
+
+    def grad_wrt_input(self, xyzs, use_sigmoid=True):
+        leaves = self._get_leaves()
+
+        xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
+
+        # since derivative is a linear operation we can blend them the same way we blend labels
+        grad_per_oct = [(node.get_mask_for_blending(xyzs) * node.haim_net_manager.grad_wrt_input(xyzs, use_sigmoid).T).T
+                        for node, xyzs in zip(leaves, xyzs_per_oct)]
+
+        return self._merge_per_oct_vals(xyzs, xyzs_per_oct, grad_per_oct)
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):
@@ -326,15 +337,14 @@ class OctnetTree(INetManager):
         plt.show()
 
     @staticmethod
-    def _merge_oct_predictions(xyzs, labels_per_oct, xyzs_per_oct):
+    def _merge_per_oct_vals(xyzs, xyzs_per_oct, values_per_oct):
         flatten_xyzs = (xyz for xyzs in xyzs_per_oct for xyz in xyzs)
-        flatten_labels = (label for labels in labels_per_oct for label in labels)
+        flatten_values = (value for values in values_per_oct for value in values)
         aggregator = {}
-        for xyz, label in zip(flatten_xyzs, flatten_labels):
+        for xyz, value in zip(flatten_xyzs, flatten_values):
             xyz_data = xyz.tobytes()
             if xyz_data in aggregator:
-                aggregator[xyz_data] += label
+                aggregator[xyz_data] += value
             else:
-                aggregator[xyz_data] = label
-        labels = np.array([aggregator[xyz.tobytes()] for xyz in xyzs])
-        return labels
+                aggregator[xyz_data] = value
+        return np.array([aggregator[xyz.tobytes()] for xyz in xyzs])

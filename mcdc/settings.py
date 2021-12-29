@@ -6,7 +6,7 @@ in the accompanying article."""
 # Both marching cube and dual contouring are adaptive, i.e. they select
 # the vertex that best describes the underlying function. But for illustrative purposes
 # you can turn this off, and simply select the midpoint vertex.
-ADAPTIVE = False # todo haim
+ADAPTIVE = True
 
 # In dual contouring, if true, crudely force the selected vertex to belong in the cell
 CLIP = False

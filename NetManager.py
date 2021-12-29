@@ -43,6 +43,9 @@ class INetManager:
     @abstractmethod
     def soft_predict(self, xyzs, use_sigmoid=True): raise NotImplementedError
 
+    @abstractmethod
+    def grad_wrt_input(self, xyzs, use_sigmoid=True): raise NotImplementedError
+
     @torch.no_grad()
     def hard_predict(self, xyzs, threshold=0.5):
         # todo self.module.eval()
@@ -164,6 +167,24 @@ class HaimNetManager(INetManager):
             batch_labels = torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)
             label_pred = np.concatenate((label_pred, batch_labels.detach().cpu().numpy().reshape(-1)))
         return label_pred
+
+    def grad_wrt_input(self, xyzs, use_sigmoid=True):
+        # todo assert in octant
+
+        self.module.eval()
+
+        data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
+        grads = np.empty((0, 3), dtype=float)
+
+        for xyzs_batch in data_loader:
+            xyzs_batch.requires_grad_(True)
+            xyzs_batch = xyzs_batch.to(self.device)
+
+            self.module.zero_grad()
+            (torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)).sum().backward()
+
+            grads = np.concatenate((grads, xyzs_batch.grad.detach().cpu().numpy()))
+        return grads
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):

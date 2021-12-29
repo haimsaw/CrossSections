@@ -9,12 +9,12 @@ from mcdc.utils_3d import V3, Quad, Mesh, make_obj
 from mcdc.qef import solve_qef_3d
 
 
-def dual_contour_3d_find_best_vertex(f, f_normal, x, y, z):
+def dual_contour_3d_find_changes(f, x, y, z):
     # todo batch f_normal
     # todo for dx in (0, 1) is not correct
 
-    if not ADAPTIVE:
-        return V3(x+0.5, y+0.5, z+0.5)
+    # if not ADAPTIVE:
+    #     return [V3(x+0.5, y+0.5, z+0.5)]
 
     # Evaluate f at each corner
     v = np.empty((2, 2, 2))
@@ -41,43 +41,43 @@ def dual_contour_3d_find_best_vertex(f, f_normal, x, y, z):
             if (v[0, dy, dz] > 0) != (v[1, dy, dz] > 0):
                 changes.append((x + adapt(v[0, dy, dz], v[1, dy, dz]), y + dy, z + dz))
 
-    if len(changes) <= 1:
-        return None
-
-    # For each sign change location v[i], we find the normal n[i].
-    # The error term we are trying to minimize is sum( dot(x-v[i], n[i]) ^ 2)
-
-    # In other words, minimize || A * x - b || ^2 where A and b are a matrix and vector
-    # derived from v and n
-
-    normals = []
-    for v in changes:
-        n = f_normal(v[0], v[1], v[2])
-        #normals.append([n.x, n.y, n.z])
-        normals.append(n)
-
-    return solve_qef_3d(x, y, z, changes, normals)
+    return changes
 
 
-def dual_contour_3d(f, f_normal, sampling_resolution_3d, xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX, zmin=ZMIN, zmax=ZMAX):
+def dual_contour_3d(f, f_normal, xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX, zmin=ZMIN, zmax=ZMAX):
     """Iterates over a cells of size one between the specified range, and evaluates f and f_normal to produce
         a boundary by Dual Contouring. Returns a Mesh object."""
     # For each cell, find the best vertex for fitting f
-    vert_array = []
-    vert_indices = {}
 
-    xs = np.linspace(-1, 1, sampling_resolution_3d[0])
-    ys = np.linspace(-1, 1, sampling_resolution_3d[1])
-    zs = np.linspace(-1, 1, sampling_resolution_3d[2])
+    xyz_to_changes = []
 
     for x in range(xmin, xmax):
         for y in range(ymin, ymax):
             for z in range(zmin, zmax):
-                vert = dual_contour_3d_find_best_vertex(f, f_normal, x, y, z)
-                if vert is None:
+                changes = dual_contour_3d_find_changes(f, x, y, z)
+                if len(changes) <= 1:
                     continue
-                vert_array.append(vert)
-                vert_indices[(x, y, z)] = len(vert_array)
+                xyz_to_changes.append(((x, y, z), changes))
+
+    # todo calc f_normal here
+
+    vert_array = []
+    vert_indices = {}
+    for xyz, changes in xyz_to_changes:
+        # For each sign change location v[i], we find the normal n[i].
+        # The error term we are trying to minimize is sum( dot(x-v[i], n[i]) ^ 2)
+
+        # In other words, minimize || A * x - b || ^2 where A and b are a matrix and vector
+        # derived from v and n
+
+        normals = [f_normal(v[0], v[1], v[2]) for v in changes]
+
+        vert = solve_qef_3d(*xyz, changes, normals)
+
+        vert_array.append(vert)
+        vert_indices[xyz] = len(vert_array)
+
+        # todo if adptive - vert = V3(x+0.5, y+0.5, z+0.5)
 
     # For each cell edge, emit a face between the center of the adjacent cells if it is a sign changing edge
     faces = []
