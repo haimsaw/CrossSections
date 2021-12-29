@@ -44,7 +44,7 @@ def dual_contour_3d_find_changes(f, x, y, z):
     return changes
 
 
-def dual_contour_3d(f, get_f_normal, xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX, zmin=ZMIN, zmax=ZMAX):
+def dual_contour_3d(f, get_f_normal, sampling_resolution_3d, xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX, zmin=ZMIN, zmax=ZMAX):
     """Iterates over a cells of size one between the specified range, and evaluates f and f_normal to produce
         a boundary by Dual Contouring. Returns a Mesh object."""
     # For each cell, find the best vertex for fitting f
@@ -65,7 +65,7 @@ def dual_contour_3d(f, get_f_normal, xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
 
     vert_array = []
     vert_indices = {}
-    f_normal = get_f_normal(xyzs_for_normal)
+    f_normal = get_f_normal(xyzs_for_normal)  # todo haim xyzs_for_normal is in the scale of unit cube while  f_normal usses the cls scale
     for xyz, changes in xyz_to_changes:
         # For each sign change location v[i], we find the normal n[i].
         # The error term we are trying to minimize is sum( dot(x-v[i], n[i]) ^ 2)
