@@ -33,6 +33,9 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
     labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
 
+    # set level is at 0
+    labels = labels * 2 - 1
+
     xyzs = map(tuple, xyzs)
 
     center = np.array([0.0, 0.0, 0.0])
