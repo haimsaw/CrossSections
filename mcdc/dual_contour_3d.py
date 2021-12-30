@@ -2,7 +2,7 @@
 """Provides a function for performing 3D Dual Countouring"""
 
 from mcdc.common import adapt
-from mcdc.settings import ADAPTIVE, XMIN, XMAX, YMIN, YMAX, ZMIN, ZMAX
+from mcdc.settings import ADAPTIVE
 import numpy as np
 import math
 from mcdc.utils_3d import V3, Quad, Mesh, make_obj
@@ -38,13 +38,14 @@ def dual_contour_3d_find_changes(f, x, y, z):
     return changes
 
 
-def dual_contour_3d(f, get_f_normal, sampling_resolution_3d, xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX, zmin=ZMIN, zmax=ZMAX):
+def dual_contour_3d(f, get_f_normal, xmax, ymax, zmax):
     """Iterates over a cells of size one between the specified range, and evaluates f and f_normal to produce
         a boundary by Dual Contouring. Returns a Mesh object."""
     # For each cell, find the best vertex for fitting f
 
     xyz_to_changes = []
     xyzs_for_normal = []
+    xmin = ymin = zmin = 0
 
     for x in range(xmin, xmax):
         for y in range(ymin, ymax):
@@ -110,7 +111,7 @@ def dual_contour_3d(f, get_f_normal, sampling_resolution_3d, xmin=XMIN, xmax=XMA
                             vert_indices[(x, y - 1, z - 0)],
                         ).swap(solid2))
 
-    return Mesh(vert_array, faces)
+    return Mesh(vert_array, faces)  # todo - return stl.mesh
 
 
 def circle_function(x, y, z):

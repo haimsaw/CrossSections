@@ -64,6 +64,10 @@ class Mesh:
         new_verts = [V3(v.x + offset.x, v.y + offset.y, v.z + offset.z) for v in self.verts]
         return Mesh(new_verts, self.faces)
 
+    def save(self, path):
+        with open(path, "w") as f:
+            make_obj(f, self)
+
 
 def make_obj(f, mesh):
     """Crude export to Wavefront mesh format"""

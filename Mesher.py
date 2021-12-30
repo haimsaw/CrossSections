@@ -61,7 +61,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
         ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), net_manager.grad_wrt_input(xyzs_for_normal)))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
-    return dual_contour_3d(f, get_f_normal, sampling_resolution_3d,
-                           0, sampling_resolution_3d[0]-1,
-                           0, sampling_resolution_3d[1]-1,
-                           0, sampling_resolution_3d[2]-1)
+    return dual_contour_3d(f, get_f_normal,
+                           sampling_resolution_3d[0]-1,
+                           sampling_resolution_3d[1]-1,
+                           sampling_resolution_3d[2]-1)

@@ -76,8 +76,7 @@ def main():
     tree.train_network(epochs=hp['epochs'])
 
     mesh = dual_contouring(tree, hp['sampling_resolution_3d'])
-    with open("output.obj", "w") as f:
-        utils_3d.make_obj(f, mesh)
+
 
     return
     # level 1
