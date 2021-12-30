@@ -61,7 +61,6 @@ def dual_contour_3d(f, get_f_normal, sampling_resolution_3d, xmin=XMIN, xmax=XMA
                 xyz_to_changes.append(((x, y, z), changes))
                 xyzs_for_normal += changes
 
-    # todo calc f_normal here
 
     vert_array = []
     vert_indices = {}

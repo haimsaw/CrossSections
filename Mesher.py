@@ -57,7 +57,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
         return d / math.sqrt(np.dot(d, d))
 
     def get_f_normal(ijks_for_normal):
-        xyzs_for_normal = (np.array(ijks_for_normal).T / sampling_resolution_3d).T # todo haim this wont work :( # todo haim - is this correct?
+        xyzs_for_normal = np.array(ijks_for_normal) / sampling_resolution_3d  # todo haim - is this correct?
         ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), net_manager.grad_wrt_input(xyzs_for_normal)))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 

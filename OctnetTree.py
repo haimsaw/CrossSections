@@ -309,7 +309,7 @@ class OctnetTree(INetManager):
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
 
         # since derivative is a linear operation we can blend them the same way we blend labels
-        grad_per_oct = [(node.get_mask_for_blending(xyzs) * node.haim_net_manager.grad_wrt_input(xyzs, use_sigmoid).T).T  # todo haim this wont work :(
+        grad_per_oct = [(node.get_mask_for_blending(xyzs) * node.haim_net_manager.grad_wrt_input(xyzs, use_sigmoid).T).T  # todo haim this wont work :(?
                         for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_per_oct_vals(xyzs, xyzs_per_oct, grad_per_oct)
