@@ -76,14 +76,6 @@ class Renderer3D:
 
         self.ax.scatter(*xyzs[labels].T, alpha=alpha, color='blue')
 
-    def add_model_soft_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=1.0):
-        # todo not working
-        self.description.append('soft_prediction')
-        xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
-        labels = network_manager.soft_predict(xyzs)
-
-        self.ax.scatter(*xyzs.T, c=labels, cmap="Blues", alpha=alpha)
-
     def add_mesh(self, my_mesh, alpha=0.2):
         self.description.append('mesh')
         collection = Poly3DCollection(my_mesh.vectors, alpha=alpha)

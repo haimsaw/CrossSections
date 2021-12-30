@@ -10,12 +10,6 @@ from mcdc.qef import solve_qef_3d
 
 
 def dual_contour_3d_find_changes(f, x, y, z):
-    # todo batch f_normal
-    # todo for dx in (0, 1) is not correct
-
-    # if not ADAPTIVE:
-    #     return [V3(x+0.5, y+0.5, z+0.5)]
-
     # Evaluate f at each corner
     v = np.empty((2, 2, 2))
     for dx in (0, 1):
@@ -61,10 +55,9 @@ def dual_contour_3d(f, get_f_normal, sampling_resolution_3d, xmin=XMIN, xmax=XMA
                 xyz_to_changes.append(((x, y, z), changes))
                 xyzs_for_normal += changes
 
-
     vert_array = []
     vert_indices = {}
-    f_normal = get_f_normal(xyzs_for_normal)  # todo haim xyzs_for_normal is in the scale of unit cube while  f_normal usses the cls scale
+    f_normal = get_f_normal(xyzs_for_normal)
     for xyz, changes in xyz_to_changes:
         # For each sign change location v[i], we find the normal n[i].
         # The error term we are trying to minimize is sum( dot(x-v[i], n[i]) ^ 2)
