@@ -177,14 +177,15 @@ class HaimNetManager(INetManager):
         grads = np.empty((0, 3), dtype=float)
 
         for xyzs_batch in data_loader:
-            xyzs_batch.requires_grad_(True)
             xyzs_batch = xyzs_batch.to(self.device)
+            xyzs_batch.requires_grad_(True)
 
             self.module.zero_grad()
             (torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)).sum().backward()
 
-            grads = np.concatenate((grads, xyzs_batch.grad.detach().cpu().numpy()))
-        return grads
+            grads_batch = xyzs_batch.grad.detach().cpu().numpy()
+            grads = np.concatenate((grads, grads_batch))
+            return grads
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):

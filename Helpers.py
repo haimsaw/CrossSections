@@ -1,5 +1,6 @@
 import numpy as np
-
+from functools import wraps
+from time import time
 
 def get_top_bottom(points):
     top = np.amax(points, axis=0)
@@ -19,3 +20,13 @@ def get_xyzs_in_octant(oct, sampling_resolution_3d):
     z = np.linspace(oct[1][2], oct[0][2], sampling_resolution_3d[2])
     return np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1).reshape((-1, 3))
 
+
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print(f'func:%r args:[%r, %r] took: %2.4f sec' % (f.__name__, args, kw, te-ts))
+        return result
+    return wrap
