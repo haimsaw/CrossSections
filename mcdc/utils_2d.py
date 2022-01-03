@@ -1,7 +1,7 @@
 """Contains utilities common to 2d meshing methods"""
 
-from mcdc.settings import XMIN, XMAX, YMIN, YMAX
 import math
+
 
 class V2:
     def __init__(self, x, y):

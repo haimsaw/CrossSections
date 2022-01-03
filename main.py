@@ -31,7 +31,7 @@ def main():
         'is_siren': False,
 
         # training
-        'epochs': 3,
+        'epochs': 0,
         'scheduler_step': 5,
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization
@@ -75,12 +75,9 @@ def main():
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
-    mesh = dual_contouring(tree, hp['sampling_resolution_3d'])
 
-
-    return
     # level 1
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
     #draw_blending_errors(tree, xyzs_vertex)
@@ -89,14 +86,17 @@ def main():
 
     #draw_blending_errors(tree, xyzs_few_planes, f'{tree.depth} xyzs_few_planes ')
     #draw_blending_errors(tree, xyzs_no_boundary, f'{tree.depth} xyzs_no_boundary ')
-    #draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
+
+    draw_blending_errors(tree, xyzs_few_planes, f'{tree.depth} xyzs_few_planes ')
+
+    draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
 
     # level 3
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'])
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
     #draw_blending_errors(tree, xyzs_no_boundary_l2, f'{tree.depth} xyzs_no_boundary_l2 ')
-    #draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
+    draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
 
     # mesh = marching_cubes(network_manager_root, hp['sampling_resolution_3d'])
     # renderer = Renderer3D()

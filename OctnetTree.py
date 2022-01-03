@@ -116,7 +116,6 @@ class OctNode:
     @property
     def _overlap_radius(self):
         return 2 * self.radius * self.oct_overlap_margin
-        # return np.array([0.25 if self.depth == 1 else 0.125] * 3)
 
     def indices_in_oct(self, xyzs, is_core=False):
         oct = self.oct_core if is_core else self.oct
@@ -172,6 +171,7 @@ class OctNode:
 
     def _interpolate_oct_wights(self, interpolation_oct, xyzs):
         interpolation_oct = np.array(interpolation_oct)
+
         x = np.flip(interpolation_oct[..., 0])
         y = np.flip(interpolation_oct[..., 1])
         z = np.flip(interpolation_oct[..., 2])
@@ -191,9 +191,9 @@ class OctNode:
             return []
 
         overlap_radius = self._overlap_radius
+        verts_octs = [[vertex + overlap_radius, vertex - overlap_radius] for vertex, on_boundary in zip(*self._vertices)]
 
-        return [[vertex + overlap_radius, vertex - overlap_radius]
-                for vertex, on_boundary in zip(*self._vertices) if not on_boundary]
+        return np.clip(verts_octs, -1, 1)
 
     def _overlapping_octs_around_edges(self):
         if self.depth == 0:
@@ -205,14 +205,14 @@ class OctNode:
         for edge, (is_boundary1, is_boundary2) in zip(*self._edges):
 
             # an edge is on the boundary iff both of its vertices are on the boundary
-            if not (is_boundary1 and is_boundary2):
-                # todo HAIM no need to take margin on vertices on boundary
-                # remove overlapping around vertices
-                padding = np.where(edge[0] == edge[1], overlap_radius, -overlap_radius)
-                edges_octs.append([np.amax(edge, axis=0) + padding,
-                                   np.amin(edge, axis=0) - padding])
+            # if not (is_boundary1 and is_boundary2):
+            # remove overlapping around vertices
+            padding = np.where(edge[0] == edge[1], overlap_radius, -overlap_radius)
+            edges_octs.append([np.amax(edge, axis=0) + padding,
+                               np.amin(edge, axis=0) - padding])
 
-        return edges_octs
+        # do not to take margin on vertices on boundary
+        return np.clip(edges_octs, -1, 1)
 
     def _overlapping_octs_around_faces(self):
         if self.depth == 0:
@@ -223,16 +223,16 @@ class OctNode:
         faces_octs = []
         for face, (b1, b2, b3, b4) in zip(*self._faces):
             # a face is on the boundary iff all of its vertices are on the boundary
-            if not (b1 and b2 and b3 and b4):
-                # remove overlapping around edges
-                # todo HAIM do not to take margin on vertices on boundary
-                padding = np.where((face[0] == face[1]) & (face[0] == face[2]) & (face[0] == face[3]),
-                                   overlap_radius, -overlap_radius)
+            # if not (b1 and b2 and b3 and b4):
+            # remove overlapping around edges
+            padding = np.where((face[0] == face[1]) & (face[0] == face[2]) & (face[0] == face[3]),
+                               overlap_radius, -overlap_radius)
 
-                faces_octs.append([np.amax(face, axis=0) + padding,
-                                   np.amin(face, axis=0) - padding])
+            faces_octs.append([np.amax(face, axis=0) + padding,
+                               np.amin(face, axis=0) - padding])
 
-        return faces_octs
+        # do not to take margin on vertices on boundary
+        return np.clip(faces_octs, -1, 1)
 
 
 class OctnetTree(INetManager):
@@ -296,10 +296,8 @@ class OctnetTree(INetManager):
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
 
-        labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0) # node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
-        # labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0 if np.all(node.path[-1] == (-1, -1, -1)) else 0)
-        #                  for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_per_oct_vals(xyzs, xyzs_per_oct, labels_per_oct)
 
