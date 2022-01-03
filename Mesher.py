@@ -48,6 +48,6 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
     return dual_contour_3d(f, get_f_normal,
-                           sampling_resolution_3d[0]-1,
+                           sampling_resolution_3d[0]-1,  # todo haim -1 +1?
                            sampling_resolution_3d[1]-1,
                            sampling_resolution_3d[2]-1)
