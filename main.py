@@ -148,8 +148,6 @@ if __name__ == "__main__":
 todo
 check if tree is helping or its just capacity 
 
-fix blending on boundaries 
-
 serialize a tree (in case collab crashes)
 dual contouring  + increase sampling (in prev work he used 2d= 216, 3d=300)
 

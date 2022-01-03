@@ -318,7 +318,7 @@ class OctnetTree(INetManager):
         errored_labels = np.empty(0, dtype=bool)
 
         for leaf in self._get_leaves():
-            # todo handle overlapping?
+            # ignore interpolation of overlapping
             net_errors_xyzs, net_errors_labels = leaf.haim_net_manager.get_train_errors()
 
             errored_xyzs = np.concatenate((errored_xyzs, net_errors_xyzs))
