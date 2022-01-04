@@ -28,8 +28,11 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
     # use spacing to match original shape boundaries
     return _get_mesh(labels.reshape(sampling_resolution_3d), level=0, spacing=[2/res for res in sampling_resolution_3d])
 
+
 @timing
-def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
+
+@timing
+def dual_contouring(net_manager: INetManager, sampling_resolution_3d, is_new):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d, endpoint=False)
     labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
 
@@ -44,11 +47,15 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
         return labels[i][j][k]
 
     def get_f_normal(ijks_for_normal):
-        # translate from ijk (index) corodinate system to xyz
-        # xyz = np.linspace(-1, 1, xyzs_for_normal[i], endpoint=False)
+        if is_new:
+            # translate from ijk (index) corodinate system to xyz
+            # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]-1, endpoint=False)
 
-        radius = sampling_resolution_3d / 2
-        xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
+            radius = np.array(sampling_resolution_3d) / 2
+            xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
+        else:
+            xyzs_for_normal = np.array(ijks_for_normal) / sampling_resolution_3d  # todo haim - is this correct?
+
         ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), net_manager.grad_wrt_input(xyzs_for_normal)))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
@@ -56,3 +63,4 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
                            sampling_resolution_3d[0] - 1,  # todo haim -1 +1?
                            sampling_resolution_3d[1] - 1,
                            sampling_resolution_3d[2] - 1)
+

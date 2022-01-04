@@ -22,8 +22,8 @@ def main():
         'oct_overlap_margin': 0.25,
 
         # resolutions
-        'root_sampling_resolution_2d':  np.array((32, 32)),
-        'sampling_resolution_3d': np.array((128, 128, 128)),
+        'root_sampling_resolution_2d':  (32, 32),
+        'sampling_resolution_3d': (64, 64, 64),
 
         # architecture
         'num_embedding_freqs': 4,
@@ -31,7 +31,7 @@ def main():
         'is_siren': False,
 
         # training
-        'epochs': 3,
+        'epochs': 20,
         'scheduler_step': 5,
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization

@@ -73,7 +73,7 @@ def dual_contour_3d(f, get_f_normal, xmax, ymax, zmax):
         vert_array.append(vert)
         vert_indices[xyz] = len(vert_array)
 
-        # todo if adptive - vert = V3(x+0.5, y+0.5, z+0.5)
+        # todo if adaptive - vert = V3(x+0.5, y+0.5, z+0.5)
 
     # For each cell edge, emit a face between the center of the adjacent cells if it is a sign changing edge
     faces = []
