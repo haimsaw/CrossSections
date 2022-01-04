@@ -88,6 +88,15 @@ class Renderer3D:
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
+    def add_grads(self, network_manager: INetManager, sampling_resolution_3d, alpha=1):
+        self.description.append('grads')
+
+        xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
+        grads = network_manager.grad_wrt_input(xyzs)
+
+        self.ax.quiver(*xyzs.T, *grads.T, color='black', normalize=True, alpha=alpha, length=0.1)
+
+
     def show(self):
         plt.show()
 

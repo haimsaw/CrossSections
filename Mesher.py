@@ -30,16 +30,12 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
 
 
 @timing
-
-@timing
-def dual_contouring(net_manager: INetManager, sampling_resolution_3d, is_new):
+def dual_contouring(net_manager: INetManager, sampling_resolution_3d, trans):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d, endpoint=False)
     labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
 
     # set level is at 0
     labels = labels * 2 - 1
-
-    xyzs = map(tuple, xyzs)
 
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
@@ -47,14 +43,23 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, is_new):
         return labels[i][j][k]
 
     def get_f_normal(ijks_for_normal):
-        if is_new:
+
+        if trans == 0:
+            xyzs_for_normal = np.array(ijks_for_normal) / sampling_resolution_3d  # todo haim - is this correct?
+
+        elif trans == 1:
             # translate from ijk (index) corodinate system to xyz
             # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]-1, endpoint=False)
 
             radius = np.array(sampling_resolution_3d) / 2
             xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
-        else:
-            xyzs_for_normal = np.array(ijks_for_normal) / sampling_resolution_3d  # todo haim - is this correct?
+
+        elif trans == 2:
+            radius = np.array(sampling_resolution_3d)
+            xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
+
+        elif trans == 3:
+            return lambda i, j, k: np.array([0.0, 0.0, 0.0])
 
         ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), net_manager.grad_wrt_input(xyzs_for_normal)))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
@@ -63,4 +68,5 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, is_new):
                            sampling_resolution_3d[0] - 1,  # todo haim -1 +1?
                            sampling_resolution_3d[1] - 1,
                            sampling_resolution_3d[2] - 1)
+
 
