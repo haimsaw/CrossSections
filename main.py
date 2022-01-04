@@ -21,17 +21,17 @@ def main():
         'sampling_margin': 0.05,  # same as bounding_planes_margin
         'oct_overlap_margin': 0.25,
 
-        # resulitions
-        'root_sampling_resolution_2d': (32, 32),
-        'sampling_resolution_3d': (50, 50, 50),
+        # resolutions
+        'root_sampling_resolution_2d':  np.array((32, 32)),
+        'sampling_resolution_3d': np.array((128, 128, 128)),
 
         # architecture
-        'num_embbeding_freqs': 4,
+        'num_embedding_freqs': 4,
         'hidden_layers': [64, 64, 64, 64, 64],
         'is_siren': False,
 
         # training
-        'epochs': 0,
+        'epochs': 3,
         'scheduler_step': 5,
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization
@@ -56,47 +56,29 @@ def main():
     renderer.show()
     '''
 
-    xyzs_vertex = get_xyzs_in_octant(np.array([[0.25]*3, [-0.25]*3]), hp['sampling_resolution_3d'])
-    xyzs_edge = get_xyzs_in_octant(np.array([[0.25, 0.25, 0.75], [-0.25, -0.25, -0.75]]), hp['sampling_resolution_3d'])
-    xyzs_no_boundary = get_xyzs_in_octant(np.array([[0.75]*3, [-0.75]*3]), hp['sampling_resolution_3d'])
-    xyzs_no_boundary_l2 = get_xyzs_in_octant(np.array([[0.875]*3, [-0.875]*3]), hp['sampling_resolution_3d'])
-    xyzs_small_depth2 = get_xyzs_in_octant(np.array([[0.55]*3, [0.45]*3]), hp['sampling_resolution_3d'])
-    xyzs_few_planes = get_xyzs_in_octant([[1.0, 1.0, 0], [-1.0, -1.0, -1]], (50, 50, 4))
-    xyzs_one_plane = get_xyzs_in_octant([[1.0, 1.0, -0.25], [-1.0, -1.0, -0.25]], (40, 40, 1))
-    xyzs_all = get_xyzs_in_octant(None, hp['sampling_resolution_3d'])
+    tree = OctnetTree(csl, hp['oct_overlap_margin'], hp['hidden_layers'], get_embedder(hp['num_embedding_freqs']), hp['is_siren'])
 
-    tree = OctnetTree(csl, hp['oct_overlap_margin'], hp['hidden_layers'], get_embedder(hp['num_embbeding_freqs']), hp['is_siren'])
 
-    # level 0:
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp['root_sampling_resolution_2d']]
     dataset = RasterizedCslDataset(csl, sampling_resolution=hp['root_sampling_resolution_2d'], sampling_margin=hp['sampling_margin'],
                                    target_transform=torch.tensor, transform=torch.tensor)
 
+    # level 0:
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
-
+    dual_contouring(tree, hp['sampling_resolution_3d']).save('output.obj')
+    return
 
     # level 1
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
-    #draw_blending_errors(tree, xyzs_vertex)
-    #draw_blending_errors(tree, xyzs_edge)
-    #draw_blending_errors(tree, xyzs_one_plane, f'{tree.depth} xyzs_one_plane ')
 
-    #draw_blending_errors(tree, xyzs_few_planes, f'{tree.depth} xyzs_few_planes ')
-    #draw_blending_errors(tree, xyzs_no_boundary, f'{tree.depth} xyzs_no_boundary ')
 
-    draw_blending_errors(tree, xyzs_few_planes, f'{tree.depth} xyzs_few_planes ')
-
-    draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
-
-    # level 3
+    # level 2
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
-    #draw_blending_errors(tree, xyzs_no_boundary_l2, f'{tree.depth} xyzs_no_boundary_l2 ')
-    draw_blending_errors(tree, xyzs_all, f'{tree.depth} xyzs_all ')
 
     # mesh = marching_cubes(network_manager_root, hp['sampling_resolution_3d'])
     # renderer = Renderer3D()
@@ -155,13 +137,11 @@ Sheared weights / find a way to use symmetries
 reduce capacity of lower levels (make #params in each level equal)
 
 smooth loss - sink horn 
-ADAM - weight decay fine tuning 
 
 Use sinusoidal activations (SIREN/SAPE)
 Scale & translate each octant to fit [-1,1]^3
 
 Use loss from the upper level to determine depth \ #epochs
 
-mashlab for showing mashes 
 nerfs literature review  
 '''

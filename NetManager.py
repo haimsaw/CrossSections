@@ -185,7 +185,7 @@ class HaimNetManager(INetManager):
 
             grads_batch = xyzs_batch.grad.detach().cpu().numpy()
             grads = np.concatenate((grads, grads_batch))
-            return grads
+        return grads
 
     @torch.no_grad()
     def get_train_errors(self, threshold=0.5):

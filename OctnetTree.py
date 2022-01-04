@@ -257,6 +257,9 @@ class OctnetTree(INetManager):
         self.depth = None
         self.is_siren = is_siren
 
+    def __str__(self):
+        return f'csl={self.csl.model_name} depth={self.depth}'
+
     def _add_level(self):
         if self.root is None:
             self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]),
@@ -296,7 +299,7 @@ class OctnetTree(INetManager):
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
 
-        labels_per_oct = [node.get_mask_for_blending(xyzs) * np.full(len(xyzs), 1.0) # node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_per_oct_vals(xyzs, xyzs_per_oct, labels_per_oct)

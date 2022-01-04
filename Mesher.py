@@ -18,6 +18,7 @@ def _get_mesh(labels, level, spacing):
     return my_mesh
 
 
+@timing
 def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
@@ -27,9 +28,9 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
     # use spacing to match original shape boundaries
     return _get_mesh(labels.reshape(sampling_resolution_3d), level=0, spacing=[2/res for res in sampling_resolution_3d])
 
-
+@timing
 def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
-    xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
+    xyzs = get_xyzs_in_octant(None, sampling_resolution_3d, endpoint=False)
     labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
 
     # set level is at 0
@@ -43,11 +44,15 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d):
         return labels[i][j][k]
 
     def get_f_normal(ijks_for_normal):
-        xyzs_for_normal = np.array(ijks_for_normal) / sampling_resolution_3d  # todo haim - is this correct?
+        # translate from ijk (index) corodinate system to xyz
+        # xyz = np.linspace(-1, 1, xyzs_for_normal[i], endpoint=False)
+
+        radius = sampling_resolution_3d / 2
+        xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
         ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), net_manager.grad_wrt_input(xyzs_for_normal)))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
     return dual_contour_3d(f, get_f_normal,
-                           sampling_resolution_3d[0]-1,  # todo haim -1 +1?
-                           sampling_resolution_3d[1]-1,
-                           sampling_resolution_3d[2]-1)
+                           sampling_resolution_3d[0] - 1,  # todo haim -1 +1?
+                           sampling_resolution_3d[1] - 1,
+                           sampling_resolution_3d[2] - 1)

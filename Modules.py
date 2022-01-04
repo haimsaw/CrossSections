@@ -34,16 +34,17 @@ class HaimNet(nn.Module):
         self.embedder = embedder
         self.is_siren = is_siren
 
+        assert residual_module is None or next(residual_module.parameters()).requires_grad is False
+        self.residual_module = residual_module
+
         n_neurons = [self.embedder.out_dim] + hidden_layers + [1]
 
         neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
         activations = [Sine() if is_siren else nn.LeakyReLU() for _ in range(len(n_neurons) - 2)]
         layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], 1)]
+
         self.function = nn.Sequential(*layers)
         self.first_layer = neurons[0]
-
-        assert residual_module is None or next(residual_module.parameters()).requires_grad is False
-        self.residual_module = residual_module
 
     def init_weights(self):
         if self.is_siren:
