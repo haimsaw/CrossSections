@@ -238,4 +238,4 @@ def solve_qef_3d(x, y, z, positions, normals):
         v[1] = numpy.clip(v[1], y, y + 1)
         v[2] = numpy.clip(v[2], z, z + 1)
 
-    return V3(v[0], v[1], v[2])
+    return v

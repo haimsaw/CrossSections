@@ -1,6 +1,8 @@
 """Contains utilities common to 3d meshing methods"""
 
 import math
+import numpy as np
+
 
 class V3:
     """A vector in 3D space"""
@@ -12,6 +14,7 @@ class V3:
     def normalize(self):
         d = math.sqrt(self.x*self.x+self.y*self.y+self.z*self.z)
         return V3(self.x / d, self.y / d, self.z / d)
+
 
 class Tri:
     """A 3d triangle"""
@@ -45,7 +48,7 @@ class Quad:
 class Mesh:
     """A collection of vertices, and faces between those vertices."""
     def __init__(self, verts=None, faces=None):
-        self.verts = verts or []
+        self.verts = np.array(verts)
         self.faces = faces or []
 
     def extend(self, other):
@@ -72,7 +75,7 @@ class Mesh:
 def make_obj(f, mesh):
     """Crude export to Wavefront mesh format"""
     for v in mesh.verts:
-        f.write("v {} {} {}\n".format(v.x, v.y, v.z))
+        f.write("v {} {} {}\n".format(v[0], v[1], v[2]))
     for face in mesh.faces:
         if isinstance(face, Quad):
             f.write("f {} {} {} {}\n".format(face.v1, face.v2, face.v3, face.v4))

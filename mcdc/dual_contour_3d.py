@@ -66,14 +66,15 @@ def dual_contour_3d(f, get_f_normal, xmax, ymax, zmax):
         # In other words, minimize || A * x - b || ^2 where A and b are a matrix and vector
         # derived from v and n
 
-        normals = [f_normal(*v) for v in changes]
-
-        vert = solve_qef_3d(*xyz, changes, normals)
+        if ADAPTIVE:
+            normals = [f_normal(*v) for v in changes]
+            vert = solve_qef_3d(*xyz, changes, normals)
+        else:
+            vert = np.array(xyz)+0.5
 
         vert_array.append(vert)
         vert_indices[xyz] = len(vert_array)
 
-        # todo if adaptive - vert = V3(x+0.5, y+0.5, z+0.5)
 
     # For each cell edge, emit a face between the center of the adjacent cells if it is a sign changing edge
     faces = []

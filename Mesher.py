@@ -6,6 +6,7 @@ from Helpers import *
 from skimage import measure
 from NetManager import INetManager
 from mcdc.dual_contour_3d import dual_contour_3d
+from sklearn.preprocessing import normalize
 
 
 def _get_mesh(labels, level, spacing):
@@ -37,12 +38,23 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, trans):
     # set level is at 0
     labels = labels * 2 - 1
 
+    radius = (sampling_resolution_3d[0] - 10 )/2
+    center = np.array([radius]*3)
+
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
     def f(i, j, k):
+        #d = np.array([i, j, k]) - center
+        #return np.dot(d, d) - radius ** 2
+
         return labels[i][j][k]
 
     def get_f_normal(ijks_for_normal):
+
+        #def df(x, y, z):
+        #    d = np.array([x, y, z]) - center
+        #    return d / math.sqrt(np.dot(d, d))
+        #return df
 
         if trans == 0:
             xyzs_for_normal = np.array(ijks_for_normal) / sampling_resolution_3d  # todo haim - is this correct?
@@ -61,7 +73,10 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, trans):
         elif trans == 3:
             return lambda i, j, k: np.array([0.0, 0.0, 0.0])
 
-        ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), net_manager.grad_wrt_input(xyzs_for_normal)))
+        normals = net_manager.grad_wrt_input(xyzs_for_normal)
+        normals = normalize(normals, norm="l2") # todo haim?
+        print(f'trans={trans} normal avg={np.abs(normals).mean(axis=0)}')
+        ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), normals))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
     return dual_contour_3d(f, get_f_normal,

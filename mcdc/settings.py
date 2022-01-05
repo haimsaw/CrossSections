@@ -15,4 +15,4 @@ BOUNDARY = True
 # In dual contouring, if true, apply extra penalties to encourage the vertex to stay within the cell
 BIAS = True
 # Strength of the above bias, relative to 1.0 strength for the input gradients
-BIAS_STRENGTH = 0.01
+BIAS_STRENGTH = 0.05 # todo was 0.01

@@ -44,6 +44,7 @@ class Renderer3D:
                     vertices[-1] = vertices[0]
                     alpha = 1 if connected_component.is_hole else 0.5
                     # ax.plot_trisurf(*vertices.T, color='green', alpha=alpha)
+                    # todo haim facecolors?
                     self.ax.plot(*vertices.T, color='green')
                     # ax.plot_surface(*vertices.T, color='green')
 
@@ -88,27 +89,28 @@ class Renderer3D:
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
-    def add_grads(self, network_manager: INetManager, sampling_resolution_3d, alpha=1):
+    def add_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1):
         self.description.append('grads')
 
-        xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
         grads = network_manager.grad_wrt_input(xyzs)
 
-        self.ax.quiver(*xyzs.T, *grads.T, color='black', normalize=True, alpha=alpha, length=0.1)
-
+        self.ax.quiver(*xyzs.T, *grads.T, color='black', normalize=True, alpha=alpha, length=length)
 
     def show(self):
         plt.show()
 
-    def save_animation(self, save_path, level):
-        for elev in [-30, 0, 30]:
+    def save_animation(self, save_path, level, elevs=(-30,)):
 
+        for elev in elevs:
             def rotate(angle):
                 self.ax.view_init(elev=elev, azim=angle)
 
             name = save_path + '_'.join(self.description) + f'_l{level}' + f'_elev{elev}' + '.gif'
-            rot_animation = animation.FuncAnimation(self.fig, rotate, frames=range(0, 360, 5), interval=100)
+            rot_animation = animation.FuncAnimation(self.fig, rotate, frames=range(0, 360, 5), interval=150)
             rot_animation.save(name, writer='imagemagick')
+            # rot_animation.save(name,dpi=80, writer=animation.ImageMagickWriter)
+
+            #rot_animation.save(name, writer='pillow')
         self.ax.view_init()
 
 # endregion
