@@ -89,12 +89,14 @@ class Renderer3D:
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
-    def add_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1):
+    def add_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
         self.description.append('grads')
 
         grads = network_manager.grad_wrt_input(xyzs)
+        if neg:
+            grads = -1 * grads
 
-        self.ax.quiver(*xyzs.T, *grads.T, color='black', normalize=True, alpha=alpha, length=length)
+        self.ax.quiver(*xyzs.T, *grads.T, color='black', alpha=alpha, length=length, normalize=True)
 
     def show(self):
         plt.show()

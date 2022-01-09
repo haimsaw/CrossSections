@@ -14,6 +14,22 @@ from stl import mesh as mesh2
 from OctnetTree import *
 
 
+def get_csl(bounding_planes_margin):
+    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEightMore.csl")
+    # csl = CSL("csl-files/SideBishop.csl")
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/rocker-arm.csl")
+    # csl = CSL("csl-files/Abdomen.csl")
+    # csl = CSL("csl-files/Vetebrae.csl")
+    # csl = CSL("csl-files/Skull-20.csl")
+    # csl = CSL("csl-files/Brain.csl")
+    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
+    return csl
+
+
 def main():
     hp = {
         # sampling
@@ -41,7 +57,7 @@ def main():
 
     csl = get_csl(hp['bounding_planes_margin'])
 
-    #save_path = csl.model_name + ' ' + hp['now'] + '/'
+    # save_path = csl.model_name + ' ' + hp['now'] + '/'
     #os.mkdir(save_path)
     #with open(save_path + 'hyperparams.json', 'w') as f:
     #    f.write(json.dumps(hp, indent=4))
@@ -66,9 +82,30 @@ def main():
     # level 0:
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
-    dual_contouring(tree, hp['sampling_resolution_3d']).save('output.obj')
-    return
 
+    mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True)
+    mesh_dc.save('output_dc_grad.obj')
+
+    #mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=False)
+    #mesh_dc.save('output_dc_no_grad.obj')
+
+    #mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
+    #mesh_mc.save('output_mc.obj')
+
+
+
+    renderer = Renderer3D()
+    renderer.add_scene(csl)
+    #renderer.add_mesh(mesh_mc)
+
+    # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
+    verts = 2 * mesh_dc.verts/hp['sampling_resolution_3d'] - 1
+    verts = verts[np.random.choice(verts.shape[0], 500, replace=False)]
+
+    renderer.add_grads(tree, verts, alpha=1, length=0.15, neg=True)
+    renderer.show()
+
+    return
     # level 1
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
@@ -106,21 +143,6 @@ def draw_blending_errors(tree, xyzs, title):
     ax.scatter(*xyzs.T, c=labels, alpha=0.2)
     plt.show()
 
-
-def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
-    # csl = CSL("csl-files/ParallelEightMore.csl")
-    # csl = CSL("csl-files/SideBishop.csl")
-    # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
-    # csl = CSL("csl-files/rocker-arm.csl")
-    # csl = CSL("csl-files/Abdomen.csl")
-    # csl = CSL("csl-files/Vetebrae.csl")
-    # csl = CSL("csl-files/Skull-20.csl")
-    # csl = CSL("csl-files/Brain.csl")
-    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
-    return csl
 
 
 if __name__ == "__main__":

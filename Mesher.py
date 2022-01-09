@@ -31,51 +31,51 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
 
 
 @timing
-def dual_contouring(net_manager: INetManager, sampling_resolution_3d, trans):
+def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d, endpoint=False)
     labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
 
     # set level is at 0
     labels = labels * 2 - 1
 
-    radius = (sampling_resolution_3d[0] - 10 )/2
-    center = np.array([radius]*3)
+    radius0 = (sampling_resolution_3d[0] - 10 )/2
+    radius1 = (sampling_resolution_3d[0] - 10) / 3
+    center0 = np.array([radius0]*3)
+    center1 = center0 + 10
 
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
     def f(i, j, k):
-        #d = np.array([i, j, k]) - center
-        #return np.dot(d, d) - radius ** 2
+        d0 = np.array([i, j, k]) - center0
+        d1 = np.array([i, j, k]) - center1
+        return (np.dot(d0, d0) - radius0 ** 2) - (np.dot(d1, d1) - radius1 ** 2)
 
         return labels[i][j][k]
 
     def get_f_normal(ijks_for_normal):
+        '''if use_grads is True:
+            def df(x, y, z):
+                d0 = np.array([x, y, z]) - center0
+                d1 = np.array([x, y, z]) - center1
+                return d0 / math.sqrt(np.dot(d0, d0)) - d1 / math.sqrt(np.dot(d1, d1))
+            return df
+        else:
+            return lambda i, j, k: np.array([0.0, 0.0, 0.0])
+        '''
 
-        #def df(x, y, z):
-        #    d = np.array([x, y, z]) - center
-        #    return d / math.sqrt(np.dot(d, d))
-        #return df
-
-        if trans == 0:
-            xyzs_for_normal = np.array(ijks_for_normal) / sampling_resolution_3d  # todo haim - is this correct?
-
-        elif trans == 1:
+        if use_grads is True:
             # translate from ijk (index) corodinate system to xyz
             # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]-1, endpoint=False)
 
             radius = np.array(sampling_resolution_3d) / 2
             xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
 
-        elif trans == 2:
-            radius = np.array(sampling_resolution_3d)
-            xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
-
-        elif trans == 3:
+        else:
             return lambda i, j, k: np.array([0.0, 0.0, 0.0])
 
-        normals = net_manager.grad_wrt_input(xyzs_for_normal)
-        normals = normalize(normals, norm="l2") # todo haim?
-        print(f'trans={trans} normal avg={np.abs(normals).mean(axis=0)}')
+        normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal)
+        # normals = normalize(normals, norm="l2") # todo haim?
+        print(f'use_grads={use_grads} normal avg={np.abs(normals).mean(axis=0)}')
         ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), normals))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
