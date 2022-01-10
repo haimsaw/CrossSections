@@ -46,9 +46,9 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads)
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
     def f(i, j, k):
-        d0 = np.array([i, j, k]) - center0
+        '''d0 = np.array([i, j, k]) - center0
         d1 = np.array([i, j, k]) - center1
-        return (np.dot(d0, d0) - radius0 ** 2) - (np.dot(d1, d1) - radius1 ** 2)
+        return (np.dot(d0, d0) - radius0 ** 2) - (np.dot(d1, d1) - radius1) ** 2'''
 
         return labels[i][j][k]
 
@@ -74,8 +74,8 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads)
             return lambda i, j, k: np.array([0.0, 0.0, 0.0])
 
         normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal)
-        # normals = normalize(normals, norm="l2") # todo haim?
-        print(f'use_grads={use_grads} normal avg={np.abs(normals).mean(axis=0)}')
+        normals = normalize(normals, norm="l2")  # todo haim?
+        print(f'use_grads={use_grads} avg={np.abs(normals).mean(axis=0)}')
         ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), normals))
         return lambda i, j, k: ijks_to_grad[(i, j, k)]
 

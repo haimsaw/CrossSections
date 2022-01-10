@@ -5,7 +5,7 @@ import mcdc.utils_3d as utils_3d
 import numpy as np
 
 from CSL import *
-from Renderer import Renderer3D
+from Renderer import *
 from NetManager import *
 from Mesher import *
 from Helpers import *
@@ -15,12 +15,12 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -47,7 +47,7 @@ def main():
         'is_siren': False,
 
         # training
-        'epochs': 20,
+        'epochs': 2,
         'scheduler_step': 5,
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization
@@ -68,9 +68,10 @@ def main():
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
-    renderer.add_rasterized_scene(csl, hp['root_sampling_resolution_2d'], hp['sampling_margin'], show_empty_planes=True, show_outside_shape=True)
+    # renderer.add_rasterized_scene(csl, hp['root_sampling_resolution_2d'], hp['sampling_margin'], show_empty_planes=True, show_outside_shape=True)
     renderer.show()
     '''
+
 
     tree = OctnetTree(csl, hp['oct_overlap_margin'], hp['hidden_layers'], get_embedder(hp['num_embedding_freqs']), hp['is_siren'])
 
@@ -83,11 +84,27 @@ def main():
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
+
+    renderer = Renderer2D()
+    renderer.heatmap([3,3], tree, 2, 0.5)
+    renderer.show()
+
+    renderer = Renderer2D()
+    renderer.heatmap([100]*2, tree, 2, 0.01)
+    renderer.show()
+
+    renderer = Renderer2D()
+    renderer.heatmap([100]*2, tree, 2, 0.5)
+    renderer.show()
+
+
+    return
+
     mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True)
     mesh_dc.save('output_dc_grad.obj')
 
-    #mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=False)
-    #mesh_dc.save('output_dc_no_grad.obj')
+    mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=False)
+    mesh_dc.save('output_dc_no_grad.obj')
 
     #mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
     #mesh_mc.save('output_mc.obj')
@@ -99,8 +116,11 @@ def main():
     #renderer.add_mesh(mesh_mc)
 
     # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
-    verts = 2 * mesh_dc.verts/hp['sampling_resolution_3d'] - 1
-    verts = verts[np.random.choice(verts.shape[0], 500, replace=False)]
+    #verts = 2 * mesh_dc.verts/hp['sampling_resolution_3d'] - 1
+
+    verts = np.array(csl.all_vertices)
+    print(verts.shape)
+    verts = verts[np.random.choice(verts.shape[0], 200, replace=False)]
 
     renderer.add_grads(tree, verts, alpha=1, length=0.15, neg=True)
     renderer.show()

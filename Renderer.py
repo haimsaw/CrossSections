@@ -2,7 +2,6 @@
 from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
-import inspect
 
 from Resterizer import rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -13,24 +12,18 @@ import matplotlib.animation as animation
 # region 3d
 
 
-def _get_3d_ax():
-    fig = plt.figure(figsize=(15, 15))
-    ax = plt.axes(projection='3d')
-    fig.suptitle(inspect.stack()[1][3])
-    ax.set_xlim3d(-1, 1)
-    ax.set_ylim3d(-1, 1)
-    ax.set_zlim3d(-1, 1)
-
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-
-    return ax, fig
-
-
 class Renderer3D:
     def __init__(self):
-        self.ax, self.fig = _get_3d_ax()
+        self.fig = plt.figure(figsize=(15, 15))
+        self.ax = plt.axes(projection='3d')
+        self.ax.set_xlim3d(-1, 1)
+        self.ax.set_ylim3d(-1, 1)
+        self.ax.set_zlim3d(-1, 1)
+
+        self.ax.set_xlabel('x')
+        self.ax.set_ylabel('y')
+        self.ax.set_zlabel('z')
+
         self.description = []
 
     def add_scene(self, csl):
@@ -120,29 +113,75 @@ class Renderer3D:
 
 # region 2d
 
+class Renderer2D:
+    def __init__(self):
+        self.fig = plt.figure(figsize=(15, 15))
+        self.ax = plt.axes()
+        self.ax.set_xlim(-1, 1)
+        self.ax.set_ylim(-1, 1)
 
-# todo make this a class like the Renderer3D
-def draw_rasterized_plane(plane, resolution=(256, 256), margin=0.2):
-    plt.imshow(rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
-               origin='lower')
-    plt.suptitle("draw_rasterized_plane")
-    plt.show()
+        self.ax.set_xlabel('x')
+        self.ax.set_ylabel('y')
 
+        self.description = []
 
-def draw_plane_verts(plane):
-    verts, _ = plane.pca_projection
-    for component in plane.connected_components:
-        plt.scatter(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
-    plt.scatter([0], [0], color='red')
-    plt.suptitle("draw_plane_verts")
-    plt.show()
+    def draw_rasterized_plane(self, plane, resolution=(256, 256), margin=0.2):
+        self.ax.imshow(rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
+                   origin='lower')
+        self.description.append("draw_rasterized_plane")
 
+    def draw_plane_verts(self, plane):
+        verts, _ = plane.pca_projection
+        for component in plane.connected_components:
+            self.ax.scatter(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
+        self.ax.scatter([0], [0], color='red')
+        self.description.append("draw_plane_verts")
 
-def draw_plane(plane):
-    verts, _ = plane.pca_projection
-    for component in plane.connected_components:
-        plt.plot(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
-    plt.suptitle("draw_plane")
-    plt.show()
+    def draw_plane(self, plane):
+        verts, _ = plane.pca_projection
+        for component in plane.connected_components:
+            self.ax.plot(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
+        self.description.append("draw_plane")
+        plt.show()
+
+    def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist):
+        assert around_ax in (0, 1, 2)
+        extent = -1, 1, -1, 1
+        sampling_resolution_3d = np.insert(sampling_resolution_2d, around_ax, 1)
+        oct = np.array([[1.0]*3, [-1.0]*3])
+        oct[:, around_ax] = dist
+
+        xyzs = get_xyzs_in_octant(oct, sampling_resolution_3d)
+        labels = network_manager.soft_predict(xyzs)
+
+        grads_2d = np.delete(network_manager.grad_wrt_input(xyzs), around_ax, axis=1)
+        xys = np.delete(xyzs, around_ax, axis=1)
+
+        pos = self.ax.imshow(labels.reshape(sampling_resolution_2d).T, origin='lower',
+                             cmap='plasma', extent=extent, interpolation='bilinear')
+        # todo haim why do I need to transpose the labels? is it a thing of plt or a bug?
+
+        self.fig.colorbar(pos)
+
+        self.ax.quiver(*xys.T, *grads_2d.T, color='black', alpha=1.0)
+
+    def show(self):
+        plt.show()
+
+    '''
+    def save_animation(self, save_path, level, elevs=(-30,)):
+
+        for elev in elevs:
+            def rotate(angle):
+                self.ax.view_init(elev=elev, azim=angle)
+
+            name = save_path + '_'.join(self.description) + f'_l{level}' + f'_elev{elev}' + '.gif'
+            rot_animation = animation.FuncAnimation(self.fig, rotate, frames=range(0, 360, 5), interval=150)
+            rot_animation.save(name, writer='imagemagick')
+            # rot_animation.save(name,dpi=80, writer=animation.ImageMagickWriter)
+
+            #rot_animation.save(name, writer='pillow')
+        self.ax.view_init()
+    '''
 
 # endregion
