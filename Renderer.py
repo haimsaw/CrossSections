@@ -146,6 +146,8 @@ class Renderer2D:
 
     def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist):
         assert around_ax in (0, 1, 2)
+        self.description.append(f"heatmap around{around_ax} at{str(dist).replace('.', '-')}")
+
         extent = -1, 1, -1, 1
         sampling_resolution_3d = np.insert(sampling_resolution_2d, around_ax, 1)
         oct = np.array([[1.0]*3, [-1.0]*3])
@@ -164,6 +166,10 @@ class Renderer2D:
         self.fig.colorbar(pos)
 
         self.ax.quiver(*xys.T, *grads_2d.T, color='black', alpha=1.0)
+
+    def save(self, save_path):
+        name = save_path + '_'.join(self.description) + '.jpg'
+        plt.savefig(name)
 
     def show(self):
         plt.show()

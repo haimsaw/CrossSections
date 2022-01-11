@@ -15,12 +15,12 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -57,11 +57,6 @@ def main():
 
     csl = get_csl(hp['bounding_planes_margin'])
 
-    # save_path = csl.model_name + ' ' + hp['now'] + '/'
-    #os.mkdir(save_path)
-    #with open(save_path + 'hyperparams.json', 'w') as f:
-    #    f.write(json.dumps(hp, indent=4))
-
     '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
@@ -72,9 +67,7 @@ def main():
     renderer.show()
     '''
 
-
     tree = OctnetTree(csl, hp['oct_overlap_margin'], hp['hidden_layers'], get_embedder(hp['num_embedding_freqs']), hp['is_siren'])
-
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp['root_sampling_resolution_2d']]
     dataset = RasterizedCslDataset(csl, sampling_resolution=hp['root_sampling_resolution_2d'], sampling_margin=hp['sampling_margin'],
@@ -83,22 +76,6 @@ def main():
     # level 0:
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
-
-
-    renderer = Renderer2D()
-    renderer.heatmap([3,3], tree, 2, 0.5)
-    renderer.show()
-
-    renderer = Renderer2D()
-    renderer.heatmap([100]*2, tree, 2, 0.01)
-    renderer.show()
-
-    renderer = Renderer2D()
-    renderer.heatmap([100]*2, tree, 2, 0.5)
-    renderer.show()
-
-
-    return
 
     mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True)
     mesh_dc.save('output_dc_grad.obj')
@@ -109,6 +86,11 @@ def main():
     #mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
     #mesh_mc.save('output_mc.obj')
 
+    for dist in np.linspace(-1, 1, 5):
+
+        renderer = Renderer2D()
+        renderer.heatmap([100]*2, tree, 2, dist)
+        renderer.save('')
 
 
     renderer = Renderer3D()

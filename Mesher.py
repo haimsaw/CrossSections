@@ -32,11 +32,13 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
 
 @timing
 def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads):
-    xyzs = get_xyzs_in_octant(None, sampling_resolution_3d, endpoint=False)
-    labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d)
+    sampling_resolution_3d = np.array(sampling_resolution_3d)
 
-    # set level is at 0
-    labels = labels * 2 - 1
+    # since in dc our vertices are inside the grid cells we need to have res+1 grid points
+    xyzs = get_xyzs_in_octant(None, sampling_resolution_3d+1, endpoint=True)
+
+    # set level is at 0 so normalize labels to be in [-1, 1]
+    labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d+1) * 2 - 1
 
     radius0 = (sampling_resolution_3d[0] - 10 )/2
     radius1 = (sampling_resolution_3d[0] - 10) / 3
@@ -53,6 +55,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads)
         return labels[i][j][k]
 
     def get_f_normal(ijks_for_normal):
+
         '''if use_grads is True:
             def df(x, y, z):
                 d0 = np.array([x, y, z]) - center0
@@ -64,24 +67,28 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads)
         '''
 
         if use_grads is True:
-            # translate from ijk (index) corodinate system to xyz
-            # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]-1, endpoint=False)
+            def df(i, j, k):
+                xyz = 2 * np.array([i, j, k]) / (sampling_resolution_3d + 1) - 1
+                return net_manager.grad_wrt_input(xyz.reshape((1, -1)))[0]
 
-            radius = np.array(sampling_resolution_3d) / 2
-            xyzs_for_normal = np.array(ijks_for_normal) / radius - 1
+            # return df
+
+            # translate from ijk (index) coordinate system to xyz
+            # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]+1, endpoint=True)
+            ijks_for_normal = np.array(ijks_for_normal)
+            xyzs_for_normal = 2 * ijks_for_normal / (sampling_resolution_3d + 1) - 1
+
+            normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal)
+            #normals = normalize(normals, norm="l2")  # todo haim?
+
+            print(f'use_grads={use_grads} avg={np.abs(normals).mean(axis=0)}')
+
+            ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), normals))
+            return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
         else:
             return lambda i, j, k: np.array([0.0, 0.0, 0.0])
 
-        normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal)
-        normals = normalize(normals, norm="l2")  # todo haim?
-        print(f'use_grads={use_grads} avg={np.abs(normals).mean(axis=0)}')
-        ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), normals))
-        return lambda i, j, k: ijks_to_grad[(i, j, k)]
-
-    return dual_contour_3d(f, get_f_normal,
-                           sampling_resolution_3d[0] - 1,  # todo haim -1 +1?
-                           sampling_resolution_3d[1] - 1,
-                           sampling_resolution_3d[2] - 1)
+    return dual_contour_3d(f, get_f_normal, *sampling_resolution_3d)
 
 
