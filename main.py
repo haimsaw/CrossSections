@@ -52,6 +52,9 @@ def main():
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization
 
+        # inference
+        'sig_on_inference': False,  # True
+
         'now': str(datetime.now()),
     }
 
@@ -77,10 +80,10 @@ def main():
     tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
-    mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True)
+    mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True, use_sigmoid=hp['sig_on_inference'])
     mesh_dc.save('output_dc_grad.obj')
 
-    mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=False)
+    mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=False, use_sigmoid=hp['sig_on_inference'])
     mesh_dc.save('output_dc_no_grad.obj')
 
     #mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
@@ -89,7 +92,7 @@ def main():
     for dist in np.linspace(-1, 1, 5):
 
         renderer = Renderer2D()
-        renderer.heatmap([100]*2, tree, 2, dist, True)
+        renderer.heatmap([100]*2, tree, 2, dist, True, hp['sig_on_inference'])
         renderer.save('')
 
     return
