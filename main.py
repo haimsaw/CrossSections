@@ -47,7 +47,7 @@ def main():
         'is_siren': False,
 
         # training
-        'epochs': 2,
+        'epochs': 5,
         'scheduler_step': 5,
         'lr': 1e-2,
         'weight_decay': 1e-3,  # l2 regularization
@@ -89,9 +89,10 @@ def main():
     for dist in np.linspace(-1, 1, 5):
 
         renderer = Renderer2D()
-        renderer.heatmap([100]*2, tree, 2, dist)
+        renderer.heatmap([100]*2, tree, 2, dist, True)
         renderer.save('')
 
+    return
 
     renderer = Renderer3D()
     renderer.add_scene(csl)

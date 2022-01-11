@@ -31,19 +31,18 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
 
 
 @timing
-def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads):
+def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads, use_sigmoid):
     sampling_resolution_3d = np.array(sampling_resolution_3d)
 
     # since in dc our vertices are inside the grid cells we need to have res+1 grid points
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d+1, endpoint=True)
 
-    # set level is at 0 so normalize labels to be in [-1, 1]
-    labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d+1) * 2 - 1
+    labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid).reshape(sampling_resolution_3d+1)
 
-    radius0 = (sampling_resolution_3d[0] - 10 )/2
-    radius1 = (sampling_resolution_3d[0] - 10) / 3
-    center0 = np.array([radius0]*3)
-    center1 = center0 + 10
+    # set level is at 0 so normalize labels to be in [-1, 1]
+    if not use_sigmoid:
+        labels = labels * 2 - 1
+    print(f'labels max={labels.max()} min={labels.min()}')
 
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
@@ -56,29 +55,21 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads)
 
     def get_f_normal(ijks_for_normal):
 
-        '''if use_grads is True:
-            def df(x, y, z):
-                d0 = np.array([x, y, z]) - center0
-                d1 = np.array([x, y, z]) - center1
-                return d0 / math.sqrt(np.dot(d0, d0)) - d1 / math.sqrt(np.dot(d1, d1))
-            return df
-        else:
-            return lambda i, j, k: np.array([0.0, 0.0, 0.0])
-        '''
-
         if use_grads is True:
+            '''
             def df(i, j, k):
                 xyz = 2 * np.array([i, j, k]) / (sampling_resolution_3d + 1) - 1
                 return net_manager.grad_wrt_input(xyz.reshape((1, -1)))[0]
 
-            # return df
+            return df
+            '''
 
             # translate from ijk (index) coordinate system to xyz
             # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]+1, endpoint=True)
             ijks_for_normal = np.array(ijks_for_normal)
             xyzs_for_normal = 2 * ijks_for_normal / (sampling_resolution_3d + 1) - 1
 
-            normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal)
+            normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal, use_sigmoid=use_sigmoid)
             #normals = normalize(normals, norm="l2")  # todo haim?
 
             print(f'use_grads={use_grads} avg={np.abs(normals).mean(axis=0)}')

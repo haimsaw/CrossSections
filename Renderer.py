@@ -144,9 +144,9 @@ class Renderer2D:
         self.description.append("draw_plane")
         plt.show()
 
-    def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist):
+    def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist, add_grad, use_sigmoid):
         assert around_ax in (0, 1, 2)
-        self.description.append(f"heatmap around{around_ax} at{str(dist).replace('.', '-')}")
+        self.description.append(f"heatmap around_ax_{around_ax}_at{str(dist)}_{'grad' if add_grad else ''}")
 
         extent = -1, 1, -1, 1
         sampling_resolution_3d = np.insert(sampling_resolution_2d, around_ax, 1)
@@ -154,10 +154,7 @@ class Renderer2D:
         oct[:, around_ax] = dist
 
         xyzs = get_xyzs_in_octant(oct, sampling_resolution_3d)
-        labels = network_manager.soft_predict(xyzs)
-
-        grads_2d = np.delete(network_manager.grad_wrt_input(xyzs), around_ax, axis=1)
-        xys = np.delete(xyzs, around_ax, axis=1)
+        labels = network_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid)
 
         pos = self.ax.imshow(labels.reshape(sampling_resolution_2d).T, origin='lower',
                              cmap='plasma', extent=extent, interpolation='bilinear')
@@ -165,13 +162,20 @@ class Renderer2D:
 
         self.fig.colorbar(pos)
 
-        self.ax.quiver(*xys.T, *grads_2d.T, color='black', alpha=1.0)
+        if add_grad:
+            grads_2d = np.delete(network_manager.grad_wrt_input(xyzs, use_sigmoid=use_sigmoid), around_ax, axis=1)
+            xys = np.delete(xyzs, around_ax, axis=1)
+            self.ax.quiver(*xys.T, *grads_2d.T, color='black', alpha=1.0)
 
     def save(self, save_path):
-        name = save_path + '_'.join(self.description) + '.jpg'
+        title = '_'.join(self.description)
+        name = save_path + title + '.svg'
+        self.fig.suptitle(title)
         plt.savefig(name)
 
     def show(self):
+        title = '_'.join(self.description)
+        self.fig.suptitle(title, fontsize=16)
         plt.show()
 
     '''
