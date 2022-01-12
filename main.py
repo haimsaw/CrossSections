@@ -158,8 +158,14 @@ if __name__ == "__main__":
 todo
 check if tree is helping or its just capacity 
 
+read: https://lioryariv.github.io/volsdf/  https://lioryariv.github.io/idr/
+
+loss: add grad*tangent = 0 in boundary
+          ikonal in boundary
+          grad =0 away from boundary 
+
 serialize a tree (in case collab crashes)
-dual contouring  + increase sampling (in prev work he used 2d= 216, 3d=300)
+increase sampling (in prev work he used 2d= 216, 3d=300)
 
 Sheared weights / find a way to use symmetries 
 reduce capacity of lower levels (make #params in each level equal)
