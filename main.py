@@ -46,6 +46,9 @@ def main():
         'hidden_layers': [64, 64, 64, 64, 64],
         'is_siren': False,
 
+        # loss
+        'eikonal_lambda': 1e-3,
+
         # training
         'epochs': 5,
         'scheduler_step': 5,
@@ -77,7 +80,7 @@ def main():
                                    target_transform=torch.tensor, transform=torch.tensor)
 
     # level 0:
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
     tree.train_network(epochs=hp['epochs'])
 
     mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True, use_sigmoid=hp['sig_on_inference'])
@@ -111,15 +114,14 @@ def main():
     renderer.add_grads(tree, verts, alpha=1, length=0.15, neg=True)
     renderer.show()
 
-    return
     # level 1
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
     tree.train_network(epochs=hp['epochs'])
 
 
 
     # level 2
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'])
+    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
     tree.train_network(epochs=hp['epochs'])
 
 
@@ -150,7 +152,6 @@ def draw_blending_errors(tree, xyzs, title):
     plt.show()
 
 
-
 if __name__ == "__main__":
     main()
 
@@ -161,7 +162,7 @@ check if tree is helping or its just capacity
 read: https://lioryariv.github.io/volsdf/  https://lioryariv.github.io/idr/
 
 loss: add grad*tangent = 0 in boundary
-          ikonal in boundary
+          eikonal in boundary
           grad =0 away from boundary 
 
 serialize a tree (in case collab crashes)
@@ -178,4 +179,58 @@ Scale & translate each octant to fit [-1,1]^3
 Use loss from the upper level to determine depth \ #epochs
 
 nerfs literature review  
+'''
+
+'''
+def get_indices_to_flip(board, i, j):
+
+    # convert board to binary metrix
+    #for k in range(8):
+    #    for l in range(8):
+    #        board[k][l] = 1 if board[k][l] == 'black' else 0
+
+    # convert i,l to list of its bin components for example 5 -> [1, 0, 1]
+    # since i,j are in [0, 7] this results in an array of size 3
+    i = list(map(int, list(bin(i))[2:]))
+    j = list(map(int, list(bin(j))[2:]))
+
+    # xoring board row-wise to a single bool array of size 8
+    r = []
+    for row in board:
+        r.append( row[0] ^ row[1]^ row[2]^ row[3]^ row[4]^ row[5]^ row[6]^ row[7] )
+
+    # same with columns
+    c = []
+    for colum in board.T:
+        c.append( colum[0] ^ colum[1]^ colum[2]^ colum[3]^ colum[4]^ colum[5]^ colum[6]^ colum[7]  )
+
+    def code(r):
+        rtag = [None]*3
+        rtag[0] = r[1]^        r[3]^       r[5]      ^ r[7]
+        rtag[1] =       r[2]^  r[3]^             r[6]^ r[7]
+        rtag[2] =                    r[4]^ r[5]^ r[6]^ r[7]
+        return rtag
+
+
+    # xor each bit of i (or j) with the code and convert to int
+    itag = map(str, element_wise_xor(code(r), i))
+    jtag = map(str, element_wise_xor(code(c), i))
+
+    itag = int(''.join(itag), 2)
+    jtag = int(''.join(jtag), 2)
+
+    i =  int(''.join(map(str, code(c))), 2)
+    j =  int(''.join(map(str, code(r))), 2)
+
+    return itag, jtag, i, j
+
+
+def element_wise_xor(a,b):
+    return [i^j for i,j in zip(a,b)]
+
+
+board = np.random.randint(0,2,(8,8))
+i_tag,j_tag, i, j = get_indices_to_flip(board, 5,5)
+board[i_tag, j_tag] = 1-board[i_tag, j_tag]
+get_indices_to_flip(board, 5,5)
 '''

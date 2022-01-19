@@ -61,7 +61,8 @@ class HaimNet(nn.Module):
         embbeded = self.embedder(xyzs)
         if self.residual_module is not None:
             # todo haim - is this true? I use the sigmoid on the right but not on the left?
-            return self.function(embbeded) + torch.sigmoid(self.residual_module(xyzs))
+            # return self.function(embbeded) + torch.sigmoid(self.residual_module(xyzs))
+            return self.function(embbeded) + self.residual_module(xyzs)
         else:
             return self.function(embbeded)
 

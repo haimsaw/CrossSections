@@ -8,6 +8,7 @@ from Modules import *
 from Resterizer import RasterizedCslDataset
 from Helpers import *
 from abc import ABCMeta, abstractmethod
+from torch import linalg as LA
 
 
 class INetManager:
@@ -32,7 +33,7 @@ class INetManager:
     def requires_grad_(self, requires_grad): raise NotImplementedError
 
     @abstractmethod
-    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, sampler): raise NotImplementedError
+    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, eikonal_lambda, sampler): raise NotImplementedError
 
     @abstractmethod
     def train_network(self, epochs): raise NotImplementedError
@@ -64,7 +65,9 @@ class HaimNetManager(INetManager):
         self.module.double()
         self.module.to(self.device)
 
-        self.loss_fn = None
+        self.bce_loss = None
+        self.eikonal_lambda = None
+
         self.optimizer = None
         self.lr_scheduler = None
         self.scheduler_step = 0
@@ -85,21 +88,28 @@ class HaimNetManager(INetManager):
         size = len(self.data_loader.dataset)
         for batch, (xyz, label) in enumerate(self.data_loader):
             xyz, label = xyz.to(self.device), label.to(self.device)
+            xyz.requires_grad_(True)
+            self.optimizer.zero_grad()
 
             # Compute prediction error
             label_pred = self.module(xyz)
-            # print(f"{label_pred.shape}, {label.shape}")
-            loss = self.loss_fn(label_pred, label)
 
-            # Backpropagation
-            self.optimizer.zero_grad()
-            loss.backward()
+            # BCEWithLogitsLoss contains sigmoid
+            # todo haim should I use sigmoid for calculating eikonal and boundary loss?
+            bce_loss = self.bce_loss(label_pred, label)
+            bce_loss.backward(create_graph=True, retain_graph=True)
+
+            # eikonal
+            if self.eikonal_lambda > 0:
+                eikonal_loss = self.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(xyz.grad, dim=-1) - 1))
+                eikonal_loss.backward()
+
             self.optimizer.step()
 
-            running_loss += loss.item() * len(xyz)
+            running_loss += bce_loss.item() * len(xyz)
             if self.verbose and batch % 1000 == 0:
-                loss, current = loss.item(), batch * len(xyz)
-                print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
+                bce_loss, current = bce_loss.item(), batch * len(xyz)
+                print(f"\tloss: {bce_loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
         if epoch > 0 and epoch % self.scheduler_step == 0:
             self.lr_scheduler.step()
@@ -109,14 +119,15 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, sampler):
+    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, eikonal_lambda, sampler):
         self.data_loader = DataLoader(dataset, batch_size=128, sampler=sampler)
 
         self.module.init_weights()
 
         # self.loss_fn = nn.L1Loss()
         # self.loss_fn = nn.CrossEntropyLoss()
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
+        self.eikonal_lambda = eikonal_lambda
 
         self.optimizer = torch.optim.Adam(self.module.parameters(), lr=lr, weight_decay=weight_decay)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
