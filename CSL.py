@@ -13,19 +13,21 @@ class ConnectedComponent:
         component = iter(next(csl_file).strip().split(" "))
         sizes = next(component).split("h") + [-1]
 
-        n_vertices_in_component, self.n_holes = int(sizes[0]), int(sizes[1])  # todo what is n_holes?
+        # parent_cc_index is the index of the ConnectedComponent in which the hole lies (applies only for holes)
+        n_vertices_in_component, self.parent_cc_index = int(sizes[0]), int(sizes[1])
         component = map(int, component)
         self.label = next(component)
-        # self.label = 1 if self.n_holes> 0 else 0
-        self.vertices_indices_in_component = list(component)
-        assert len(self.vertices_indices_in_component) == n_vertices_in_component
+
+        # ccw for non holes and cw for holes
+        self.vertices_indices = list(component)
+        assert len(self.vertices_indices) == n_vertices_in_component
 
     def __len__(self):
-        return len(self.vertices_indices_in_component)
+        return len(self.vertices_indices)
 
     @property
     def is_hole(self):
-        return self.n_holes >= 0
+        return self.parent_cc_index >= 0
 
 
 class Plane:
@@ -40,8 +42,8 @@ class Plane:
         self.mean = np.mean(self.vertices, axis=0) if len(self.vertices) > 0 else np.zeros((3,))
 
         # self.plane_params = plane_params  # Ax+By+Cz+D=0
-        self.plane_normal = np.array(plane_params[0:3])
-        self.plane_normal /= np.linalg.norm(self.plane_normal)
+        self.normal = np.array(plane_params[0:3])
+        self.normal /= np.linalg.norm(self.normal)
 
         if plane_params[0] != 0:
             self.plane_origin = np.array([-plane_params[3] / plane_params[0], 0, 0])
@@ -95,25 +97,25 @@ class Plane:
     def __imatmul__(self, rotation: PCA):
         self.vertices = rotation.transform(self.vertices)
         self.plane_origin = rotation.transform([self.plane_origin])[0]
-        self.plane_normal = rotation.transform([self.plane_normal])[0]
+        self.normal = rotation.transform([self.normal])[0]
 
     def project(self, points):
         # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
-        dists = (points - self.plane_origin) @ self.plane_normal
-        return self.csl.all_vertices - np.outer(dists, self.plane_normal)
+        dists = (points - self.plane_origin) @ self.normal
+        return self.csl.all_vertices - np.outer(dists, self.normal)
 
     def get_xs(self, yzs):
-        xs = (self.plane_normal @ self.plane_origin - yzs @ self.plane_normal[1:3]) / self.plane_normal[0]
+        xs = (self.normal @ self.plane_origin - yzs @ self.normal[1:3]) / self.normal[0]
         xyzs = np.concatenate((xs.reshape(1, -1).T, yzs), axis=1)
         return xyzs
 
     def get_ys(self, xzs):
-        ys = (self.plane_normal @ self.plane_origin - xzs @ self.plane_normal[0:3:2]) / self.plane_normal[1]
+        ys = (self.normal @ self.plane_origin - xzs @ self.normal[0:3:2]) / self.normal[1]
         xyzs = np.concatenate((xzs[:, 0].reshape(1, -1).T, ys.reshape(1, -1).T, xzs[:, 1].reshape(1, -1).T), axis=1)
         return xyzs
 
     def get_zs(self, xys):
-        zs = (self.plane_normal @ self.plane_origin - xys @ self.plane_normal[0:2]) / self.plane_normal[2]
+        zs = (self.normal @ self.plane_origin - xys @ self.normal[0:2]) / self.normal[2]
         xyzs = np.concatenate((xys, zs.reshape(1, -1).T), axis=1)
         return xyzs
 

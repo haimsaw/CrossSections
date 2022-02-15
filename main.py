@@ -163,8 +163,8 @@ read: https://lioryariv.github.io/volsdf/
         https://lioryariv.github.io/idr/
         https://arxiv.org/abs/2202.01999
 
-loss: add grad*tangent = 0 in boundary
-          eikonal in boundary
+loss: add in boundary grad*tangent = 0  or grad * segment = 0
+          in boundary eikonal 
           grad =0 away from boundary 
 
 serialize a tree (in case collab crashes)

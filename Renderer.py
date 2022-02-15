@@ -3,7 +3,7 @@ from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-from DomainResterizer import rasterizer_factory
+from DomainResterizer import domain_rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
 
@@ -33,7 +33,7 @@ class Renderer3D:
         for plane in csl.planes:
             if not plane.is_empty:
                 for connected_component in plane.connected_components:
-                    vertices = plane.vertices[connected_component.vertices_indices_in_component]
+                    vertices = plane.vertices[connected_component.vertices_indices]
                     vertices[-1] = vertices[0]
                     alpha = 1 if connected_component.is_hole else 0.5
                     # ax.plot_trisurf(*vertices.T, color='green', alpha=alpha)
@@ -52,7 +52,7 @@ class Renderer3D:
         self.description.append('rasterized_scene')
 
         for plane in csl.planes:
-            cells = rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, sampling_margin)
+            cells = domain_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, sampling_margin)
             mask = np.array([cell.label >= 0.5 for cell in cells])
             xyzs = np.array([cell.xyz for cell in cells])
 
@@ -126,21 +126,21 @@ class Renderer2D:
         self.description = []
 
     def draw_rasterized_plane(self, plane, resolution=(256, 256), margin=0.2):
-        self.ax.imshow(rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
-                   origin='lower')
+        self.ax.imshow(domain_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
+                       origin='lower')
         self.description.append("draw_rasterized_plane")
 
     def draw_plane_verts(self, plane):
         verts, _ = plane.pca_projection
         for component in plane.connected_components:
-            self.ax.scatter(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
+            self.ax.scatter(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
         self.ax.scatter([0], [0], color='red')
         self.description.append("draw_plane_verts")
 
     def draw_plane(self, plane):
         verts, _ = plane.pca_projection
         for component in plane.connected_components:
-            self.ax.plot(*verts[component.vertices_indices_in_component].T, color='orange' if component.is_hole else 'black')
+            self.ax.plot(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
         self.description.append("draw_plane")
         plt.show()
 

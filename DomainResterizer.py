@@ -6,12 +6,11 @@ from Helpers import *
 from torch.utils.data import Dataset
 
 
-
-def rasterizer_factory(plane: Plane):
+def domain_rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
 
 
-class Cell:
+class DomainCell:
     def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer):
         assert min(pixel_radius) > 0
         self._label = None
@@ -58,13 +57,13 @@ class EmptyPlaneRasterizer(IRasterizer):
     def _get_voxels(self, resolution, margin):
         d2_points = self._get_pixels(resolution, margin)
 
-        if self.plane.plane_normal[0] != 0:
+        if self.plane.normal[0] != 0:
             xyzs = self.plane.get_xs(d2_points)
 
-        elif self.plane.plane_normal[1] != 0:
+        elif self.plane.normal[1] != 0:
             xyzs = self.plane.get_ys(d2_points)
 
-        elif self.plane.plane_normal[2] != 0:
+        elif self.plane.normal[2] != 0:
             xyzs = self.plane.get_zs(d2_points)
 
         else:
@@ -80,8 +79,8 @@ class EmptyPlaneRasterizer(IRasterizer):
 
         # create 2d grid of pixels, in case the plane is aligned with the axes we want to ignore the dimension it is zero in
         # the pixels will be projected to the correct 3d space by xyz_transformer
-        first_dim = 0 if self.plane.plane_normal[0] == 0 else 1
-        second_dim = 1 if self.plane.plane_normal[0] == 0 and self.plane.plane_normal[1] == 0 else 2
+        first_dim = 0 if self.plane.normal[0] == 0 else 1
+        second_dim = 1 if self.plane.normal[0] == 0 and self.plane.normal[1] == 0 else 2
 
         xs = np.linspace(bottom[first_dim], top[first_dim], resolution[0], endpoint=False)
         ys = np.linspace(bottom[second_dim], top[second_dim], resolution[1], endpoint=False)
@@ -94,17 +93,17 @@ class EmptyPlaneRasterizer(IRasterizer):
     def get_rasterazation_cells(self, resolution, margin):
         xys, pixel_radius = self._get_pixels(resolution, margin)
 
-        if self.plane.plane_normal[0] != 0:
+        if self.plane.normal[0] != 0:
             xyz_transformer = self.plane.get_xs
-        elif self.plane.plane_normal[1] != 0:
+        elif self.plane.normal[1] != 0:
             xyz_transformer = self.plane.get_ys
-        elif self.plane.plane_normal[2] != 0:
+        elif self.plane.normal[2] != 0:
             xyz_transformer = self.plane.get_zs
 
         else:
             raise Exception("invalid plane")
 
-        return [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]
+        return [DomainCell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -136,12 +135,12 @@ class PlaneRasterizer(IRasterizer):
         for component in self.plane.connected_components:
             if not component.is_hole:
                 # last vertex is ignored
-                shape_vertices += list(self.pca_projected_vertices[component.vertices_indices_in_component]) + [
+                shape_vertices += list(self.pca_projected_vertices[component.vertices_indices]) + [
                     [0, 0]]
                 shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]
             else:
                 # last vertex is ignored
-                hole_vertices += list(self.pca_projected_vertices[component.vertices_indices_in_component]) + [
+                hole_vertices += list(self.pca_projected_vertices[component.vertices_indices]) + [
                     [0, 0]]
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]
 
@@ -159,16 +158,16 @@ class PlaneRasterizer(IRasterizer):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
 
-        return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]
+        return [DomainCell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]
 
 
-class RasterizedCslDataset(Dataset):
+class RasterizedCslDomainDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
         self.csl = csl
 
         cells = []
         for plane in csl.planes:
-            cells += rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
+            cells += domain_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
 
         self.cells = np.array(cells)
 
