@@ -13,7 +13,7 @@ class RasterizedCslBoundaryDataset(Dataset):
             if not plane.is_empty:
                 for connected_component in plane.connected_components:
                     verts = plane.vertices[connected_component.vertices_indices]
-                    verts1 = verts[1:] + verts[0:1]
+                    verts1 = np.concatenate((verts[1:], verts[0:1]))
 
                     # no need to invert order for holes since they ordered cw
                     normals = np.cross(verts1 - verts, plane.normal)
@@ -22,7 +22,7 @@ class RasterizedCslBoundaryDataset(Dataset):
                         normal /= np.linalg.norm(normal)
 
                         # todo n_samples_per_edge should be per plane?
-                        self.xyzs = np.concatenate((self.xyzs, np.linspace(p0, p1, n_samples_per_edge, endpoint=False).T))
+                        self.xyzs = np.concatenate((self.xyzs, np.linspace(p0, p1, n_samples_per_edge, endpoint=False)))
                         self.normals = np.concatenate((self.normals, np.repeat([normal], n_samples_per_edge, axis=0)))
 
         self.transform = transform

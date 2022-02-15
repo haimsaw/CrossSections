@@ -15,17 +15,19 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/Skull-20.csl")
     # csl = CSL("csl-files/Brain.csl")
+    csl.planes = [csl.planes[27]]
+
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
 
@@ -63,15 +65,18 @@ def main():
 
     csl = get_csl(hp['bounding_planes_margin'])
 
-    '''
+
     renderer = Renderer3D()
     renderer.add_scene(csl)
+    renderer.add_boundary_grads(csl)
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
     # renderer.add_rasterized_scene(csl, hp['root_sampling_resolution_2d'], hp['sampling_margin'], show_empty_planes=True, show_outside_shape=True)
     renderer.show()
-    '''
+    return
+
+
 
     tree = OctnetTree(csl, hp['oct_overlap_margin'], hp['hidden_layers'], get_embedder(hp['num_embedding_freqs']), hp['is_siren'])
 
@@ -111,7 +116,7 @@ def main():
     print(verts.shape)
     verts = verts[np.random.choice(verts.shape[0], 200, replace=False)]
 
-    renderer.add_grads(tree, verts, alpha=1, length=0.15, neg=True)
+    renderer.add_domain_grads(tree, verts, alpha=1, length=0.15, neg=True)
     renderer.show()
 
     # level 1

@@ -1,4 +1,4 @@
-
+from BoundaryResterizer import RasterizedCslBoundaryDataset
 from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -82,7 +82,7 @@ class Renderer3D:
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
-    def add_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
+    def add_domain_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
         self.description.append('grads')
 
         grads = network_manager.grad_wrt_input(xyzs)
@@ -90,6 +90,11 @@ class Renderer3D:
             grads = -1 * grads
 
         self.ax.quiver(*xyzs.T, *grads.T, color='black', alpha=alpha, length=length, normalize=True)
+
+    def add_boundary_grads(self, csl, n_samples_per_edge=1, alpha=0.5, length=0.1):
+        dataset = RasterizedCslBoundaryDataset(csl, n_samples_per_edge)
+        xyzs, normals = zip(*list(dataset))
+        self.ax.quiver(*np.array(xyzs).T, *np.array(normals).T, color='black', alpha=alpha, length=length, normalize=True)
 
     def show(self):
         plt.show()
