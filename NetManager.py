@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 from torch import nn
 
 from Modules import *
-from Resterizer import RasterizedCslDataset
 from Helpers import *
 from abc import ABCMeta, abstractmethod
 from torch import linalg as LA

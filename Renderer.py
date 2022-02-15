@@ -3,7 +3,7 @@ from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-from Resterizer import rasterizer_factory
+from DomainResterizer import rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
 

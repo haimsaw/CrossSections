@@ -5,8 +5,6 @@ from CSL import Plane
 from Helpers import *
 from torch.utils.data import Dataset
 
-INSIDE_LABEL = 1.0
-OUTSIDE_LABEL = 0.0
 
 
 def rasterizer_factory(plane: Plane):
