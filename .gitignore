@@ -3,3 +3,6 @@
 /mesh.stl
 /trained_model.pt
 /Octree_ref.py
+/*.svg
+/*.obj
+/*.stl

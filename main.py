@@ -51,13 +51,13 @@ def main():
         'is_siren': False,
 
         # loss
-        'eikonal_lambda': 1e-3,
+        'eikonal_lambda': 0,# 1e-3,
+        'weight_decay': 1e-3,  # l2 regularization
 
         # training
         'epochs': 5,
         'scheduler_step': 5,
         'lr': 1e-2,
-        'weight_decay': 1e-3,  # l2 regularization
 
         # inference
         'sig_on_inference': False,  # True
@@ -82,12 +82,13 @@ def main():
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp['root_sampling_resolution_2d']]
     domain_dataset = DomainDataset(csl, sampling_resolution=hp['root_sampling_resolution_2d'], sampling_margin=hp['sampling_margin'],
-                            target_transform=torch.tensor, transform=torch.tensor)
+                                   target_transform=torch.tensor, transform=torch.tensor)
     boundary_dataset = BoundaryDataset(csl, hp['boundary_sampling_resolution'],
                                        target_transform=torch.tensor, transform=torch.tensor)
 
     # level 0:
-    tree.prepare_for_training(domain_dataset, boundary_dataset, hp['eikonal_lambda'], hp['lr'], hp['scheduler_step'], hp['weight_decay'])
+    tree.prepare_for_training(domain_dataset, boundary_dataset,
+                              hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
     tree.train_network(epochs=hp['epochs'])
 
     mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True, use_sigmoid=hp['sig_on_inference'])
@@ -95,6 +96,9 @@ def main():
 
     mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=False, use_sigmoid=hp['sig_on_inference'])
     mesh_dc.save('output_dc_no_grad.obj')
+
+    mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
+    mesh_mc.save('output_mc.stl')
 
     # mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
     # mesh_mc.save('output_mc.obj')

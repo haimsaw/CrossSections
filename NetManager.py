@@ -68,7 +68,8 @@ class HaimNetManager(INetManager):
         self.lr_scheduler = None
         self.scheduler_step = 0
 
-        self.data_loader = None
+        self.domain_data_loader = None
+        self.boundary_data_loader = None
 
         self.total_epochs = 0
         self.train_losses = []
@@ -81,8 +82,8 @@ class HaimNetManager(INetManager):
             print(f"\n\nEpoch {self.total_epochs} [{epoch}]\n-------------------------------")
 
         running_loss = 0.0
-        size = len(self.data_loader.dataset)
-        for batch, (xyz, label) in enumerate(self.data_loader):
+        size = len(self.domain_data_loader.dataset)
+        for batch, (xyz, label) in enumerate(self.domain_data_loader):
             xyz, label = xyz.to(self.device), label.to(self.device)
             xyz.requires_grad_(True)
             self.optimizer.zero_grad()
@@ -116,7 +117,8 @@ class HaimNetManager(INetManager):
         self.train_losses.append(total_loss)
 
     def prepare_for_training(self, domain_dataset, domain_sampler, boundary_dataset, boundary_sampler, lr, scheduler_step, weight_decay, eikonal_lambda):
-        self.data_loader = DataLoader(domain_dataset, batch_size=128, sampler=domain_sampler)
+        self.domain_data_loader = DataLoader(domain_dataset, batch_size=128, sampler=domain_sampler)
+        self.boundary_data_loader = DataLoader(boundary_dataset, batch_size=128, sampler=boundary_sampler)
 
         self.module.init_weights()
 
@@ -200,7 +202,7 @@ class HaimNetManager(INetManager):
         errored_xyzs = np.empty((0, 3), dtype=bool)
         errored_labels = np.empty((0, 1), dtype=bool)
 
-        for xyzs, label in self.data_loader:
+        for xyzs, label in self.domain_data_loader:
             xyzs, label = xyzs.to(self.device), label.to(self.device)
 
             # xyzs, label_pred = self.hard_predict(xyzs, threshold)

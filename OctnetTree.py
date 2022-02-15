@@ -294,7 +294,7 @@ class OctnetTree(INetManager):
             boundary_sampler = SubsetRandomSampler(leaf.indices_in_oct(boundary_dataset.xyzs))
 
             leaf.haim_net_manager.prepare_for_training(domain_dataset, domain_sampler, boundary_dataset, boundary_sampler,
-                                                       lr, scheduler_step, weight_decay, domain_sampler)
+                                                       lr, scheduler_step, weight_decay, eikonal_lambda)
 
     @torch.no_grad()
     def soft_predict(self, xyzs, use_sigmoid=True):

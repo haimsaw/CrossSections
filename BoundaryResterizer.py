@@ -28,7 +28,7 @@ class BoundaryDataset(Dataset):
         self.transform = transform
         self.normal_transform = target_transform
 
-    def len(self):
+    def __len__(self):
         return len(self.xyzs)
 
     def __getitem__(self, idx):

@@ -55,7 +55,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
 
     def get_f_normal(ijks_for_normal):
 
-        if use_grads is True:
+        if use_grads is True and len(ijks_for_normal) > 0:
             '''
             def df(i, j, k):
                 xyz = 2 * np.array([i, j, k]) / (sampling_resolution_3d + 1) - 1
