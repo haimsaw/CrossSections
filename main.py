@@ -5,6 +5,8 @@ import mcdc.utils_3d as utils_3d
 import numpy as np
 
 from CSL import *
+from DomainResterizer import DomainDataset
+from BoundaryResterizer import BoundaryDataset
 from Renderer import *
 from NetManager import *
 from Mesher import *
@@ -26,7 +28,6 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/Vetebrae.csl")
     # csl = CSL("csl-files/Skull-20.csl")
     # csl = CSL("csl-files/Brain.csl")
-    csl.planes = [csl.planes[27]]
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
@@ -40,8 +41,9 @@ def main():
         'oct_overlap_margin': 0.25,
 
         # resolutions
-        'root_sampling_resolution_2d':  (32, 32),
+        'root_sampling_resolution_2d': (32, 32),
         'sampling_resolution_3d': (64, 64, 64),
+        'boundary_sampling_resolution': 5,
 
         # architecture
         'num_embedding_freqs': 4,
@@ -65,7 +67,7 @@ def main():
 
     csl = get_csl(hp['bounding_planes_margin'])
 
-
+    '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
     renderer.add_boundary_grads(csl)
@@ -74,18 +76,18 @@ def main():
 
     # renderer.add_rasterized_scene(csl, hp['root_sampling_resolution_2d'], hp['sampling_margin'], show_empty_planes=True, show_outside_shape=True)
     renderer.show()
-    return
-
-
+    '''
 
     tree = OctnetTree(csl, hp['oct_overlap_margin'], hp['hidden_layers'], get_embedder(hp['num_embedding_freqs']), hp['is_siren'])
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp['root_sampling_resolution_2d']]
-    dataset = RasterizedCslDataset(csl, sampling_resolution=hp['root_sampling_resolution_2d'], sampling_margin=hp['sampling_margin'],
-                                   target_transform=torch.tensor, transform=torch.tensor)
+    domain_dataset = DomainDataset(csl, sampling_resolution=hp['root_sampling_resolution_2d'], sampling_margin=hp['sampling_margin'],
+                            target_transform=torch.tensor, transform=torch.tensor)
+    boundary_dataset = BoundaryDataset(csl, hp['boundary_sampling_resolution'],
+                                       target_transform=torch.tensor, transform=torch.tensor)
 
     # level 0:
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
+    tree.prepare_for_training(domain_dataset, boundary_dataset, hp['eikonal_lambda'], hp['lr'], hp['scheduler_step'], hp['weight_decay'])
     tree.train_network(epochs=hp['epochs'])
 
     mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=True, use_sigmoid=hp['sig_on_inference'])
@@ -94,23 +96,22 @@ def main():
     mesh_dc = dual_contouring(tree, hp['sampling_resolution_3d'], use_grads=False, use_sigmoid=hp['sig_on_inference'])
     mesh_dc.save('output_dc_no_grad.obj')
 
-    #mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
-    #mesh_mc.save('output_mc.obj')
+    # mesh_mc = marching_cubes(tree, hp['sampling_resolution_3d'])
+    # mesh_mc.save('output_mc.obj')
 
     for dist in np.linspace(-1, 1, 5):
-
         renderer = Renderer2D()
-        renderer.heatmap([100]*2, tree, 2, dist, True, hp['sig_on_inference'])
+        renderer.heatmap([100] * 2, tree, 2, dist, True, hp['sig_on_inference'])
         renderer.save('')
 
     return
 
     renderer = Renderer3D()
     renderer.add_scene(csl)
-    #renderer.add_mesh(mesh_mc)
+    # renderer.add_mesh(mesh_mc)
 
     # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
-    #verts = 2 * mesh_dc.verts/hp['sampling_resolution_3d'] - 1
+    # verts = 2 * mesh_dc.verts/hp['sampling_resolution_3d'] - 1
 
     verts = np.array(csl.all_vertices)
     print(verts.shape)
@@ -120,15 +121,12 @@ def main():
     renderer.show()
 
     # level 1
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
+    tree.prepare_for_training(domain_dataset, boundary_dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
     tree.train_network(epochs=hp['epochs'])
-
-
 
     # level 2
-    tree.prepare_for_training(dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
+    tree.prepare_for_training(domain_dataset, boundary_dataset, hp['lr'], hp['scheduler_step'], hp['weight_decay'], hp['eikonal_lambda'])
     tree.train_network(epochs=hp['epochs'])
-
 
     # mesh = marching_cubes(network_manager_root, hp['sampling_resolution_3d'])
     # renderer = Renderer3D()
@@ -146,13 +144,13 @@ def draw_blending_errors(tree, xyzs, title):
     ax = plt.axes(projection='3d')
     ax.set_title(title)
 
-    #ax.set_xlim3d(-1, 1)
-    #ax.set_ylim3d(-1, 1)
-    #ax.set_zlim3d(-1, 1)
+    # ax.set_xlim3d(-1, 1)
+    # ax.set_ylim3d(-1, 1)
+    # ax.set_zlim3d(-1, 1)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    #ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.2)
+    # ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.2)
     ax.scatter(*xyzs.T, c=labels, alpha=0.2)
     plt.show()
 

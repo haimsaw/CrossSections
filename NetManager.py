@@ -32,9 +32,6 @@ class INetManager:
     def requires_grad_(self, requires_grad): raise NotImplementedError
 
     @abstractmethod
-    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, eikonal_lambda, sampler): raise NotImplementedError
-
-    @abstractmethod
     def train_network(self, epochs): raise NotImplementedError
 
     @abstractmethod
@@ -118,8 +115,8 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, dataset, lr, scheduler_step, weight_decay, eikonal_lambda, sampler):
-        self.data_loader = DataLoader(dataset, batch_size=128, sampler=sampler)
+    def prepare_for_training(self, domain_dataset, domain_sampler, boundary_dataset, boundary_sampler, lr, scheduler_step, weight_decay, eikonal_lambda):
+        self.data_loader = DataLoader(domain_dataset, batch_size=128, sampler=domain_sampler)
 
         self.module.init_weights()
 

@@ -161,7 +161,7 @@ class PlaneRasterizer(IRasterizer):
         return [DomainCell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]
 
 
-class RasterizedCslDomainDataset(Dataset):
+class DomainDataset(Dataset):
     def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
         self.csl = csl
 
