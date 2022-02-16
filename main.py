@@ -51,7 +51,7 @@ def main():
         'is_siren': False,
 
         # loss
-        'eikonal_lambda': 0,# 1e-3,
+        'eikonal_lambda': 1e-3,
         'weight_decay': 1e-3,  # l2 regularization
 
         # training
@@ -170,7 +170,7 @@ read: https://lioryariv.github.io/volsdf/
         https://lioryariv.github.io/idr/
         https://arxiv.org/abs/2202.01999
 
-loss: add in boundary grad*tangent = 0  or grad * segment = 0
+loss: add in boundary grad*tangent = 0  or grad * normal = 0
           in boundary eikonal 
           grad =0 away from boundary 
 
