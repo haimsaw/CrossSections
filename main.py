@@ -56,10 +56,10 @@ class HP:
         # loss
         self.weight_decay = 1e-3  # l2 regularization
 
-        self.density_lambda = 0
-        self.eikonal_lambda = 1
-        self.contour_val_lambda = 1e-3
-        self.contour_normal_lambda = 1
+        self.density_lambda = 1
+        self.eikonal_lambda = 0
+        self.contour_val_lambda = 1e-1
+        self.contour_normal_lambda = 0
         self.contour_tangent_lambda = 0
 
         # training
@@ -106,9 +106,11 @@ def main():
     tree.prepare_for_training(domain_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
 
+    tree.show_train_losses()
+
     for dist in np.linspace(-1, 1, 5):
         renderer = Renderer2D()
-        renderer.heatmap([100] * 2, tree, 2, dist, True, hp.sig_on_inference)
+        renderer.heatmap([100] * 2, tree, 0, dist, True, hp.sig_on_inference)
         renderer.save('')
 
     #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
@@ -120,7 +122,6 @@ def main():
     mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
     mesh_mc.save('output_mc.stl')
 
-    tree.show_train_losses()
 
     return
 

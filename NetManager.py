@@ -88,24 +88,27 @@ class HaimNetManager(INetManager):
         torch.sum(domain_label_pred).backward(create_graph=True, retain_graph=True)
         torch.sum(contour_labels_pred).backward(create_graph=True, retain_graph=True)
 
+        domain_xyzs_grad = domain_xyzs.grad
+        contour_xyzs_grad = contour_xyzs.grad
+
         # density - zero inside one outside
         # bce_loss has a sigmoid layer and BCELoss combined
         density_loss = self.hp.density_lambda * self.bce_loss(domain_label_pred, labels_on_domain)\
             if self.hp.density_lambda > 0 else 0
 
         # grad(f(x)) = 1 everywhere (eikonal)
-        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyzs.grad, dim=-1) - 1)) if self.hp.density_lambda > 0 else 0
+        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyzs_grad, dim=-1) - 1)) if self.hp.density_lambda > 0 else 0
 
         # f(x) = 0 on contour
         contour_val_loss = self.hp.contour_val_lambda * torch.mean(torch.abs(contour_labels_pred)) \
             if self.hp.contour_val_lambda > 0 else 0
 
         # grad(f(x))*normal = 1 on contour
-        contour_normal_loss = self.hp.contour_normal_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs.grad * normals_on_contour, dim=-1) - 1))\
+        contour_normal_loss = self.hp.contour_normal_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs_grad * normals_on_contour, dim=-1) - 1))\
             if self.hp.contour_normal_lambda > 0 else 0
 
         # grad(f(x)) * contour_tangent = 0 on contour
-        contour_tangent_loss = self.hp.contour_tangent_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs.grad * tangents_on_contour, dim=-1)))\
+        contour_tangent_loss = self.hp.contour_tangent_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs_grad * tangents_on_contour, dim=-1)))\
             if self.hp.contour_tangent_lambda > 0 else 0
 
         self.optimizer.zero_grad()
