@@ -81,6 +81,7 @@ def main():
 
     csl = get_csl(hp.bounding_planes_margin)
 
+    '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
     renderer.add_contour_grads(csl)

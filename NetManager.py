@@ -80,16 +80,12 @@ class HaimNetManager(INetManager):
         domain_xyzs.requires_grad_(True)
         contour_xyzs.requires_grad_(True)
 
-        self.optimizer.zero_grad()
-
-        # Compute prediction error
         domain_label_pred = self.module(domain_xyzs)
         contour_labels_pred = self.module(contour_xyzs)
-        torch.sum(domain_label_pred).backward(create_graph=True, retain_graph=True)
-        torch.sum(contour_labels_pred).backward(create_graph=True, retain_graph=True)
 
-        domain_xyzs_grad = domain_xyzs.grad
-        contour_xyzs_grad = contour_xyzs.grad
+        # todo haim grad_outputs
+        domain_xyzs_grad = torch.autograd.grad(domain_label_pred.sum(), [domain_xyzs], create_graph=True)[0]
+        contour_xyzs_grad = torch.autograd.grad(contour_labels_pred.sum(), [contour_xyzs], create_graph=True)[0]
 
         # density - zero inside one outside
         # bce_loss has a sigmoid layer and BCELoss combined
