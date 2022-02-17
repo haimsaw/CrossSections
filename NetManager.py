@@ -69,46 +69,47 @@ class HaimNetManager(INetManager):
         self.scheduler_step = 0
 
         self.domain_data_loader = None
-        self.boundary_data_loader = None
+        self.contour_data_loader = None
 
         self.total_epochs = 0
         self.train_losses = []
 
         self.is_training_ready = False
 
-    def _get_loss(self, domain_label, domain_xyz, boundary_xyz, normal_on_boundary, tangent_on_boundary):
-        domain_xyz.requires_grad_(True)
-        boundary_xyz.requires_grad_(True)
+    def _get_loss(self, domain_xyzs, labels_on_domain, contour_xyzs, normals_on_contour, tangents_on_contour):
+        domain_xyzs.requires_grad_(True)
+        contour_xyzs.requires_grad_(True)
 
         self.optimizer.zero_grad()
 
         # Compute prediction error
-        domain_label_pred = self.module(domain_xyz)
-        boundary_labels_pred = self.module(boundary_xyz)
+        domain_label_pred = self.module(domain_xyzs)
+        contour_labels_pred = self.module(contour_xyzs)
         torch.sum(domain_label_pred).backward(create_graph=True, retain_graph=True)
-        torch.sum(boundary_labels_pred).backward(create_graph=True, retain_graph=True)
+        torch.sum(contour_labels_pred).backward(create_graph=True, retain_graph=True)
 
         # density - zero inside one outside
-        density_loss = self.hp.density_lambda * self.bce_loss(domain_label_pred, domain_label)\
+        # bce_loss has a sigmoid layer and BCELoss combined
+        density_loss = self.hp.density_lambda * self.bce_loss(domain_label_pred, labels_on_domain)\
             if self.hp.density_lambda > 0 else 0
 
-        # eikonal - grad(f(x)) = 1 everywhere
-        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyz.grad, dim=-1) - 1)) if self.hp.density_lambda > 0 else 0
+        # grad(f(x)) = 1 everywhere (eikonal)
+        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyzs.grad, dim=-1) - 1)) if self.hp.density_lambda > 0 else 0
 
         # f(x) = 0 on contour
-        level_set_loss = self.hp.level_set_val_lambda * torch.mean(torch.abs(boundary_labels_pred)) \
-            if self.hp.level_set_val_lambda > 0 else 0
+        contour_val_loss = self.hp.contour_val_lambda * torch.mean(torch.abs(contour_labels_pred)) \
+            if self.hp.contour_val_lambda > 0 else 0
 
         # grad(f(x))*normal = 1 on contour
-        level_set_norm_loss = self.hp.level_set_normal_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * normal_on_boundary, dim=-1) - 1))\
-            if self.hp.level_set_normal_lambda > 0 else 0
+        contour_normal_loss = self.hp.contour_normal_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs.grad * normals_on_contour, dim=-1) - 1))\
+            if self.hp.contour_normal_lambda > 0 else 0
 
         # grad(f(x)) * contour_tangent = 0 on contour
-        level_set_edge_loss = self.hp.level_set_tangent_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * tangent_on_boundary, dim=-1)))\
-            if self.hp.level_set_tangent_lambda > 0 else 0
+        contour_tangent_loss = self.hp.contour_tangent_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs.grad * tangents_on_contour, dim=-1)))\
+            if self.hp.contour_tangent_lambda > 0 else 0
 
         self.optimizer.zero_grad()
-        return density_loss + eikonal_loss + level_set_loss + level_set_norm_loss + level_set_edge_loss
+        return density_loss + eikonal_loss + contour_val_loss + contour_normal_loss + contour_tangent_loss
 
     def _train_epoch(self, epoch):
         assert self.is_training_ready
@@ -117,18 +118,18 @@ class HaimNetManager(INetManager):
 
         running_loss = 0.0
         size = len(self.domain_data_loader.dataset)
-        for batch, ((domain_xyz, domain_label), (boundary_xyz, normal_on_boundary, tangent_on_boundary)) in enumerate(zip(self.domain_data_loader, self.boundary_data_loader)):
-            domain_xyz, domain_label = domain_xyz.to(self.device), domain_label.to(self.device)
-            boundary_xyz, normal_on_boundary = boundary_xyz.to(self.device), normal_on_boundary.to(self.device)
+        for batch, ((domain_xyzs, domain_labels), (contour_xyzs, contour_normals, contour_tangents)) in enumerate(zip(self.domain_data_loader, self.contour_data_loader)):
+            domain_xyzs, domain_labels = domain_xyzs.to(self.device), domain_labels.to(self.device)
+            contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
 
             # _get_loss should call self.optimizer.zero_grad() at the end
-            loss = self._get_loss(domain_label, domain_xyz, boundary_xyz, normal_on_boundary, tangent_on_boundary)
+            loss = self._get_loss(domain_xyzs, domain_labels, contour_xyzs, contour_normals, contour_tangents)
             loss.backward()
             self.optimizer.step()
 
-            running_loss += loss.item() * len(domain_xyz)
+            running_loss += loss.item() * len(domain_xyzs)
             if self.verbose and batch % 1000 == 0:
-                bce_loss, current = loss.item(), batch * len(domain_xyz)
+                bce_loss, current = loss.item(), batch * len(domain_xyzs)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
         if epoch > 0 and epoch % self.scheduler_step == 0:
@@ -139,9 +140,9 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, domain_dataset, domain_sampler, boundary_dataset, boundary_sampler, hp):
+    def prepare_for_training(self, domain_dataset, domain_sampler, contour_dataset, contour_sampler, hp):
         self.domain_data_loader = DataLoader(domain_dataset, batch_size=128, sampler=domain_sampler)
-        self.boundary_data_loader = DataLoader(boundary_dataset, batch_size=128, sampler=boundary_sampler)
+        self.contour_data_loader = DataLoader(contour_dataset, batch_size=128, sampler=contour_sampler)
 
         self.module.init_weights()
 

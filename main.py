@@ -9,7 +9,7 @@ import numpy as np
 
 from CSL import *
 from DomainResterizer import DomainDataset
-from BoundaryResterizer import BoundaryDataset
+from ContourRasterizer import ContourDataset
 from Renderer import *
 from NetManager import *
 from Mesher import *
@@ -46,7 +46,7 @@ class HP:
         # resolutions
         self.root_sampling_resolution_2d = (32, 32)
         self.sampling_resolution_3d = (64, 64, 64)
-        self.boundary_sampling_resolution = 5
+        self.contour_sampling_resolution = 5
 
         # architecture
         self.num_embedding_freqs = 4
@@ -58,12 +58,12 @@ class HP:
 
         self.density_lambda = 0
         self.eikonal_lambda = 1
-        self.level_set_val_lambda = 1
-        self.level_set_normal_lambda = 0
-        self.level_set_tangent_lambda = 0
+        self.contour_val_lambda = 1e-3
+        self.contour_normal_lambda = 1
+        self.contour_tangent_lambda = 0
 
         # training
-        self.epochs = 20
+        self.epochs = 30
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -78,31 +78,32 @@ class HP:
 
 def main():
     hp = HP()
-    
+
     csl = get_csl(hp.bounding_planes_margin)
 
-    '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
-    renderer.add_boundary_grads(csl)
+    renderer.add_contour_grads(csl)
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
-    #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
+    # renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
     # renderer.add_rasterized_scene(csl, hp.root_sampling_resolution_2d, hp.sampling_margin, show_empty_planes=True, show_outside_shape=True)
     renderer.show()
-    '''
+    # '''
+
+    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda}, contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
 
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
     domain_dataset = DomainDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
-    boundary_dataset = BoundaryDataset(csl, round(len(domain_dataset)/len(csl)),
-                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
-    print(f'dom={len(domain_dataset)}, boun={len(boundary_dataset)}')
+    contour_dataset = ContourDataset(csl, round(len(domain_dataset) / len(csl)), # todo haim hp.contour_sampling_resolution
+                                      target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
+    print(f'dom={len(domain_dataset)}, boun={len(contour_dataset)}')
 
     # level 0:
-    tree.prepare_for_training(domain_dataset, boundary_dataset, hp)
+    tree.prepare_for_training(domain_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
 
     for dist in np.linspace(-1, 1, 5):
@@ -119,7 +120,7 @@ def main():
     mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
     mesh_mc.save('output_mc.stl')
 
-
+    tree.show_train_losses()
 
     return
 
@@ -138,11 +139,11 @@ def main():
     renderer.show()
 
     # level 1
-    tree.prepare_for_training(domain_dataset, boundary_dataset, hp.lr, hp.scheduler_step, hp.weight_decay, hp.eikonal_lambda)
+    tree.prepare_for_training(domain_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
     tree.train_network(epochs=hp.epochs)
 
     # level 2
-    tree.prepare_for_training(domain_dataset, boundary_dataset, hp.lr, hp.scheduler_step, hp.weight_decay, hp.eikonal_lambda)
+    tree.prepare_for_training(domain_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
     tree.train_network(epochs=hp.epochs)
 
     # mesh = marching_cubes(network_manager_root, hp.sampling_resolution_3d)
@@ -178,10 +179,13 @@ if __name__ == "__main__":
 '''
 todo
 check if tree is helping or its just capacity 
+optimization - id dansity lambda ==0 -> no need to calc dansity
 
 read: https://lioryariv.github.io/volsdf/
         https://lioryariv.github.io/idr/
         https://arxiv.org/abs/2202.01999
+        poassion reconstruction
+        nural dc
 
 loss: add in boundary grad*tangent = 0  or grad * normal = 0
           in boundary eikonal 

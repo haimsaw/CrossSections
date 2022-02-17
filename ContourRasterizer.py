@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import numpy as np
 
 
-class BoundaryDataset(Dataset):
+class ContourDataset(Dataset):
     def __init__(self, csl, n_samples_per_edge, transform=None, target_transform=None, edge_transform=None):
         self.csl = csl
 

@@ -287,13 +287,13 @@ class OctnetTree(INetManager):
             print(f"\nleaf: {i}/{len(leaves) - 1} {leaf.path}")
             leaf.haim_net_manager.train_network(epochs=epochs)
 
-    def prepare_for_training(self, domain_dataset, boundary_dataset, hp):
+    def prepare_for_training(self, domain_dataset, contour_dataset, hp):
         self._add_level()
         for leaf in self._get_leaves():
             domain_sampler = SubsetRandomSampler(leaf.indices_in_oct(domain_dataset.xyzs))
-            boundary_sampler = SubsetRandomSampler(leaf.indices_in_oct(boundary_dataset.xyzs))
+            contour_sampler = SubsetRandomSampler(leaf.indices_in_oct(contour_dataset.xyzs))
 
-            leaf.haim_net_manager.prepare_for_training(domain_dataset, domain_sampler, boundary_dataset, boundary_sampler, hp)
+            leaf.haim_net_manager.prepare_for_training(domain_dataset, domain_sampler, contour_dataset, contour_sampler, hp)
 
     @torch.no_grad()
     def soft_predict(self, xyzs, use_sigmoid=True):
@@ -331,7 +331,7 @@ class OctnetTree(INetManager):
 
         return errored_xyzs, errored_labels
 
-    def show_train_losses(self, save_path):
+    def show_train_losses(self, save_path=None):
         losses_per_leaf = [leaf.haim_net_manager.train_losses for leaf in self._get_leaves()]
         losses = np.mean(losses_per_leaf, axis=0)
         plt.bar(range(len(losses)), losses)

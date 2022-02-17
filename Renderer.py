@@ -1,4 +1,4 @@
-from BoundaryResterizer import BoundaryDataset
+from ContourRasterizer import ContourDataset
 from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -91,9 +91,9 @@ class Renderer3D:
 
         self.ax.quiver(*xyzs.T, *grads.T, color='black', alpha=alpha, length=length, normalize=True)
 
-    def add_boundary_grads(self, csl, n_samples_per_edge=1, alpha=0.5, length=0.1):
-        dataset = BoundaryDataset(csl, n_samples_per_edge)
-        xyzs, normals = zip(*list(dataset))
+    def add_contour_grads(self, csl, n_samples_per_edge=1, alpha=0.5, length=0.1):
+        dataset = ContourDataset(csl, n_samples_per_edge)
+        xyzs, normals, tangents = zip(*list(dataset))
         self.ax.quiver(*np.array(xyzs).T, *np.array(normals).T, color='black', alpha=alpha, length=length, normalize=True)
 
     def show(self):

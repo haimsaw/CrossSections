@@ -3,8 +3,8 @@ from functools import wraps
 from time import time
 
 
-INSIDE_LABEL = 1.0
-OUTSIDE_LABEL = 0.0
+INSIDE_LABEL = 0.0
+OUTSIDE_LABEL = 1.0
 
 
 def get_top_bottom(points):
