@@ -97,7 +97,8 @@ class HaimNetManager(INetManager):
             if self.hp.density_lambda > 0 else 0
 
         # grad(f(x)) = 1 everywhere (eikonal)
-        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyzs_grad, dim=-1) - 1)) if self.hp.density_lambda > 0 else 0
+        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyzs_grad, dim=-1) - 1))\
+            if self.hp.density_lambda > 0 else 0
 
         # f(x) = 0 on contour
         contour_val_loss = self.hp.contour_val_lambda * torch.mean(torch.abs(contour_labels_pred)) \
@@ -111,7 +112,6 @@ class HaimNetManager(INetManager):
         contour_tangent_loss = self.hp.contour_tangent_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs_grad * tangents_on_contour, dim=-1)))\
             if self.hp.contour_tangent_lambda > 0 else 0
 
-        self.optimizer.zero_grad()
         return density_loss + eikonal_loss + contour_val_loss + contour_normal_loss + contour_tangent_loss
 
     def _train_epoch(self, epoch):
@@ -127,6 +127,7 @@ class HaimNetManager(INetManager):
 
             # _get_loss should call self.optimizer.zero_grad() at the end
             loss = self._get_loss(domain_xyzs, domain_labels, contour_xyzs, contour_normals, contour_tangents)
+            self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
