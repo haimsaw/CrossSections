@@ -76,7 +76,7 @@ class HaimNetManager(INetManager):
 
         self.is_training_ready = False
 
-    def _get_loss(self, domain_xyzs, labels_on_domain, contour_xyzs, normals_on_contour, tangents_on_contour):
+    def _get_losses(self, domain_xyzs, labels_on_domain, contour_xyzs, normals_on_contour, tangents_on_contour):
         domain_xyzs.requires_grad_(True)
         contour_xyzs.requires_grad_(True)
 
@@ -90,25 +90,31 @@ class HaimNetManager(INetManager):
         # density - zero inside one outside
         # bce_loss has a sigmoid layer and BCELoss combined
         density_loss = self.hp.density_lambda * self.bce_loss(domain_label_pred, labels_on_domain)\
-            if self.hp.density_lambda > 0 else 0
+            if self.hp.density_lambda > 0 else torch.tensor([0])
 
         # grad(f(x)) = 1 everywhere (eikonal)
         eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyzs_grad, dim=-1) - 1))\
-            if self.hp.density_lambda > 0 else 0
+            if self.hp.eikonal_lambda > 0 else torch.tensor([0])
 
         # f(x) = 0 on contour
         contour_val_loss = self.hp.contour_val_lambda * torch.mean(torch.abs(contour_labels_pred)) \
-            if self.hp.contour_val_lambda > 0 else 0
+            if self.hp.contour_val_lambda > 0 else torch.tensor([0])
 
         # grad(f(x))*normal = 1 on contour
         contour_normal_loss = self.hp.contour_normal_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs_grad * normals_on_contour, dim=-1) - 1))\
-            if self.hp.contour_normal_lambda > 0 else 0
+            if self.hp.contour_normal_lambda > 0 else torch.tensor([0])
 
         # grad(f(x)) * contour_tangent = 0 on contour
         contour_tangent_loss = self.hp.contour_tangent_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs_grad * tangents_on_contour, dim=-1)))\
-            if self.hp.contour_tangent_lambda > 0 else 0
+            if self.hp.contour_tangent_lambda > 0 else torch.tensor([0])
 
-        return density_loss + eikonal_loss + contour_val_loss + contour_normal_loss + contour_tangent_loss
+        return {
+            'density_loss': density_loss,
+            'eikonal_loss': eikonal_loss,
+            'contour_val_loss': contour_val_loss,
+            'contour_normal_loss': contour_normal_loss,
+            'contour_tangent_loss': contour_tangent_loss
+        }
 
     def _train_epoch(self, epoch):
         assert self.is_training_ready
@@ -116,26 +122,33 @@ class HaimNetManager(INetManager):
             print(f"\n\nEpoch {self.total_epochs} [{epoch}]\n-------------------------------")
 
         running_loss = 0.0
+        running_losses = {}
         size = len(self.domain_data_loader.dataset)
+
         for batch, ((domain_xyzs, domain_labels), (contour_xyzs, contour_normals, contour_tangents)) in enumerate(zip(self.domain_data_loader, self.contour_data_loader)):
             domain_xyzs, domain_labels = domain_xyzs.to(self.device), domain_labels.to(self.device)
             contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
 
             # _get_loss should call self.optimizer.zero_grad() at the end
-            loss = self._get_loss(domain_xyzs, domain_labels, contour_xyzs, contour_normals, contour_tangents)
+            losses = self._get_losses(domain_xyzs, domain_labels, contour_xyzs, contour_normals, contour_tangents)
+            running_losses = {k: losses.get(k, torch.tensor([0])).item() + running_losses.get(k, 0) for k in set(losses)}
+
             self.optimizer.zero_grad()
-            loss.backward()
+            total_loss = sum(losses.values())
+            total_loss.backward()
             self.optimizer.step()
 
-            running_loss += loss.item() * len(domain_xyzs)
+            running_loss += total_loss.item() * len(domain_xyzs)
             if self.verbose and batch % 1000 == 0:
-                bce_loss, current = loss.item(), batch * len(domain_xyzs)
-                print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
+                bce_loss, current = total_loss.item(), batch * len(domain_xyzs)
+                print(f"\tloss: {total_loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
         if epoch > 0 and epoch % self.scheduler_step == 0:
             self.lr_scheduler.step()
 
         total_loss = running_loss / size
+        print(running_losses)
+
         if self.verbose:
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)

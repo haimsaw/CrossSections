@@ -58,7 +58,7 @@ class HP:
 
         self.density_lambda = 1
         self.eikonal_lambda = 0
-        self.contour_val_lambda = 1e-1
+        self.contour_val_lambda = 1e-3
         self.contour_normal_lambda = 0
         self.contour_tangent_lambda = 0
 
@@ -107,7 +107,7 @@ def main():
     tree.prepare_for_training(domain_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
 
-    tree.show_train_losses()
+    # tree.show_train_losses()
 
     for dist in np.linspace(-1, 1, 5):
         renderer = Renderer2D()
