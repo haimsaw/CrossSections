@@ -38,31 +38,31 @@ def get_csl(bounding_planes_margin):
 
 class HP:
     # sampling
-    bounding_planes_margin = 0.05,
-    sampling_margin = 0.05,  # same as bounding_planes_margin
-    oct_overlap_margin = 0.25,
+    bounding_planes_margin = 0.05
+    sampling_margin = 0.05  # same as bounding_planes_margin
+    oct_overlap_margin = 0.25
 
     # resolutions
-    root_sampling_resolution_2d = (32, 32),
-    sampling_resolution_3d = (64, 64, 64),
-    boundary_sampling_resolution = 5,
+    root_sampling_resolution_2d = (32, 32)
+    sampling_resolution_3d = (64, 64, 64)
+    boundary_sampling_resolution = 5
 
     # architecture
-    num_embedding_freqs = 4,
-    hidden_layers = [64, 64, 64, 64, 64],
-    is_siren = False,
+    num_embedding_freqs = 4
+    hidden_layers = [64, 64, 64, 64, 64]
+    is_siren = False
 
     # loss
-    eikonal_lambda = 1e-3,
-    weight_decay = 1e-3,  # l2 regularization
+    eikonal_lambda = 1e-3
+    weight_decay = 1e-3  # l2 regularization
 
     # training
-    epochs = 5,
-    scheduler_step = 5,
-    lr = 1e-2,
+    epochs = 5
+    scheduler_step = 5
+    lr = 1e-2
 
     # inference
-    sig_on_inference = False,  # True
+    sig_on_inference = False  # True
 
     now = str(datetime.now())
 
@@ -88,7 +88,7 @@ def main():
     domain_dataset = DomainDataset(csl, sampling_resolution=HP.root_sampling_resolution_2d, sampling_margin=HP.sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
     boundary_dataset = BoundaryDataset(csl, HP.boundary_sampling_resolution,
-                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor())
+                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
     # level 0:
     tree.prepare_for_training(domain_dataset, boundary_dataset,
