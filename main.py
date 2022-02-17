@@ -55,10 +55,13 @@ class HP:
 
         # loss
         self.eikonal_lambda = 1e-3
+        self.level_set_val_lambda = 1e-3
+        self.level_set_normal_lambda = 1e-6
+        self.level_set_tangent_lambda = 1e-3
         self.weight_decay = 1e-3  # l2 regularization
 
         # training
-        self.epochs = 5
+        self.epochs = 20
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -96,8 +99,7 @@ def main():
                                        target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
     # level 0:
-    tree.prepare_for_training(domain_dataset, boundary_dataset,
-                              hp.lr, hp.scheduler_step, hp.weight_decay, hp.eikonal_lambda)
+    tree.prepare_for_training(domain_dataset, boundary_dataset, hp)
     tree.train_network(epochs=hp.epochs)
 
     mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)

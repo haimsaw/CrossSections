@@ -62,7 +62,7 @@ class HaimNetManager(INetManager):
         self.module.to(self.device)
 
         # self.bce_loss = None
-        self.eikonal_lambda = None
+        self.hp = None
 
         self.optimizer = None
         self.lr_scheduler = None
@@ -83,9 +83,9 @@ class HaimNetManager(INetManager):
 
         running_loss = 0.0
         size = len(self.domain_data_loader.dataset)
-        for batch, ((domain_xyz, domain_label), (boundary_xyz, boundary_normal, boundary_edge)) in enumerate(zip(self.domain_data_loader, self.boundary_data_loader)):
+        for batch, ((domain_xyz, domain_label), (boundary_xyz, normal_on_boundary, tangent_on_boundary)) in enumerate(zip(self.domain_data_loader, self.boundary_data_loader)):
             domain_xyz, domain_label = domain_xyz.to(self.device), domain_label.to(self.device)
-            boundary_xyz, boundary_normal = boundary_xyz.to(self.device), boundary_normal.to(self.device)
+            boundary_xyz, normal_on_boundary = boundary_xyz.to(self.device), normal_on_boundary.to(self.device)
 
             domain_xyz.requires_grad_(True)
             boundary_xyz.requires_grad_(True)
@@ -100,18 +100,16 @@ class HaimNetManager(INetManager):
             torch.sum(boundary_labels_pred).backward(create_graph=True, retain_graph=True)
 
             # eikonal
-            eikonal_loss = self.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyz.grad, dim=-1) - 1))
+            eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyz.grad, dim=-1) - 1))
 
             # level set = 0
-            # todo haim add level set lambda
-            level_set_loss = torch.mean(torch.abs(boundary_labels_pred))
+            level_set_loss = self.hp.level_set_val_lambda * torch.mean(torch.abs(boundary_labels_pred))
 
             # normal on level set
-            # todo haim add level set normal lambda
-            level_set_norm_loss = torch.mean(torch.abs(torch.sum(boundary_xyz.grad * boundary_normal, dim=-1) - 1))
+            level_set_norm_loss = self.hp.level_set_normal_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * normal_on_boundary, dim=-1) - 1))
 
-            # todo haim add level set edge lambda
-            level_set_edge_loss = torch.mean(torch.abs(torch.sum(boundary_xyz.grad * boundary_edge, dim=-1)))
+            # perpendicular to tangent on level set
+            level_set_edge_loss = self.hp.level_set_tangent_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * tangent_on_boundary, dim=-1)))
 
             self.optimizer.zero_grad()
 
@@ -132,7 +130,7 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, domain_dataset, domain_sampler, boundary_dataset, boundary_sampler, lr, scheduler_step, weight_decay, eikonal_lambda):
+    def prepare_for_training(self, domain_dataset, domain_sampler, boundary_dataset, boundary_sampler, hp):
         self.domain_data_loader = DataLoader(domain_dataset, batch_size=128, sampler=domain_sampler)
         self.boundary_data_loader = DataLoader(boundary_dataset, batch_size=128, sampler=boundary_sampler)
 
@@ -141,11 +139,11 @@ class HaimNetManager(INetManager):
         # self.loss_fn = nn.L1Loss()
         # self.loss_fn = nn.CrossEntropyLoss()
         # self.bce_loss = nn.BCEWithLogitsLoss()
-        self.eikonal_lambda = eikonal_lambda
+        self.hp = hp
 
-        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=lr, weight_decay=weight_decay)
+        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
-        self.scheduler_step = scheduler_step
+        self.scheduler_step = hp.scheduler_step
 
         self.is_training_ready = True
 
