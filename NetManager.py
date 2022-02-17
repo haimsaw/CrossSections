@@ -83,7 +83,7 @@ class HaimNetManager(INetManager):
 
         running_loss = 0.0
         size = len(self.domain_data_loader.dataset)
-        for batch, ((domain_xyz, domain_label), (boundary_xyz, boundary_normal)) in enumerate(zip(self.domain_data_loader, self.boundary_data_loader)):
+        for batch, ((domain_xyz, domain_label), (boundary_xyz, boundary_normal, boundary_edge)) in enumerate(zip(self.domain_data_loader, self.boundary_data_loader)):
             domain_xyz, domain_label = domain_xyz.to(self.device), domain_label.to(self.device)
             boundary_xyz, boundary_normal = boundary_xyz.to(self.device), boundary_normal.to(self.device)
 
@@ -96,36 +96,33 @@ class HaimNetManager(INetManager):
             domain_label_pred = self.module(domain_xyz)
             boundary_labels_pred = self.module(boundary_xyz)
 
-            torch.mean(domain_label_pred.mean).backward(create_graph=True, retain_graph=True)
-
-            # todo should I zero grad here?
+            torch.sum(domain_label_pred).backward(create_graph=True, retain_graph=True)
+            torch.sum(boundary_labels_pred).backward(create_graph=True, retain_graph=True)
 
             # eikonal
-            if self.eikonal_lambda > 0:
-                eikonal_loss = self.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyz.grad, dim=-1) - 1))
-                self.optimizer.zero_grad()  # todo should I zero grad here?
-                eikonal_loss.backward()
+            eikonal_loss = self.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyz.grad, dim=-1) - 1))
 
-            # level set
+            # level set = 0
             # todo haim add level set lambda
             level_set_loss = torch.mean(torch.abs(boundary_labels_pred))
-            level_set_loss.backward()
+
+            # normal on level set
+            # todo haim add level set normal lambda
+            level_set_norm_loss = torch.mean(torch.abs(torch.sum(boundary_xyz.grad * boundary_normal, dim=-1) - 1))
+
+            # todo haim add level set edge lambda
+            level_set_edge_loss = torch.mean(torch.abs(torch.sum(boundary_xyz.grad * boundary_edge, dim=-1)))
+
             self.optimizer.zero_grad()
 
-            # direction on level set
-            # todo haim add level set dir lambda
-            torch.mean(boundary_labels_pred).backward(create_graph=True, retain_graph=True)
-            level_set_grad_loss = torch.sum(boundary_xyz.grad * boundary_normal, dim=-1)
-            level_set_grad_loss.backward()
-
-            # todo haim add the other level set grad loss
-
+            loss = eikonal_loss + level_set_loss + level_set_norm_loss + level_set_edge_loss
+            loss.backward()
             self.optimizer.step()
 
-            running_loss += bce_loss.item() * len(domain_xyz)
+            running_loss += loss.item() * len(domain_xyz)
             if self.verbose and batch % 1000 == 0:
-                bce_loss, current = bce_loss.item(), batch * len(domain_xyz)
-                print(f"\tloss: {bce_loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
+                bce_loss, current = loss.item(), batch * len(domain_xyz)
+                print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
         if epoch > 0 and epoch % self.scheduler_step == 0:
             self.lr_scheduler.step()
