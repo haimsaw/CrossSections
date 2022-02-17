@@ -37,39 +37,44 @@ def get_csl(bounding_planes_margin):
 
 
 class HP:
-    # sampling
-    bounding_planes_margin = 0.05
-    sampling_margin = 0.05  # same as bounding_planes_margin
-    oct_overlap_margin = 0.25
+    def __init__(self):
+        # sampling
+        self.bounding_planes_margin = 0.05
+        self.sampling_margin = 0.05  # same as bounding_planes_margin
+        self.oct_overlap_margin = 0.25
 
-    # resolutions
-    root_sampling_resolution_2d = (32, 32)
-    sampling_resolution_3d = (64, 64, 64)
-    boundary_sampling_resolution = 5
+        # resolutions
+        self.root_sampling_resolution_2d = (32, 32)
+        self.sampling_resolution_3d = (64, 64, 64)
+        self.boundary_sampling_resolution = 5
 
-    # architecture
-    num_embedding_freqs = 4
-    hidden_layers = [64, 64, 64, 64, 64]
-    is_siren = False
+        # architecture
+        self.num_embedding_freqs = 4
+        self.hidden_layers = [64, 64, 64, 64, 64]
+        self.is_siren = False
 
-    # loss
-    eikonal_lambda = 1e-3
-    weight_decay = 1e-3  # l2 regularization
+        # loss
+        self.eikonal_lambda = 1e-3
+        self.weight_decay = 1e-3  # l2 regularization
 
-    # training
-    epochs = 5
-    scheduler_step = 5
-    lr = 1e-2
+        # training
+        self.epochs = 5
+        self.scheduler_step = 5
+        self.lr = 1e-2
 
-    # inference
-    sig_on_inference = False  # True
+        # inference
+        self.sig_on_inference = False  # True
 
-    now = str(datetime.now())
+        self.now = str(datetime.now())
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
 def main():
-
-    csl = get_csl(HP.bounding_planes_margin)
+    hp = HP()
+    
+    csl = get_csl(hp.bounding_planes_margin)
 
     '''
     renderer = Renderer3D()
@@ -78,38 +83,38 @@ def main():
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     #renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
-    # renderer.add_rasterized_scene(csl, HP.root_sampling_resolution_2d, HP.sampling_margin, show_empty_planes=True, show_outside_shape=True)
+    # renderer.add_rasterized_scene(csl, hp.root_sampling_resolution_2d, hp.sampling_margin, show_empty_planes=True, show_outside_shape=True)
     renderer.show()
     '''
 
-    tree = OctnetTree(csl, HP.oct_overlap_margin, HP.hidden_layers, get_embedder(HP.num_embedding_freqs), HP.is_siren)
+    tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
-    # d2_res = [i * (2 ** (tree.depth + 1)) for i in HP.root_sampling_resolution_2d]
-    domain_dataset = DomainDataset(csl, sampling_resolution=HP.root_sampling_resolution_2d, sampling_margin=HP.sampling_margin,
+    # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
+    domain_dataset = DomainDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
-    boundary_dataset = BoundaryDataset(csl, HP.boundary_sampling_resolution,
+    boundary_dataset = BoundaryDataset(csl, hp.boundary_sampling_resolution,
                                        target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
     # level 0:
     tree.prepare_for_training(domain_dataset, boundary_dataset,
-                              HP.lr, HP.scheduler_step, HP.weight_decay, HP.eikonal_lambda)
-    tree.train_network(epochs=HP.epochs)
+                              hp.lr, hp.scheduler_step, hp.weight_decay, hp.eikonal_lambda)
+    tree.train_network(epochs=hp.epochs)
 
-    mesh_dc = dual_contouring(tree, HP.sampling_resolution_3d, use_grads=True, use_sigmoid=HP.sig_on_inference)
+    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
     mesh_dc.save('output_dc_grad.obj')
 
-    mesh_dc = dual_contouring(tree, HP.sampling_resolution_3d, use_grads=False, use_sigmoid=HP.sig_on_inference)
+    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
     mesh_dc.save('output_dc_no_grad.obj')
 
-    mesh_mc = marching_cubes(tree, HP.sampling_resolution_3d)
+    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
     mesh_mc.save('output_mc.stl')
 
-    # mesh_mc = marching_cubes(tree, HP.sampling_resolution_3d)
+    # mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
     # mesh_mc.save('output_mc.obj')
 
     for dist in np.linspace(-1, 1, 5):
         renderer = Renderer2D()
-        renderer.heatmap([100] * 2, tree, 2, dist, True, HP.sig_on_inference)
+        renderer.heatmap([100] * 2, tree, 2, dist, True, hp.sig_on_inference)
         renderer.save('')
 
     return
@@ -119,7 +124,7 @@ def main():
     # renderer.add_mesh(mesh_mc)
 
     # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
-    # verts = 2 * mesh_dc.verts/HP.sampling_resolution_3d - 1
+    # verts = 2 * mesh_dc.verts/hp.sampling_resolution_3d - 1
 
     verts = np.array(csl.all_vertices)
     print(verts.shape)
@@ -129,14 +134,14 @@ def main():
     renderer.show()
 
     # level 1
-    tree.prepare_for_training(domain_dataset, boundary_dataset, HP.lr, HP.scheduler_step, HP.weight_decay, HP.eikonal_lambda)
-    tree.train_network(epochs=HP.epochs)
+    tree.prepare_for_training(domain_dataset, boundary_dataset, hp.lr, hp.scheduler_step, hp.weight_decay, hp.eikonal_lambda)
+    tree.train_network(epochs=hp.epochs)
 
     # level 2
-    tree.prepare_for_training(domain_dataset, boundary_dataset, HP.lr, HP.scheduler_step, HP.weight_decay, HP.eikonal_lambda)
-    tree.train_network(epochs=HP.epochs)
+    tree.prepare_for_training(domain_dataset, boundary_dataset, hp.lr, hp.scheduler_step, hp.weight_decay, hp.eikonal_lambda)
+    tree.train_network(epochs=hp.epochs)
 
-    # mesh = marching_cubes(network_manager_root, HP.sampling_resolution_3d)
+    # mesh = marching_cubes(network_manager_root, hp.sampling_resolution_3d)
     # renderer = Renderer3D()
     # renderer.add_mesh(mesh)
     # renderer.add_scene(csl)
