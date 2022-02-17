@@ -42,7 +42,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
     # set level is at 0 so normalize labels to be in [-1, 1]
     if not use_sigmoid:
         labels = labels * 2 - 1
-    print(f'labels max={labels.max()} min={labels.min()}')
+    # print(f'labels max={labels.max()} min={labels.min()}')
 
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
@@ -70,9 +70,9 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
             xyzs_for_normal = 2 * ijks_for_normal / (sampling_resolution_3d + 1) - 1
 
             normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal, use_sigmoid=use_sigmoid)
-            #normals = normalize(normals, norm="l2")  # todo haim?
+            # normals = normalize(normals, norm="l2")  # todo haim?
 
-            print(f'use_grads={use_grads} avg={np.abs(normals).mean(axis=0)}')
+            # print(f'use_grads={use_grads} avg={np.abs(normals).mean(axis=0)}')
 
             ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), normals))
             return lambda i, j, k: ijks_to_grad[(i, j, k)]

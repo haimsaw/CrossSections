@@ -20,12 +20,12 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -54,12 +54,13 @@ class HP:
         self.is_siren = False
 
         # loss
-        self.density_lambda = 0
-        self.eikonal_lambda = 1e-3
-        self.level_set_val_lambda = 1e-3
-        self.level_set_normal_lambda = 1e-6
-        self.level_set_tangent_lambda = 1e-3
         self.weight_decay = 1e-3  # l2 regularization
+
+        self.density_lambda = 0
+        self.eikonal_lambda = 1
+        self.level_set_val_lambda = 1
+        self.level_set_normal_lambda = 0
+        self.level_set_tangent_lambda = 0
 
         # training
         self.epochs = 20
@@ -96,29 +97,29 @@ def main():
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
     domain_dataset = DomainDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
-    boundary_dataset = BoundaryDataset(csl, hp.boundary_sampling_resolution,
+    boundary_dataset = BoundaryDataset(csl, round(len(domain_dataset)/len(csl)),
                                        target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
+    print(f'dom={len(domain_dataset)}, boun={len(boundary_dataset)}')
 
     # level 0:
     tree.prepare_for_training(domain_dataset, boundary_dataset, hp)
     tree.train_network(epochs=hp.epochs)
 
-    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
-    mesh_dc.save('output_dc_grad.obj')
-
-    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
-    mesh_dc.save('output_dc_no_grad.obj')
-
-    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
-    mesh_mc.save('output_mc.stl')
-
-    # mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
-    # mesh_mc.save('output_mc.obj')
-
     for dist in np.linspace(-1, 1, 5):
         renderer = Renderer2D()
         renderer.heatmap([100] * 2, tree, 2, dist, True, hp.sig_on_inference)
         renderer.save('')
+
+    #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
+    #mesh_dc.save('output_dc_grad.obj')
+
+    #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
+    #mesh_dc.save('output_dc_no_grad.obj')
+
+    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
+    mesh_mc.save('output_mc.stl')
+
+
 
     return
 

@@ -82,6 +82,9 @@ class Plane:
         pca.fit(self.vertices)
         return pca.transform(self.vertices), pca
 
+    def __len__(self):
+        return sum((len(cc) for cc in self.connected_components))
+
     def __isub__(self, point: np.array):
         assert point.shape == (3,)
         self.vertices -= point
@@ -128,6 +131,9 @@ class CSL:
             assert next(csl_file).strip() == "CSLC"
             n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
             self.planes = [Plane.from_csl_file(csl_file, self) for _ in range(n_planes)]
+
+    def __len__(self):
+        return sum((len(plane) for plane in self.planes))
 
     @property
     def all_vertices(self):
