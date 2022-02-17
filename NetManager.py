@@ -61,7 +61,7 @@ class HaimNetManager(INetManager):
         self.module.double()
         self.module.to(self.device)
 
-        # self.bce_loss = None
+        self.bce_loss = None
         self.hp = None
 
         self.optimizer = None
@@ -76,6 +76,40 @@ class HaimNetManager(INetManager):
 
         self.is_training_ready = False
 
+    def _get_loss(self, domain_label, domain_xyz, boundary_xyz, normal_on_boundary, tangent_on_boundary):
+        domain_xyz.requires_grad_(True)
+        boundary_xyz.requires_grad_(True)
+
+        self.optimizer.zero_grad()
+
+        # Compute prediction error
+        domain_label_pred = self.module(domain_xyz)
+        boundary_labels_pred = self.module(boundary_xyz)
+        torch.sum(domain_label_pred).backward(create_graph=True, retain_graph=True)
+        torch.sum(boundary_labels_pred).backward(create_graph=True, retain_graph=True)
+
+        # density - zero inside one outside
+        density_loss = self.hp.density_lambda * self.bce_loss(domain_label_pred, domain_label)\
+            if self.hp.density_lambda > 0 else 0
+
+        # eikonal - grad(f(x)) = 1 everywhere
+        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyz.grad, dim=-1) - 1)) if self.hp.density_lambda > 0 else 0
+
+        # f(x) = 0 on contour
+        level_set_loss = self.hp.level_set_val_lambda * torch.mean(torch.abs(boundary_labels_pred)) \
+            if self.hp.level_set_val_lambda > 0 else 0
+
+        # grad(f(x))*normal = 1 on contour
+        level_set_norm_loss = self.hp.level_set_normal_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * normal_on_boundary, dim=-1) - 1))\
+            if self.hp.level_set_normal_lambda > 0 else 0
+
+        # grad(f(x)) * contour_tangent = 0 on contour
+        level_set_edge_loss = self.hp.level_set_tangent_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * tangent_on_boundary, dim=-1)))\
+            if self.hp.level_set_tangent_lambda > 0 else 0
+
+        self.optimizer.zero_grad()
+        return density_loss + eikonal_loss + level_set_loss + level_set_norm_loss + level_set_edge_loss
+
     def _train_epoch(self, epoch):
         assert self.is_training_ready
         if self.verbose:
@@ -87,33 +121,8 @@ class HaimNetManager(INetManager):
             domain_xyz, domain_label = domain_xyz.to(self.device), domain_label.to(self.device)
             boundary_xyz, normal_on_boundary = boundary_xyz.to(self.device), normal_on_boundary.to(self.device)
 
-            domain_xyz.requires_grad_(True)
-            boundary_xyz.requires_grad_(True)
-
-            self.optimizer.zero_grad()
-
-            # Compute prediction error
-            domain_label_pred = self.module(domain_xyz)
-            boundary_labels_pred = self.module(boundary_xyz)
-
-            torch.sum(domain_label_pred).backward(create_graph=True, retain_graph=True)
-            torch.sum(boundary_labels_pred).backward(create_graph=True, retain_graph=True)
-
-            # eikonal
-            eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyz.grad, dim=-1) - 1))
-
-            # level set = 0
-            level_set_loss = self.hp.level_set_val_lambda * torch.mean(torch.abs(boundary_labels_pred))
-
-            # normal on level set
-            level_set_norm_loss = self.hp.level_set_normal_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * normal_on_boundary, dim=-1) - 1))
-
-            # perpendicular to tangent on level set
-            level_set_edge_loss = self.hp.level_set_tangent_lambda * torch.mean(torch.abs(torch.sum(boundary_xyz.grad * tangent_on_boundary, dim=-1)))
-
-            self.optimizer.zero_grad()
-
-            loss = eikonal_loss + level_set_loss + level_set_norm_loss + level_set_edge_loss
+            # _get_loss should call self.optimizer.zero_grad() at the end
+            loss = self._get_loss(domain_label, domain_xyz, boundary_xyz, normal_on_boundary, tangent_on_boundary)
             loss.backward()
             self.optimizer.step()
 
@@ -136,9 +145,7 @@ class HaimNetManager(INetManager):
 
         self.module.init_weights()
 
-        # self.loss_fn = nn.L1Loss()
-        # self.loss_fn = nn.CrossEntropyLoss()
-        # self.bce_loss = nn.BCEWithLogitsLoss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
         self.hp = hp
 
         self.optimizer = torch.optim.Adam(self.module.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)

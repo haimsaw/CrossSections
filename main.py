@@ -54,6 +54,7 @@ class HP:
         self.is_siren = False
 
         # loss
+        self.density_lambda = 0
         self.eikonal_lambda = 1e-3
         self.level_set_val_lambda = 1e-3
         self.level_set_normal_lambda = 1e-6
