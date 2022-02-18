@@ -56,10 +56,10 @@ class HP:
         # loss
         self.weight_decay = 1e-3  # l2 regularization
 
-        self.density_lambda = 1
-        self.eikonal_lambda = 0
-        self.contour_val_lambda = 1e-3
-        self.contour_normal_lambda = 0
+        self.density_lambda = 0
+        self.eikonal_lambda = 1
+        self.contour_val_lambda = 1e-2
+        self.contour_normal_lambda = 1e-2
         self.contour_tangent_lambda = 0
 
         # training

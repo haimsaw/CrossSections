@@ -162,8 +162,9 @@ class PlaneRasterizer(IRasterizer):
 
 
 class DomainDataset(Dataset):
-    def __init__(self, csl, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
+    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
         self.csl = csl
+        self.calc_density = calc_density
 
         cells = []
         for plane in csl.planes:
@@ -183,7 +184,8 @@ class DomainDataset(Dataset):
         cell = self.cells[idx]
 
         xyz = cell.xyz
-        label = [cell.label]
+
+        label = [cell.label] if self.calc_density else [-1]
 
         if self.transform:
             xyz = self.transform(xyz)

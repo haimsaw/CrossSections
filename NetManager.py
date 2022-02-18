@@ -1,13 +1,9 @@
 import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from torch.utils.data import DataLoader, SubsetRandomSampler
-from torch import nn
+from torch.utils.data import DataLoader
 
 from Modules import *
 from Helpers import *
 from abc import ABCMeta, abstractmethod
-from torch import linalg as LA
 
 
 class INetManager:
@@ -89,23 +85,23 @@ class HaimNetManager(INetManager):
 
         # density - zero inside one outside
         # bce_loss has a sigmoid layer and BCELoss combined
-        density_loss = self.hp.density_lambda * self.bce_loss(domain_label_pred, labels_on_domain)\
+        density_loss = self.bce_loss(domain_label_pred, labels_on_domain) * self.hp.density_lambda\
             if self.hp.density_lambda > 0 else torch.tensor([0])
 
         # grad(f(x)) = 1 everywhere (eikonal)
-        eikonal_loss = self.hp.eikonal_lambda * torch.mean(torch.abs(LA.vector_norm(domain_xyzs_grad, dim=-1) - 1))\
+        eikonal_loss = (domain_xyzs_grad.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda\
             if self.hp.eikonal_lambda > 0 else torch.tensor([0])
 
         # f(x) = 0 on contour
-        contour_val_loss = self.hp.contour_val_lambda * torch.mean(torch.abs(contour_labels_pred)) \
+        contour_val_loss = contour_labels_pred.abs().mean() * self.hp.contour_val_lambda\
             if self.hp.contour_val_lambda > 0 else torch.tensor([0])
 
         # grad(f(x))*normal = 1 on contour
-        contour_normal_loss = self.hp.contour_normal_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs_grad * normals_on_contour, dim=-1) - 1))\
+        contour_normal_loss = ((contour_xyzs_grad * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda\
             if self.hp.contour_normal_lambda > 0 else torch.tensor([0])
 
         # grad(f(x)) * contour_tangent = 0 on contour
-        contour_tangent_loss = self.hp.contour_tangent_lambda * torch.mean(torch.abs(torch.sum(contour_xyzs_grad * tangents_on_contour, dim=-1)))\
+        contour_tangent_loss = (contour_xyzs_grad * tangents_on_contour).sum(dim=-1).abs().mean() * self.hp.contour_tangent_lambda\
             if self.hp.contour_tangent_lambda > 0 else torch.tensor([0])
 
         return {
