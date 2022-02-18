@@ -1,7 +1,5 @@
-import itertools
 from itertools import chain
 
-import numpy as np
 from parse import parse
 from sklearn.decomposition import PCA
 

@@ -1,4 +1,3 @@
-import numpy as np
 from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
 from CSL import Plane

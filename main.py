@@ -1,31 +1,20 @@
 from datetime import datetime
 import json
-import os
-
-import torch
-
-import mcdc.utils_3d as utils_3d
-import numpy as np
 
 from CSL import *
 from DomainResterizer import DomainDataset
-from ContourRasterizer import ContourDataset
 from Renderer import *
-from NetManager import *
 from Mesher import *
-from Helpers import *
-from Modules import *
-from stl import mesh as mesh2
 from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -60,7 +49,7 @@ class HP:
         self.eikonal_lambda = 1
         self.contour_val_lambda = 1e-2
         self.contour_normal_lambda = 1e-2
-        self.contour_tangent_lambda = 0
+        self.contour_tangent_lambda = 1
 
         # training
         self.epochs = 30
@@ -68,7 +57,7 @@ class HP:
         self.lr = 1e-2
 
         # inference
-        self.sig_on_inference = False  # True
+        self.sigmoid_on_inference = False  # True
 
         self.now = str(datetime.now())
 
@@ -97,11 +86,10 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    domain_dataset = DomainDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
+    domain_dataset = DomainDataset(csl, calc_density=hp.density_lambda>0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
-    contour_dataset = ContourDataset(csl, round(len(domain_dataset) / len(csl)), # todo haim hp.contour_sampling_resolution
+    contour_dataset = ContourDataset(csl, round(len(domain_dataset) / len(csl)),  # todo haim
                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
-    print(f'dom={len(domain_dataset)}, boun={len(contour_dataset)}')
 
     # level 0:
     tree.prepare_for_training(domain_dataset, contour_dataset, hp)
@@ -109,26 +97,26 @@ def main():
 
     # tree.show_train_losses()
 
-    for dist in np.linspace(-1, 1, 5):
-        renderer = Renderer2D()
-        renderer.heatmap([100] * 2, tree, 0, dist, True, hp.sig_on_inference)
-        renderer.save('')
-
     #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
     #mesh_dc.save('output_dc_grad.obj')
 
     #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
     #mesh_dc.save('output_dc_no_grad.obj')
 
-    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
+    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
     mesh_mc.save('output_mc.stl')
-
-
-    return
 
     renderer = Renderer3D()
     renderer.add_scene(csl)
-    # renderer.add_mesh(mesh_mc)
+    renderer.add_mesh(mesh_mc)
+    renderer.show()
+
+    for dist in np.linspace(-1, 1, 5):
+        renderer = Renderer2D()
+        renderer.heatmap([100] * 2, tree, 0, dist, True, hp.sigmoid_on_inference)
+        renderer.save('')
+
+    return
 
     # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
     # verts = 2 * mesh_dc.verts/hp.sampling_resolution_3d - 1

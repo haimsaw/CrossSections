@@ -20,11 +20,14 @@ def _get_mesh(labels, level, spacing):
 
 
 @timing
-def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
+def marching_cubes(net_manager: INetManager, sampling_resolution_3d, use_sigmoid):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
-    # set level is at 0
-    labels = net_manager.soft_predict(xyzs) * 2 - 1
+    labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid)
+
+    if use_sigmoid:
+        # set level is at 0
+        labels = labels * 2 - 1
 
     # use spacing to match original shape boundaries
     return _get_mesh(labels.reshape(sampling_resolution_3d), level=0, spacing=[2/res for res in sampling_resolution_3d])
