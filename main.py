@@ -9,12 +9,12 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -57,7 +57,7 @@ class HP:
         self.lr = 1e-2
 
         # inference
-        self.sigmoid_on_inference = False  # True
+        self.sigmoid_on_inference = False
 
         self.now = str(datetime.now())
 

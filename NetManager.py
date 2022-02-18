@@ -83,34 +83,30 @@ class HaimNetManager(INetManager):
         domain_xyzs_grad = torch.autograd.grad(domain_label_pred.sum(), [domain_xyzs], create_graph=True)[0]
         contour_xyzs_grad = torch.autograd.grad(contour_labels_pred.sum(), [contour_xyzs], create_graph=True)[0]
 
+        losses = {}
+
         # density - zero inside one outside
-        # bce_loss has a sigmoid layer and BCELoss combined
-        density_loss = self.bce_loss(domain_label_pred, labels_on_domain) * self.hp.density_lambda\
-            if self.hp.density_lambda > 0 else torch.tensor([0])
+        # bce_loss has a sigmoid layer build in
+        if self.hp.density_lambda > 0:
+            losses['density_loss'] = self.bce_loss(domain_label_pred, labels_on_domain) * self.hp.density_lambda
 
         # grad(f(x)) = 1 everywhere (eikonal)
-        eikonal_loss = (domain_xyzs_grad.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda\
-            if self.hp.eikonal_lambda > 0 else torch.tensor([0])
+        if self.hp.eikonal_lambda > 0:
+            losses['eikonal_loss'] = (domain_xyzs_grad.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
 
         # f(x) = 0 on contour
-        contour_val_loss = contour_labels_pred.abs().mean() * self.hp.contour_val_lambda\
-            if self.hp.contour_val_lambda > 0 else torch.tensor([0])
+        if self.hp.contour_val_lambda > 0:
+            losses['contour_val_loss'] = contour_labels_pred.abs().mean() * self.hp.contour_val_lambda
 
         # grad(f(x))*normal = 1 on contour
-        contour_normal_loss = ((contour_xyzs_grad * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda\
-            if self.hp.contour_normal_lambda > 0 else torch.tensor([0])
+        if self.hp.contour_normal_lambda > 0:
+            losses['contour_normal_loss'] = ((contour_xyzs_grad * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
 
         # grad(f(x)) * contour_tangent = 0 on contour
-        contour_tangent_loss = (contour_xyzs_grad * tangents_on_contour).sum(dim=-1).abs().mean() * self.hp.contour_tangent_lambda\
-            if self.hp.contour_tangent_lambda > 0 else torch.tensor([0])
+        if self.hp.contour_tangent_lambda > 0:
+            losses['contour_tangent_loss'] = (contour_xyzs_grad * tangents_on_contour).sum(dim=-1).abs().mean() * self.hp.contour_tangent_lambda
 
-        return {
-            'density_loss': density_loss,
-            'eikonal_loss': eikonal_loss,
-            'contour_val_loss': contour_val_loss,
-            'contour_normal_loss': contour_normal_loss,
-            'contour_tangent_loss': contour_tangent_loss
-        }
+        return losses
 
     def _train_epoch(self, epoch):
         assert self.is_training_ready
