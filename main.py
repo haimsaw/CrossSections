@@ -2,15 +2,16 @@ from datetime import datetime
 import json
 
 from CSL import *
-from DomainResterizer import DomainDataset
+from ContourRasterizer import ContourDatasetFake
+from DomainResterizer import DomainDataset, DomainDatasetFake
 from Renderer import *
 from Mesher import *
 from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
-    # csl = CSL("csl-files/ParallelEightMore.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
@@ -38,21 +39,22 @@ class HP:
         self.contour_sampling_resolution = 5
 
         # architecture
-        self.num_embedding_freqs = 4
-        self.hidden_layers = [64, 64, 64, 64, 64]
+        self.num_embedding_freqs = 0# 4
+        self.hidden_layers = [64] * 5
         self.is_siren = False
 
         # loss
         self.weight_decay = 1e-3  # l2 regularization
 
-        self.density_lambda = 0
-        self.eikonal_lambda = 1
-        self.contour_val_lambda = 1e-2
-        self.contour_normal_lambda = 1e-2
-        self.contour_tangent_lambda = 1
+        self.density_lambda = 1
+
+        self.eikonal_lambda = 0
+        self.contour_val_lambda = 0
+        self.contour_normal_lambda = 0
+        self.contour_tangent_lambda = 0
 
         # training
-        self.epochs = 30
+        self.epochs = 100
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -69,11 +71,11 @@ def main():
     hp = HP()
 
     csl = get_csl(hp.bounding_planes_margin)
-
+    
     '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
-    renderer.add_contour_grads(csl)
+    renderer.add_contour_tangents(csl)
     # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
     # renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
 
@@ -86,9 +88,9 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    domain_dataset = DomainDataset(csl, calc_density=hp.density_lambda>0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
+    domain_dataset = DomainDatasetFake(csl, calc_density=hp.density_lambda>0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
-    contour_dataset = ContourDataset(csl, round(len(domain_dataset) / len(csl)),  # todo haim
+    contour_dataset = ContourDatasetFake(csl, round(len(domain_dataset) / len(csl)),  # todo haim
                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
     # level 0:
@@ -111,10 +113,11 @@ def main():
     renderer.add_mesh(mesh_mc)
     renderer.show()
 
-    for dist in np.linspace(-1, 1, 5):
-        renderer = Renderer2D()
-        renderer.heatmap([100] * 2, tree, 0, dist, True, hp.sigmoid_on_inference)
-        renderer.save('')
+    for dim in (0, 2):
+        for dist in np.linspace(-1, 1, 3):
+            renderer = Renderer2D()
+            renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
+            renderer.save('')
 
     return
 

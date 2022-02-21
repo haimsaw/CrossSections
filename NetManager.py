@@ -104,7 +104,7 @@ class HaimNetManager(INetManager):
 
         # grad(f(x)) * contour_tangent = 0 on contour
         if self.hp.contour_tangent_lambda > 0:
-            losses['contour_tangent_loss'] = (contour_xyzs_grad * tangents_on_contour).sum(dim=-1).abs().mean() * self.hp.contour_tangent_lambda
+            losses['contour_tangent_loss'] = ((contour_xyzs_grad * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
 
         return losses
 
@@ -139,7 +139,7 @@ class HaimNetManager(INetManager):
             self.lr_scheduler.step()
 
         total_loss = running_loss / size
-        print(running_losses)
+        print(f'epoch={epoch} losses={running_losses}')
 
         if self.verbose:
             print(f"\tloss for epoch: {total_loss}")

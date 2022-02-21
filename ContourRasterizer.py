@@ -1,6 +1,8 @@
 from torch.utils.data import Dataset
 import numpy as np
 
+from Helpers import get_xyzs_in_octant
+
 
 class ContourDataset(Dataset):
     def __init__(self, csl, n_samples_per_edge, transform=None, target_transform=None, edge_transform=None):
@@ -41,6 +43,35 @@ class ContourDataset(Dataset):
         xyz = self.xyzs[idx]
         normal = self.normals[idx]
         tangent = self.tangents[idx]
+
+        if self.transform:
+            xyz = self.transform(xyz)
+        if self.normal_transform:
+            normal = self.normal_transform(normal)
+        if self.edge_transform:
+            tangent = self.edge_transform(tangent)
+
+        return xyz, normal, tangent
+
+
+class ContourDatasetFake(Dataset):
+    def __init__(self, csl, n_samples_per_edge, transform=None, target_transform=None, edge_transform=None):
+        self.radius = 0.4
+
+        self.xyzs = np.random.randn(64, 3)
+        self.xyzs = (self.xyzs / np.linalg.norm(self.xyzs, axis=0)) * self.radius
+
+        self.transform = transform
+        self.normal_transform = target_transform
+        self.edge_transform = edge_transform
+
+    def __len__(self):
+        return len(self.xyzs)
+
+    def __getitem__(self, idx):
+        xyz = self.xyzs[idx]
+        normal = xyz / self.radius
+        tangent = np.array([0, 0, 0])  # self.tangents[idx]
 
         if self.transform:
             xyz = self.transform(xyz)

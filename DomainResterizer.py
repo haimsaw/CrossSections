@@ -193,3 +193,27 @@ class DomainDataset(Dataset):
 
         return xyz, label
 
+
+class DomainDatasetFake(Dataset):
+    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
+
+        self.xyzs = get_xyzs_in_octant(None, (64, 64, 64))
+        self.radius = 0.4
+
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.xyzs)
+
+    def __getitem__(self, idx):
+        xyz = self.xyzs[idx]
+
+        label = [INSIDE_LABEL] if np.dot(xyz, xyz) < self.radius else [OUTSIDE_LABEL]
+
+        if self.transform:
+            xyz = self.transform(xyz)
+        if self.target_transform:
+            label = self.target_transform(label)
+
+        return xyz, label
