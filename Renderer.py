@@ -82,7 +82,7 @@ class Renderer3D:
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
-    def add_slices_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
+    def add_model_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
         self.description.append('grads')
 
         grads = network_manager.grad_wrt_input(xyzs)
@@ -91,14 +91,12 @@ class Renderer3D:
 
         self.ax.quiver(*xyzs.T, *grads.T, color='black', alpha=alpha, length=length, normalize=True)
 
-    def add_contour_normals(self, csl, n_samples_per_edge=1, alpha=0.5, length=0.1):
-        dataset = ContourDataset(csl, n_samples_per_edge)
-        xyzs, normals, _ = zip(*list(dataset))
+    def add_contour_normals(self, contour_dataset, alpha=0.5, length=0.1):
+        xyzs, normals, _ = zip(*list(contour_dataset))
         self.ax.quiver(*np.array(xyzs).T, *np.array(normals).T, color='black', alpha=alpha, length=length, normalize=True)
 
-    def add_contour_tangents(self, csl, n_samples_per_edge=1, alpha=0.5, length=0.1):
-        dataset = ContourDataset(csl, n_samples_per_edge)
-        xyzs, _, tangents = zip(*list(dataset))
+    def add_contour_tangents(self, contour_dataset, alpha=0.5, length=0.1):
+        xyzs, _, tangents = zip(*list(contour_dataset))
         self.ax.quiver(*np.array(xyzs).T, *np.array(tangents).T, color='black', alpha=alpha, length=length, normalize=True)
 
     def show(self):

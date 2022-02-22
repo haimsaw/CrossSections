@@ -46,11 +46,11 @@ class HP:
         # loss
         self.weight_decay = 1e-3  # l2 regularization
 
-        self.density_lambda = 1
+        self.density_lambda = 0
 
-        self.eikonal_lambda = 0
-        self.contour_val_lambda = 0
-        self.contour_normal_lambda = 0
+        self.eikonal_lambda = 1
+        self.contour_val_lambda = 1
+        self.contour_normal_lambda = 1
         self.contour_tangent_lambda = 0
 
         # training
@@ -90,10 +90,14 @@ def main():
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
     slices_dataset = SlicesDatasetFake(csl, calc_density=hp.density_lambda > 0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                        target_transform=torch.tensor, transform=torch.tensor)
-    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)),  # todo haim
+    contour_dataset = ContourDatasetFake(csl, round(len(slices_dataset) / len(csl)),  # todo haim
                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
-    print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}')
+    r=Renderer3D()
+    r.add_contour_normals(contour_dataset)
+    r.show()
+
+    print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
 
     # level 0:
     tree.prepare_for_training(slices_dataset, contour_dataset, hp)
@@ -108,7 +112,9 @@ def main():
         renderer = Renderer3D()
         renderer.add_scene(csl)
         renderer.add_mesh(mesh_mc)
+        renderer.add_model_grads(tree, get_xyzs_in_octant(None, sampling_resolution_3d=(10, 10, 10)))
         renderer.show()
+
     except ValueError as e:
         print(e)
     finally:
@@ -134,7 +140,7 @@ def main():
     print(verts.shape)
     verts = verts[np.random.choice(verts.shape[0], 200, replace=False)]
 
-    renderer.add_slices_grads(tree, verts, alpha=1, length=0.15, neg=True)
+    renderer.add_model_grads(tree, verts, alpha=1, length=0.15, neg=True)
     renderer.show()
 
     # level 1

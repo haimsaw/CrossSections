@@ -197,7 +197,7 @@ class SlicesDataset(Dataset):
 class SlicesDatasetFake(Dataset):
     def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
 
-        self.xyzs = get_xyzs_in_octant(None, (64, 64, 64))
+        self.xyzs = get_xyzs_in_octant(None, (32, 32, 32))
         self.radius = 0.4
 
         self.transform = transform

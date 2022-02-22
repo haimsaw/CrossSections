@@ -58,7 +58,7 @@ class ContourDatasetFake(Dataset):
     def __init__(self, csl, n_samples_per_edge, transform=None, target_transform=None, edge_transform=None):
         self.radius = 0.4
 
-        self.xyzs = np.random.randn(64, 3)
+        self.xyzs = np.random.randn(32*32*32, 3)
         self.xyzs = (self.xyzs / np.linalg.norm(self.xyzs, axis=0)) * self.radius
 
         self.transform = transform
@@ -70,8 +70,10 @@ class ContourDatasetFake(Dataset):
 
     def __getitem__(self, idx):
         xyz = self.xyzs[idx]
-        normal = xyz / self.radius
-        tangent = np.array([0, 0, 0])  # self.tangents[idx]
+        normal = xyz / np.linalg.norm(xyz)
+
+        tangent = np.array([0, 1, -normal[1]/normal[2]])
+        tangent /= np.linalg.norm(tangent)
 
         if self.transform:
             xyz = self.transform(xyz)
