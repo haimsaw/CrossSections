@@ -20,7 +20,7 @@ def _get_mesh(labels, level, spacing):
 
 
 @timing
-def marching_cubes(net_manager: INetManager, sampling_resolution_3d, use_sigmoid, adjust_level_set):
+def marching_cubes(net_manager: INetManager, sampling_resolution_3d, use_sigmoid):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
     labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid)

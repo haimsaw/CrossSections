@@ -10,8 +10,8 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
-    csl = CSL("csl-files/ParallelEightMore.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
@@ -39,8 +39,8 @@ class HP:
         self.contour_sampling_resolution = 5
 
         # architecture
-        self.num_embedding_freqs = 0# 4
-        self.hidden_layers = [64] * 5
+        self.num_embedding_freqs = 4
+        self.hidden_layers = [64, 64, 64, 64, 64]
         self.is_siren = False
 
         # loss
@@ -54,7 +54,7 @@ class HP:
         self.contour_tangent_lambda = 0
 
         # training
-        self.epochs = 5
+        self.epochs = 10
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -100,7 +100,7 @@ def main():
     # tree.show_train_losses()
 
     try:
-        mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference, adjust_level_set=hp.density_lambda > 0)
+        mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
         mesh_mc.save('output_mc.stl')
 
         renderer = Renderer3D()
