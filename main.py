@@ -54,7 +54,7 @@ class HP:
         self.contour_tangent_lambda = 0
 
         # training
-        self.epochs = 100
+        self.epochs = 5
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -88,9 +88,9 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    domain_dataset = DomainDatasetFake(csl, calc_density=hp.density_lambda>0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
+    domain_dataset = DomainDataset(csl, calc_density=hp.density_lambda>0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    target_transform=torch.tensor, transform=torch.tensor)
-    contour_dataset = ContourDatasetFake(csl, round(len(domain_dataset) / len(csl)),  # todo haim
+    contour_dataset = ContourDataset(csl, round(len(domain_dataset) / len(csl)),  # todo haim
                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
     # level 0:
@@ -99,27 +99,31 @@ def main():
 
     # tree.show_train_losses()
 
+    try:
+        mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference, adjust_level_set=hp.density_lambda > 0)
+        mesh_mc.save('output_mc.stl')
+
+        renderer = Renderer3D()
+        renderer.add_scene(csl)
+        renderer.add_mesh(mesh_mc)
+        renderer.show()
+    except ValueError as e:
+        print(e)
+    finally:
+        for dim in (0, 2):
+            for dist in np.linspace(-1, 1, 3):
+                renderer = Renderer2D()
+                renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
+                renderer.save('')
+                renderer.clear()
+
+    return
+
     #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
     #mesh_dc.save('output_dc_grad.obj')
 
     #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
     #mesh_dc.save('output_dc_no_grad.obj')
-
-    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
-    mesh_mc.save('output_mc.stl')
-
-    renderer = Renderer3D()
-    renderer.add_scene(csl)
-    renderer.add_mesh(mesh_mc)
-    renderer.show()
-
-    for dim in (0, 2):
-        for dist in np.linspace(-1, 1, 3):
-            renderer = Renderer2D()
-            renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
-            renderer.save('')
-
-    return
 
     # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
     # verts = 2 * mesh_dc.verts/hp.sampling_resolution_3d - 1

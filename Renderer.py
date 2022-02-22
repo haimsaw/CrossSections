@@ -44,7 +44,7 @@ class Renderer3D:
     def add_dataset(self, dataset):
         self.description.append('dataset')
 
-        xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == 1])
+        xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == INSIDE_LABEL])
 
         self.ax.scatter(*xyzs.T, color="blue")
 
@@ -187,6 +187,12 @@ class Renderer2D:
         title = '_'.join(self.description)
         self.fig.suptitle(title, fontsize=16)
         plt.show()
+
+    def clear(self):
+        self.fig.clear()
+        plt.close()
+        plt.cla()
+        plt.clf()
 
     '''
     def save_animation(self, save_path, level, elevs=(-30,)):
