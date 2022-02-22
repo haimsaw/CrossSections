@@ -64,7 +64,7 @@ class HaimNetManager(INetManager):
         self.lr_scheduler = None
         self.scheduler_step = 0
 
-        self.domain_data_loader = None
+        self.slices_data_loader = None
         self.contour_data_loader = None
 
         self.total_epochs = 0
@@ -72,15 +72,15 @@ class HaimNetManager(INetManager):
 
         self.is_training_ready = False
 
-    def _get_losses(self, domain_xyzs, labels_on_domain, contour_xyzs, normals_on_contour, tangents_on_contour):
-        domain_xyzs.requires_grad_(True)
+    def _get_losses(self, slices_xyzs, slices_density, contour_xyzs, normals_on_contour, tangents_on_contour):
+        slices_xyzs.requires_grad_(True)
         contour_xyzs.requires_grad_(True)
 
-        domain_label_pred = self.module(domain_xyzs)
+        slices_density_pred = self.module(slices_xyzs)
         contour_labels_pred = self.module(contour_xyzs)
 
         # todo haim grad_outputs
-        domain_xyzs_grad = torch.autograd.grad(domain_label_pred.sum(), [domain_xyzs], create_graph=True)[0]
+        d_xyzs_d_density = torch.autograd.grad(slices_density_pred.sum(), [slices_xyzs], create_graph=True)[0]
         contour_xyzs_grad = torch.autograd.grad(contour_labels_pred.sum(), [contour_xyzs], create_graph=True)[0]
 
         losses = {}
@@ -88,23 +88,23 @@ class HaimNetManager(INetManager):
         # density - zero inside one outside
         # bce_loss has a sigmoid layer build in
         if self.hp.density_lambda > 0:
-            losses['density_loss'] = self.bce_loss(domain_label_pred, labels_on_domain) * self.hp.density_lambda
+            losses['density'] = self.bce_loss(slices_density_pred, slices_density) * self.hp.density_lambda
 
         # grad(f(x)) = 1 everywhere (eikonal)
         if self.hp.eikonal_lambda > 0:
-            losses['eikonal_loss'] = (domain_xyzs_grad.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
+            losses['eikonal'] = (d_xyzs_d_density.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
 
         # f(x) = 0 on contour
         if self.hp.contour_val_lambda > 0:
-            losses['contour_val_loss'] = contour_labels_pred.abs().mean() * self.hp.contour_val_lambda
+            losses['contour_val'] = contour_labels_pred.abs().mean() * self.hp.contour_val_lambda
 
         # grad(f(x))*normal = 1 on contour
         if self.hp.contour_normal_lambda > 0:
-            losses['contour_normal_loss'] = ((contour_xyzs_grad * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
+            losses['contour_normal'] = ((contour_xyzs_grad * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
 
         # grad(f(x)) * contour_tangent = 0 on contour
         if self.hp.contour_tangent_lambda > 0:
-            losses['contour_tangent_loss'] = ((contour_xyzs_grad * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
+            losses['contour_tangent'] = ((contour_xyzs_grad * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
 
         return losses
 
@@ -115,14 +115,14 @@ class HaimNetManager(INetManager):
 
         running_loss = 0.0
         running_losses = {}
-        size = len(self.domain_data_loader.dataset)
+        size = len(self.slices_data_loader.dataset)
 
-        for batch, ((domain_xyzs, domain_labels), (contour_xyzs, contour_normals, contour_tangents)) in enumerate(zip(self.domain_data_loader, self.contour_data_loader)):
-            domain_xyzs, domain_labels = domain_xyzs.to(self.device), domain_labels.to(self.device)
+        for batch, ((slices_xyzs, slices_density), (contour_xyzs, contour_normals, contour_tangents)) in enumerate(zip(self.slices_data_loader, self.contour_data_loader)):
+            slices_xyzs, slices_density = slices_xyzs.to(self.device), slices_density.to(self.device)
             contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
 
             # _get_loss should call self.optimizer.zero_grad() at the end
-            losses = self._get_losses(domain_xyzs, domain_labels, contour_xyzs, contour_normals, contour_tangents)
+            losses = self._get_losses(slices_xyzs, slices_density, contour_xyzs, contour_normals, contour_tangents)
             running_losses = {k: losses.get(k, torch.tensor([0])).item() + running_losses.get(k, 0) for k in set(losses)}
 
             self.optimizer.zero_grad()
@@ -130,9 +130,9 @@ class HaimNetManager(INetManager):
             total_loss.backward()
             self.optimizer.step()
 
-            running_loss += total_loss.item() * len(domain_xyzs)
+            running_loss += total_loss.item() * len(slices_xyzs)
             if self.verbose and batch % 1000 == 0:
-                bce_loss, current = total_loss.item(), batch * len(domain_xyzs)
+                bce_loss, current = total_loss.item(), batch * len(slices_xyzs)
                 print(f"\tloss: {total_loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
         if epoch > 0 and epoch % self.scheduler_step == 0:
@@ -145,8 +145,8 @@ class HaimNetManager(INetManager):
             print(f"\tloss for epoch: {total_loss}")
         self.train_losses.append(total_loss)
 
-    def prepare_for_training(self, domain_dataset, domain_sampler, contour_dataset, contour_sampler, hp):
-        self.domain_data_loader = DataLoader(domain_dataset, batch_size=128, sampler=domain_sampler)
+    def prepare_for_training(self, slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp):
+        self.slices_data_loader = DataLoader(slices_dataset, batch_size=128, sampler=slices_sampler)
         self.contour_data_loader = DataLoader(contour_dataset, batch_size=128, sampler=contour_sampler)
 
         self.module.init_weights()
@@ -229,7 +229,7 @@ class HaimNetManager(INetManager):
         errored_xyzs = np.empty((0, 3), dtype=bool)
         errored_labels = np.empty((0, 1), dtype=bool)
 
-        for xyzs, label in self.domain_data_loader:
+        for xyzs, label in self.slices_data_loader:
             xyzs, label = xyzs.to(self.device), label.to(self.device)
 
             # xyzs, label_pred = self.hard_predict(xyzs, threshold)

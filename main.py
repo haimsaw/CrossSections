@@ -3,7 +3,7 @@ import json
 
 from CSL import *
 from ContourRasterizer import ContourDatasetFake
-from DomainResterizer import DomainDataset, DomainDatasetFake
+from SlicesRasterizer import SlicesDataset, SlicesDatasetFake
 from Renderer import *
 from Mesher import *
 from OctnetTree import *
@@ -88,13 +88,15 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    domain_dataset = DomainDataset(csl, calc_density=hp.density_lambda>0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
-                                   target_transform=torch.tensor, transform=torch.tensor)
-    contour_dataset = ContourDataset(csl, round(len(domain_dataset) / len(csl)),  # todo haim
+    slices_dataset = SlicesDatasetFake(csl, calc_density=hp.density_lambda > 0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
+                                       target_transform=torch.tensor, transform=torch.tensor)
+    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)),  # todo haim
                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
+    print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}')
+
     # level 0:
-    tree.prepare_for_training(domain_dataset, contour_dataset, hp)
+    tree.prepare_for_training(slices_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
 
     # tree.show_train_losses()
@@ -132,15 +134,15 @@ def main():
     print(verts.shape)
     verts = verts[np.random.choice(verts.shape[0], 200, replace=False)]
 
-    renderer.add_domain_grads(tree, verts, alpha=1, length=0.15, neg=True)
+    renderer.add_slices_grads(tree, verts, alpha=1, length=0.15, neg=True)
     renderer.show()
 
     # level 1
-    tree.prepare_for_training(domain_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
+    tree.prepare_for_training(slices_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
     tree.train_network(epochs=hp.epochs)
 
     # level 2
-    tree.prepare_for_training(domain_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
+    tree.prepare_for_training(slices_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
     tree.train_network(epochs=hp.epochs)
 
     # mesh = marching_cubes(network_manager_root, hp.sampling_resolution_3d)

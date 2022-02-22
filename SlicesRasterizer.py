@@ -5,11 +5,11 @@ from Helpers import *
 from torch.utils.data import Dataset
 
 
-def domain_rasterizer_factory(plane: Plane):
+def slices_rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
 
 
-class DomainCell:
+class Cell:
     def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer):
         assert min(pixel_radius) > 0
         self._label = None
@@ -21,7 +21,7 @@ class DomainCell:
         self.xyz = xyz_transformer(np.array([self.pixel_center]))[0]
 
     @property
-    def label(self):
+    def density(self):
         if self._label is None:
             self._label = self._get_label()
         return self._label
@@ -102,7 +102,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        return [DomainCell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]
+        return [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -157,24 +157,24 @@ class PlaneRasterizer(IRasterizer):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
 
-        return [DomainCell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]
+        return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]
 
 
-class DomainDataset(Dataset):
+class SlicesDataset(Dataset):
     def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
         self.csl = csl
         self.calc_density = calc_density
 
         cells = []
         for plane in csl.planes:
-            cells += domain_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
+            cells += slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
 
         self.cells = np.array(cells)
 
         self.xyzs = np.array([cell.xyz for cell in self.cells])
 
         self.transform = transform
-        self.target_transform = target_transform
+        self.density_transform = target_transform
 
     def __len__(self):
         return self.cells.size
@@ -184,17 +184,17 @@ class DomainDataset(Dataset):
 
         xyz = cell.xyz
 
-        label = [cell.label] if self.calc_density else [-1]
+        density = [cell.density] if self.calc_density else [-1]
 
         if self.transform:
             xyz = self.transform(xyz)
-        if self.target_transform:
-            label = self.target_transform(label)
+        if self.density_transform:
+            density = self.density_transform(density)
 
-        return xyz, label
+        return xyz, density
 
 
-class DomainDatasetFake(Dataset):
+class SlicesDatasetFake(Dataset):
     def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
 
         self.xyzs = get_xyzs_in_octant(None, (64, 64, 64))

@@ -3,7 +3,7 @@ from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-from DomainResterizer import domain_rasterizer_factory
+from SlicesRasterizer import slices_rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
 
@@ -52,8 +52,8 @@ class Renderer3D:
         self.description.append('rasterized_scene')
 
         for plane in csl.planes:
-            cells = domain_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, sampling_margin)
-            mask = np.array([cell.label >= 0.5 for cell in cells])
+            cells = slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution_2d, sampling_margin)
+            mask = np.array([cell.density >= 0.5 for cell in cells])
             xyzs = np.array([cell.xyz for cell in cells])
 
             if not plane.is_empty:
@@ -82,7 +82,7 @@ class Renderer3D:
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
-    def add_domain_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
+    def add_slices_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
         self.description.append('grads')
 
         grads = network_manager.grad_wrt_input(xyzs)
@@ -136,7 +136,7 @@ class Renderer2D:
         self.description = []
 
     def draw_rasterized_plane(self, plane, resolution=(256, 256), margin=0.2):
-        self.ax.imshow(domain_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
+        self.ax.imshow(slices_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
                        origin='lower')
         self.description.append("draw_rasterized_plane")
 

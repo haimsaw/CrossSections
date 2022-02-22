@@ -289,13 +289,13 @@ class OctnetTree(INetManager):
             print(f"\nleaf: {i}/{len(leaves) - 1} {leaf.path}")
             leaf.haim_net_manager.train_network(epochs=epochs)
 
-    def prepare_for_training(self, domain_dataset, contour_dataset, hp):
+    def prepare_for_training(self, slices_dataset, contour_dataset, hp):
         self._add_level()
         for leaf in self._get_leaves():
-            domain_sampler = SubsetRandomSampler(leaf.indices_in_oct(domain_dataset.xyzs))
+            slices_sampler = SubsetRandomSampler(leaf.indices_in_oct(slices_dataset.xyzs))
             contour_sampler = SubsetRandomSampler(leaf.indices_in_oct(contour_dataset.xyzs))
 
-            leaf.haim_net_manager.prepare_for_training(domain_dataset, domain_sampler, contour_dataset, contour_sampler, hp)
+            leaf.haim_net_manager.prepare_for_training(slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp)
 
     @torch.no_grad()
     def soft_predict(self, xyzs, use_sigmoid=True):
