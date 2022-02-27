@@ -10,10 +10,10 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-    # csl = CSL("csl-files/Heart-25-even-better.csl")
+    csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
@@ -48,16 +48,16 @@ class HP:
 
         self.density_lambda = 0
 
-        self.eikonal_lambda = 1e-3
+        self.eikonal_lambda = 1e-2
         self.contour_val_lambda = 1e-2
-        self.contour_normal_lambda = 1e-5
+        self.contour_normal_lambda = 0
         self.contour_tangent_lambda = 1
 
-        self.inter_lambda = 1
+        self.inter_lambda = 1e-2
         self.inter_alpha = -1e2
 
         # training
-        self.epochs = 100
+        self.epochs = 10
         self.scheduler_step = 5
         self.lr = 1e-2
 
