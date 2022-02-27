@@ -74,7 +74,7 @@ class HaimNetManager(INetManager):
 
         self.is_training_ready = False
 
-    def _get_losses(self, slices_xyzs, slices_density, contour_xyzs, normals_on_contour, tangents_on_contour):
+    def _get_constraints(self, slices_xyzs, slices_density, contour_xyzs, normals_on_contour, tangents_on_contour):
         slices_xyzs.requires_grad_(True)
         contour_xyzs.requires_grad_(True)
 
@@ -85,32 +85,41 @@ class HaimNetManager(INetManager):
         d_xyzs_d_predict_on_slices = torch.autograd.grad(model_pred_on_slices.sum(), [slices_xyzs], create_graph=True)[0]
         d_xyzs_d_predict_on_contour = torch.autograd.grad(model_pred_on_contour.sum(), [contour_xyzs], create_graph=True)[0]
 
-        losses = {}
+        constraints = {}
 
         # density - zero inside one outside
         # bce_loss has a sigmoid layer build in
         if self.hp.density_lambda > 0:
-            losses['density'] = self.bce_loss(model_pred_on_slices, slices_density) * self.hp.density_lambda
+            constraints['density'] = self.bce_loss(model_pred_on_slices, slices_density) * self.hp.density_lambda
 
         # grad(f(x)) = 1 everywhere (eikonal)
         if self.hp.eikonal_lambda > 0:
-            losses['eikonal'] = (d_xyzs_d_predict_on_slices.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
+            constraints['eikonal'] = (d_xyzs_d_predict_on_slices.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
 
         # f(x) = 0 on contour
         if self.hp.contour_val_lambda > 0:
-            losses['contour_val'] = model_pred_on_contour.abs().mean() * self.hp.contour_val_lambda
-            
+            constraints['contour_val'] = model_pred_on_contour.abs().mean() * self.hp.contour_val_lambda
+
         # grad(f(x))*normal = 1 on contour
         if self.hp.contour_normal_lambda > 0:
             # losses['contour_normal'] = ((d_xyzs_d_predict_on_contour * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
-            losses['contour_normal'] = (1 - F.cosine_similarity(d_xyzs_d_predict_on_contour, normals_on_contour)).mean() * self.hp.contour_normal_lambda
+            constraints['contour_normal'] = (1 - F.cosine_similarity(d_xyzs_d_predict_on_contour, normals_on_contour)).mean() * self.hp.contour_normal_lambda
 
         # grad(f(x)) * contour_tangent = 0 on contour
         if self.hp.contour_tangent_lambda > 0:
             # losses['contour_tangent'] = ((d_xyzs_d_predict_on_contour * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
-            losses['contour_tangent'] = F.cosine_similarity(d_xyzs_d_predict_on_contour, tangents_on_contour).abs().mean() * self.hp.contour_tangent_lambda
+            constraints['contour_tangent'] = F.cosine_similarity(d_xyzs_d_predict_on_contour, tangents_on_contour).abs().mean() * self.hp.contour_tangent_lambda
 
-        return losses
+        # e^(-10*|f(x)|) everywhere except contour,
+        # inter_constraint from SIREN - penalizes off-surface points
+        if self.hp.inter_lambda > 0:
+            inter_constraint = torch.where((slices_density - 0.5).abs() == 0.5,  # where density == 0 or 1
+                                           torch.exp(self.hp.inter_alpha * model_pred_on_slices.abs()),
+                                           torch.zeros_like(slices_density))
+
+            constraints['inter'] = inter_constraint.mean() * self.hp.inter_lambda
+
+        return constraints
 
     def _train_epoch(self, epoch):
         assert self.is_training_ready
@@ -118,37 +127,35 @@ class HaimNetManager(INetManager):
             print(f"\n\nEpoch {self.total_epochs} [{epoch}]\n-------------------------------")
 
         running_loss = 0.0
-        running_losses = {}
+        running_constraints = {}
         size = len(self.slices_data_loader.dataset)
 
         for batch, ((slices_xyzs, slices_density), (contour_xyzs, contour_normals, contour_tangents)) in enumerate(zip(self.slices_data_loader, self.contour_data_loader)):
-        #for batch, (slices_xyzs, slices_density) in enumerate(self.slices_data_loader):
             slices_xyzs, slices_density = slices_xyzs.to(self.device), slices_density.to(self.device)
             contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
 
-            # _get_loss should call self.optimizer.zero_grad() at the end
-            losses = self._get_losses(slices_xyzs, slices_density, contour_xyzs, contour_normals, contour_tangents)
-            running_losses = {k: losses.get(k, torch.tensor([0])).item() + running_losses.get(k, 0) for k in set(losses)}
+            constraints = self._get_constraints(slices_xyzs, slices_density, contour_xyzs, contour_normals, contour_tangents)
+            running_constraints = {k: constraints.get(k, torch.tensor([0])).item() + running_constraints.get(k, 0) for k in set(constraints)}
 
             self.optimizer.zero_grad()
-            total_loss = sum(losses.values())
-            total_loss.backward()
+            loss = sum(constraints.values())
+            loss.backward()
             self.optimizer.step()
 
-            running_loss += total_loss.item() * len(slices_xyzs)
+            running_loss += loss.item() * len(slices_xyzs)
             if self.verbose and batch % 1000 == 0:
-                bce_loss, current = total_loss.item(), batch * len(slices_xyzs)
-                print(f"\tloss: {total_loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
+                bce_loss, current = loss.item(), batch * len(slices_xyzs)
+                print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
         if epoch > 0 and epoch % self.scheduler_step == 0:
             self.lr_scheduler.step()
 
-        total_loss = running_loss / size
-        print(f'epoch={epoch} losses={running_losses}')
+        loss = running_loss / size
+        print(f'epoch={epoch} losses={running_constraints}')
 
         if self.verbose:
-            print(f"\tloss for epoch: {total_loss}")
-        self.train_losses.append(total_loss)
+            print(f"\tloss for epoch: {loss}")
+        self.train_losses.append(loss)
 
     def prepare_for_training(self, slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp):
         self.slices_data_loader = DataLoader(slices_dataset, batch_size=128, sampler=slices_sampler)

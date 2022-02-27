@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 
 from CSL import *
-from ContourRasterizer import ContourDatasetFake
+from ContourRasterizer import ContourDataset, ContourDatasetFake
 from SlicesRasterizer import SlicesDataset, SlicesDatasetFake
 from Renderer import *
 from Mesher import *
@@ -48,13 +48,16 @@ class HP:
 
         self.density_lambda = 0
 
-        self.eikonal_lambda = 1
-        self.contour_val_lambda = 1
-        self.contour_normal_lambda = 1
-        self.contour_tangent_lambda = 0
+        self.eikonal_lambda = 1e-3
+        self.contour_val_lambda = 1e-2
+        self.contour_normal_lambda = 1e-5
+        self.contour_tangent_lambda = 1
+
+        self.inter_lambda = 1
+        self.inter_alpha = -1e2
 
         # training
-        self.epochs = 10
+        self.epochs = 100
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -108,7 +111,7 @@ def main():
         renderer = Renderer3D()
         renderer.add_scene(csl)
         renderer.add_mesh(mesh_mc)
-        renderer.add_model_grads(tree, get_xyzs_in_octant(None, sampling_resolution_3d=(10, 10, 10)))
+        # renderer.add_model_grads(tree, get_xyzs_in_octant(None, sampling_resolution_3d=(10, 10, 10)))
         renderer.show()
 
     except ValueError as e:
