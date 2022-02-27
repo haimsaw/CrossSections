@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
+import torch
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 
 from Modules import *
 from Helpers import *
@@ -76,35 +78,37 @@ class HaimNetManager(INetManager):
         slices_xyzs.requires_grad_(True)
         contour_xyzs.requires_grad_(True)
 
-        slices_density_pred = self.module(slices_xyzs)
-        contour_labels_pred = self.module(contour_xyzs)
+        model_pred_on_slices = self.module(slices_xyzs)
+        model_pred_on_contour = self.module(contour_xyzs)
 
         # todo haim grad_outputs
-        d_xyzs_d_density = torch.autograd.grad(slices_density_pred.sum(), [slices_xyzs], create_graph=True)[0]
-        contour_xyzs_grad = torch.autograd.grad(contour_labels_pred.sum(), [contour_xyzs], create_graph=True)[0]
+        d_xyzs_d_predict_on_slices = torch.autograd.grad(model_pred_on_slices.sum(), [slices_xyzs], create_graph=True)[0]
+        d_xyzs_d_predict_on_contour = torch.autograd.grad(model_pred_on_contour.sum(), [contour_xyzs], create_graph=True)[0]
 
         losses = {}
 
         # density - zero inside one outside
         # bce_loss has a sigmoid layer build in
         if self.hp.density_lambda > 0:
-            losses['density'] = self.bce_loss(slices_density_pred, slices_density) * self.hp.density_lambda
+            losses['density'] = self.bce_loss(model_pred_on_slices, slices_density) * self.hp.density_lambda
 
         # grad(f(x)) = 1 everywhere (eikonal)
         if self.hp.eikonal_lambda > 0:
-            losses['eikonal'] = (d_xyzs_d_density.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
+            losses['eikonal'] = (d_xyzs_d_predict_on_slices.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
 
         # f(x) = 0 on contour
         if self.hp.contour_val_lambda > 0:
-            losses['contour_val'] = contour_labels_pred.abs().mean() * self.hp.contour_val_lambda
-
+            losses['contour_val'] = model_pred_on_contour.abs().mean() * self.hp.contour_val_lambda
+            
         # grad(f(x))*normal = 1 on contour
         if self.hp.contour_normal_lambda > 0:
-            losses['contour_normal'] = ((contour_xyzs_grad * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
+            # losses['contour_normal'] = ((d_xyzs_d_predict_on_contour * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
+            losses['contour_normal'] = (1 - F.cosine_similarity(d_xyzs_d_predict_on_contour, normals_on_contour)).mean() * self.hp.contour_normal_lambda
 
         # grad(f(x)) * contour_tangent = 0 on contour
         if self.hp.contour_tangent_lambda > 0:
-            losses['contour_tangent'] = ((contour_xyzs_grad * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
+            # losses['contour_tangent'] = ((d_xyzs_d_predict_on_contour * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
+            losses['contour_tangent'] = F.cosine_similarity(d_xyzs_d_predict_on_contour, tangents_on_contour).abs().mean() * self.hp.contour_tangent_lambda
 
         return losses
 
@@ -118,6 +122,7 @@ class HaimNetManager(INetManager):
         size = len(self.slices_data_loader.dataset)
 
         for batch, ((slices_xyzs, slices_density), (contour_xyzs, contour_normals, contour_tangents)) in enumerate(zip(self.slices_data_loader, self.contour_data_loader)):
+        #for batch, (slices_xyzs, slices_density) in enumerate(self.slices_data_loader):
             slices_xyzs, slices_density = slices_xyzs.to(self.device), slices_density.to(self.device)
             contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
 
@@ -147,6 +152,7 @@ class HaimNetManager(INetManager):
 
     def prepare_for_training(self, slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp):
         self.slices_data_loader = DataLoader(slices_dataset, batch_size=128, sampler=slices_sampler)
+
         self.contour_data_loader = DataLoader(contour_dataset, batch_size=128, sampler=contour_sampler)
 
         self.module.init_weights()

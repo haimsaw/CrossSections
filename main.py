@@ -88,14 +88,10 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    slices_dataset = SlicesDatasetFake(csl, calc_density=hp.density_lambda > 0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
+    slices_dataset = SlicesDataset(csl, calc_density=hp.density_lambda > 0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                        target_transform=torch.tensor, transform=torch.tensor)
-    contour_dataset = ContourDatasetFake(csl, round(len(slices_dataset) / len(csl)),  # todo haim
+    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)),  # todo haim
                                       target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
-
-    r=Renderer3D()
-    r.add_contour_normals(contour_dataset)
-    r.show()
 
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
 

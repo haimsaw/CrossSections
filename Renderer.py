@@ -91,12 +91,14 @@ class Renderer3D:
 
         self.ax.quiver(*xyzs.T, *grads.T, color='black', alpha=alpha, length=length, normalize=True)
 
-    def add_contour_normals(self, contour_dataset, alpha=0.5, length=0.1):
-        xyzs, normals, _ = zip(*list(contour_dataset))
+    def add_contour_normals(self, csl, n_samples_per_edge=1, alpha=0.5, length=0.1):
+        dataset = ContourDataset(csl, n_samples_per_edge)
+        xyzs, normals, _ = zip(*list(dataset))
         self.ax.quiver(*np.array(xyzs).T, *np.array(normals).T, color='black', alpha=alpha, length=length, normalize=True)
 
-    def add_contour_tangents(self, contour_dataset, alpha=0.5, length=0.1):
-        xyzs, _, tangents = zip(*list(contour_dataset))
+    def add_contour_tangents(self, csl, n_samples_per_edge=1, alpha=0.5, length=0.1):
+        dataset = ContourDataset(csl, n_samples_per_edge)
+        xyzs, _, tangents = zip(*list(dataset))
         self.ax.quiver(*np.array(xyzs).T, *np.array(tangents).T, color='black', alpha=alpha, length=length, normalize=True)
 
     def show(self):
