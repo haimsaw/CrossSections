@@ -74,7 +74,7 @@ def main():
     hp = HP()
 
     csl = get_csl(hp.bounding_planes_margin)
-    
+
     '''
     renderer = Renderer3D()
     renderer.add_scene(csl)
@@ -91,10 +91,11 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    slices_dataset = SlicesDataset(csl, calc_density=hp.density_lambda > 0, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
-                                       target_transform=torch.tensor, transform=torch.tensor)
+    calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
+    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
+                                   target_transform=torch.tensor, transform=torch.tensor, calc_density=calc_density)
     contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)),  # todo haim
-                                      target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
+                                     target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
 
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
 
@@ -126,11 +127,11 @@ def main():
 
     return
 
-    #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
-    #mesh_dc.save('output_dc_grad.obj')
+    # mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
+    # mesh_dc.save('output_dc_grad.obj')
 
-    #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
-    #mesh_dc.save('output_dc_no_grad.obj')
+    # mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
+    # mesh_dc.save('output_dc_no_grad.obj')
 
     # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
     # verts = 2 * mesh_dc.verts/hp.sampling_resolution_3d - 1
