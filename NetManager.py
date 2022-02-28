@@ -119,6 +119,12 @@ class HaimNetManager(INetManager):
 
             constraints['inter'] = inter_constraint.mean() * self.hp.inter_lambda
 
+        # f(x+eps*n)=eps f(x-eps*n)=-eps on counter
+        if self.hp.poisson_lambda > 0:
+            pos_examples = (self.module(contour_xyzs + normals_on_contour * self.hp.poassion_epsilon) - self.hp.poassion_epsilon).abs().mean()
+            neg_examples = (self.module(contour_xyzs - normals_on_contour * self.hp.poassion_epsilon) + self.hp.poassion_epsilon).abs().mean()
+            constraints['poisson'] = (pos_examples + neg_examples) * self.hp.poisson_lambda
+
         return constraints
 
     def _train_epoch(self, epoch):

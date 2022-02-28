@@ -43,12 +43,11 @@ class HP:
         self.hidden_layers = [64, 64, 64, 64, 64]
         self.is_siren = False
 
-        # loss
-        self.weight_decay = 1e-3  # l2 regularization
-
+        # loss on slice
         self.density_lambda = 0
-
         self.eikonal_lambda = 1e-2
+
+        # loss on contour
         self.contour_val_lambda = 1e-2
         self.contour_normal_lambda = 0
         self.contour_tangent_lambda = 1
@@ -56,7 +55,11 @@ class HP:
         self.inter_lambda = 1e-2
         self.inter_alpha = -1e2
 
+        self.poisson_lambda = 1
+        self.poisson_epsilon = 1e-5
+
         # training
+        self.weight_decay = 1e-3  # l2 regularization
         self.epochs = 10
         self.scheduler_step = 5
         self.lr = 1e-2
