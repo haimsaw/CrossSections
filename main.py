@@ -39,28 +39,28 @@ class HP:
         self.contour_sampling_resolution = 5
 
         # architecture
-        self.num_embedding_freqs = 4
-        self.hidden_layers = [64, 64, 64, 64, 64]
+        self.num_embedding_freqs = 3
+        self.hidden_layers = [128]*5  #  [64, 64, 64, 64, 64]
         self.is_siren = False
 
         # loss on slice
         self.density_lambda = 0
-        self.eikonal_lambda = 1e-2
+        self.eikonal_lambda = 1e-5
+
+        self.inter_lambda = 1e-1
+        self.inter_alpha = -1e2
 
         # loss on contour
         self.contour_val_lambda = 1e-2
         self.contour_normal_lambda = 0
-        self.contour_tangent_lambda = 1
-
-        self.inter_lambda = 1e-2
-        self.inter_alpha = -1e2
+        self.contour_tangent_lambda = 1e-2
 
         self.poisson_lambda = 1
-        self.poisson_epsilon = 1e-5
+        self.poisson_epsilon = 1e-3
 
         # training
-        self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 10
+        self.weight_decay = 0 # 1e-3  # l2 regularization
+        self.epochs = 100
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -111,6 +111,9 @@ def main():
     try:
         mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
         mesh_mc.save('output_mc.stl')
+
+        mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=False)
+        mesh_dc.save('output_dc_grad.obj')
 
         renderer = Renderer3D()
         renderer.add_scene(csl)
