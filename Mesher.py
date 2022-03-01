@@ -44,7 +44,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
     labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid).reshape(sampling_resolution_3d+1)
 
     # set level is at 0 so normalize labels to be in [-1, 1]
-    if not use_sigmoid:
+    if use_sigmoid:
         labels = labels * 2 - 1
     # print(f'labels max={labels.max()} min={labels.min()}')
 

@@ -13,9 +13,9 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-    csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -60,7 +60,7 @@ class HP:
 
         # training
         self.weight_decay = 0 # 1e-3  # l2 regularization
-        self.epochs = 100
+        self.epochs = 50
         self.scheduler_step = 5
         self.lr = 1e-2
 

@@ -157,7 +157,7 @@ class HaimNetManager(INetManager):
             self.lr_scheduler.step()
 
         loss = running_loss / size
-        print(f'epoch={epoch} losses={running_constraints}')
+        print(f'epoch={epoch} running_loss={running_loss:.2f} losses={running_constraints}')
 
         if self.verbose:
             print(f"\tloss for epoch: {loss}")
