@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import numpy as np
 
@@ -5,16 +6,13 @@ from Helpers import get_xyzs_in_octant
 
 
 class ContourDataset(Dataset):
-    def __init__(self, csl, n_samples_per_edge, transform=None, target_transform=None, edge_transform=None):
+    def __init__(self, csl, n_samples_per_edge):
         self.csl = csl
-
-        self.transform = transform
-        self.normal_transform = target_transform
-        self.edge_transform = edge_transform
 
         self.xyzs = np.empty(shape=(0, 3))
         self.normals = np.empty(shape=(0, 3))
         self.tangents = np.empty(shape=(0, 3))
+        self.slice_normals = np.empty(shape=(0, 3))
 
         for plane in csl.planes:
             if not plane.is_empty:
@@ -35,23 +33,18 @@ class ContourDataset(Dataset):
                         self.xyzs = np.concatenate((self.xyzs, np.linspace(p0, p1, n_samples_per_edge, endpoint=False)))
                         self.normals = np.concatenate((self.normals, np.repeat([normal], n_samples_per_edge, axis=0)))
                         self.tangents = np.concatenate((self.tangents, np.repeat([edge], n_samples_per_edge, axis=0)))
+                        self.slice_normals = np.concatenate((self.slice_normals, np.repeat([plane.normal], n_samples_per_edge, axis=0)))
 
     def __len__(self):
         return len(self.xyzs)
 
     def __getitem__(self, idx):
-        xyz = self.xyzs[idx]
-        normal = self.normals[idx]
-        tangent = self.tangents[idx]
+        xyz = torch.tensor(self.xyzs[idx])
+        normal = torch.tensor(self.normals[idx])
+        tangent = torch.tensor(self.tangents[idx])
+        slice_normal = torch.tensor(self.slice_normals[idx])
 
-        if self.transform:
-            xyz = self.transform(xyz)
-        if self.normal_transform:
-            normal = self.normal_transform(normal)
-        if self.edge_transform:
-            tangent = self.edge_transform(tangent)
-
-        return xyz, normal, tangent
+        return xyz, normal, tangent, slice_normal
 
 
 class ContourDatasetFake(Dataset):

@@ -14,8 +14,8 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
-    csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -39,28 +39,31 @@ class HP:
         self.contour_sampling_resolution = 5
 
         # architecture
-        self.num_embedding_freqs = 3
-        self.hidden_layers = [128]*5  #  [64, 64, 64, 64, 64]
+        self.num_embedding_freqs = 4
+        self.hidden_layers = [128]*6  #  [64, 64, 64, 64, 64]
         self.is_siren = False
 
-        # loss on slice
+        # loss
         self.density_lambda = 0
-        self.eikonal_lambda = 1e-5
+
+        # vals constraints
+        self.contour_val_lambda = 1e-2
 
         self.inter_lambda = 1e-1
         self.inter_alpha = -1e2
 
-        # loss on contour
-        self.contour_val_lambda = 1e-2
-        self.contour_normal_lambda = 0
-        self.contour_tangent_lambda = 1e-2
-
         self.poisson_lambda = 1
         self.poisson_epsilon = 1e-3
 
+        # grad constraints
+        self.eikonal_lambda = 1e-5
+
+        self.contour_normal_lambda = 1e-2
+        self.contour_tangent_lambda = 1e-2
+
         # training
-        self.weight_decay = 0 # 1e-3  # l2 regularization
-        self.epochs = 50
+        self.weight_decay = 1e-3  # l2 regularization
+        self.epochs = 30
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -78,27 +81,14 @@ def main():
 
     csl = get_csl(hp.bounding_planes_margin)
 
-    '''
-    renderer = Renderer3D()
-    renderer.add_scene(csl)
-    renderer.add_contour_tangents(csl)
-    # renderer.add_mesh(mesh2.Mesh.from_file('G:\\My Drive\\DeepSlice\\examples 2021.11.24\\wavelets\\Abdomen\\mesh-wavelets_1_level.stl'), alpha=0.05)
-    # renderer.add_mesh(mesh2.Mesh.from_file('C:\\Users\\hasawday\\Downloads\\mesh-wavelets_1_level (9).stl'), alpha=0.05)
-
-    # renderer.add_rasterized_scene(csl, hp.root_sampling_resolution_2d, hp.sampling_margin, show_empty_planes=True, show_outside_shape=True)
-    renderer.show()
-    # '''
-
     print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda}, contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
 
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
     calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
-    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
-                                   target_transform=torch.tensor, transform=torch.tensor, calc_density=calc_density)
-    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)),  # todo haim
-                                     target_transform=torch.tensor, transform=torch.tensor, edge_transform=torch.tensor)
+    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin, calc_density=calc_density)
+    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)))  # todo haim
 
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
 
@@ -115,6 +105,9 @@ def main():
         mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=False)
         mesh_dc.save('output_dc_grad.obj')
 
+        mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=False)
+        mesh_dc.save('output_dc_no_grad.obj')
+
         renderer = Renderer3D()
         renderer.add_scene(csl)
         renderer.add_mesh(mesh_mc)
@@ -130,58 +123,6 @@ def main():
                 renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
                 renderer.save('')
                 renderer.clear()
-
-    return
-
-    # mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sig_on_inference)
-    # mesh_dc.save('output_dc_grad.obj')
-
-    # mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sig_on_inference)
-    # mesh_dc.save('output_dc_no_grad.obj')
-
-    # verts = mesh_mc.vectors.reshape(-1, 3).astype(np.double)
-    # verts = 2 * mesh_dc.verts/hp.sampling_resolution_3d - 1
-
-    verts = np.array(csl.all_vertices)
-    print(verts.shape)
-    verts = verts[np.random.choice(verts.shape[0], 200, replace=False)]
-
-    renderer.add_model_grads(tree, verts, alpha=1, length=0.15, neg=True)
-    renderer.show()
-
-    # level 1
-    tree.prepare_for_training(slices_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
-    tree.train_network(epochs=hp.epochs)
-
-    # level 2
-    tree.prepare_for_training(slices_dataset, contour_dataset, hp.lr, hp.scheduler_step, hp.weight_decay)
-    tree.train_network(epochs=hp.epochs)
-
-    # mesh = marching_cubes(network_manager_root, hp.sampling_resolution_3d)
-    # renderer = Renderer3D()
-    # renderer.add_mesh(mesh)
-    # renderer.add_scene(csl)
-    # renderer.add_model_errors(network_manager_root)
-    # renderer.show()
-
-
-def draw_blending_errors(tree, xyzs, title):
-    labels = tree.soft_predict(xyzs)
-    print(f'max={max(labels)}, min={min(labels)}, n={len(labels)} depth={tree.depth}')
-
-    fig = plt.figure(figsize=(15, 15))
-    ax = plt.axes(projection='3d')
-    ax.set_title(title)
-
-    # ax.set_xlim3d(-1, 1)
-    # ax.set_ylim3d(-1, 1)
-    # ax.set_zlim3d(-1, 1)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    # ax.scatter(*xyzs[(labels != 1) & (labels != 0)].T, c=labels[(labels != 1) & (labels != 0)], alpha=0.2)
-    ax.scatter(*xyzs.T, c=labels, alpha=0.2)
-    plt.show()
 
 
 if __name__ == "__main__":

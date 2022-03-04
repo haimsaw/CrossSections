@@ -26,6 +26,9 @@ def get_xyzs_in_octant(oct, sampling_resolution_3d, endpoint=True):
     return np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1).reshape((-1, 3))
 
 
+def dot(a, b):
+    return (a*b).sum(axis=1)
+
 def timing(f):
     @wraps(f)
     def wrap(*args, **kw):

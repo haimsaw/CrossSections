@@ -74,7 +74,7 @@ class HaimNetManager(INetManager):
 
         self.is_training_ready = False
 
-    def _get_constraints(self, slices_xyzs, slices_density, contour_xyzs, normals_on_contour, tangents_on_contour):
+    def _get_constraints(self, slices_xyzs, slices_density, contour_xyzs, normals_on_contour, tangents_on_contour, slice_normals):
         slices_xyzs.requires_grad_(True)
         contour_xyzs.requires_grad_(True)
 
@@ -82,8 +82,8 @@ class HaimNetManager(INetManager):
         model_pred_on_contour = self.module(contour_xyzs)
 
         # todo haim grad_outputs
-        d_xyzs_d_predict_on_slices = torch.autograd.grad(model_pred_on_slices.sum(), [slices_xyzs], create_graph=True)[0]
-        d_xyzs_d_predict_on_contour = torch.autograd.grad(model_pred_on_contour.sum(), [contour_xyzs], create_graph=True)[0]
+        grad_on_slices = torch.autograd.grad(model_pred_on_slices.sum(), [slices_xyzs], create_graph=True)[0]
+        grad_on_contour = torch.autograd.grad(model_pred_on_contour.sum(), [contour_xyzs], create_graph=True)[0]
 
         constraints = {}
 
@@ -94,7 +94,7 @@ class HaimNetManager(INetManager):
 
         # grad(f(x)) = 1 everywhere (eikonal)
         if self.hp.eikonal_lambda > 0:
-            constraints['eikonal'] = (d_xyzs_d_predict_on_slices.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
+            constraints['eikonal'] = (grad_on_slices.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
 
         # f(x) = 0 on contour
         if self.hp.contour_val_lambda > 0:
@@ -102,13 +102,14 @@ class HaimNetManager(INetManager):
 
         # grad(f(x))*normal = 1 on contour
         if self.hp.contour_normal_lambda > 0:
-            # losses['contour_normal'] = ((d_xyzs_d_predict_on_contour * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
-            constraints['contour_normal'] = (1 - F.cosine_similarity(d_xyzs_d_predict_on_contour, normals_on_contour)).mean() * self.hp.contour_normal_lambda
+            # losses['contour_normal'] = ((grad_on_contour * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
+            grad_proj_on_slice = grad_on_contour - dot(grad_on_contour, slice_normals).view((-1, 1)) * slice_normals
+            constraints['contour_normal'] = (1 - F.cosine_similarity(grad_proj_on_slice, normals_on_contour)).mean() * self.hp.contour_normal_lambda
 
         # grad(f(x)) * contour_tangent = 0 on contour
         if self.hp.contour_tangent_lambda > 0:
-            # losses['contour_tangent'] = ((d_xyzs_d_predict_on_contour * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
-            constraints['contour_tangent'] = F.cosine_similarity(d_xyzs_d_predict_on_contour, tangents_on_contour).abs().mean() * self.hp.contour_tangent_lambda
+            # losses['contour_tangent'] = ((grad_on_contour * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
+            constraints['contour_tangent'] = F.cosine_similarity(grad_on_contour, tangents_on_contour).abs().mean() * self.hp.contour_tangent_lambda
 
         # e^(-10*|f(x)|) everywhere except contour,
         # inter_constraint from SIREN - penalizes off-surface points
@@ -136,11 +137,12 @@ class HaimNetManager(INetManager):
         running_constraints = {}
         size = len(self.slices_data_loader.dataset)
 
-        for batch, ((slices_xyzs, slices_density), (contour_xyzs, contour_normals, contour_tangents)) in enumerate(zip(self.slices_data_loader, self.contour_data_loader)):
+        for batch, ((slices_xyzs, slices_density), (contour_xyzs, contour_normals, contour_tangents, slice_normals)) in enumerate(zip(self.slices_data_loader, self.contour_data_loader)):
             slices_xyzs, slices_density = slices_xyzs.to(self.device), slices_density.to(self.device)
             contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
+            slice_normals = slice_normals.to(self.device)
 
-            constraints = self._get_constraints(slices_xyzs, slices_density, contour_xyzs, contour_normals, contour_tangents)
+            constraints = self._get_constraints(slices_xyzs, slices_density, contour_xyzs, contour_normals, contour_tangents, slice_normals)
             running_constraints = {k: constraints.get(k, torch.tensor([0])).item() + running_constraints.get(k, 0) for k in set(constraints)}
 
             self.optimizer.zero_grad()
@@ -148,7 +150,7 @@ class HaimNetManager(INetManager):
             loss.backward()
             self.optimizer.step()
 
-            running_loss += loss.item() * len(slices_xyzs)
+            running_loss += loss.item()
             if self.verbose and batch % 1000 == 0:
                 bce_loss, current = loss.item(), batch * len(slices_xyzs)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")

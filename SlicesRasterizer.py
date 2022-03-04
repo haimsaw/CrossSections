@@ -1,3 +1,4 @@
+import torch
 from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
 from CSL import Plane
@@ -161,7 +162,7 @@ class PlaneRasterizer(IRasterizer):
 
 
 class SlicesDataset(Dataset):
-    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
+    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
         self.csl = csl
         self.calc_density = calc_density
 
@@ -173,47 +174,31 @@ class SlicesDataset(Dataset):
 
         self.xyzs = np.array([cell.xyz for cell in self.cells])
 
-        self.transform = transform
-        self.density_transform = target_transform
 
     def __len__(self):
         return self.cells.size
 
     def __getitem__(self, idx):
         cell = self.cells[idx]
-
-        xyz = cell.xyz
-
-        density = [cell.density] if self.calc_density else [-1]
-
-        if self.transform:
-            xyz = self.transform(xyz)
-        if self.density_transform:
-            density = self.density_transform(density)
+        xyz = torch.tensor(cell.xyz)
+        density = torch.tensor([cell.density] if self.calc_density else [-1])
 
         return xyz, density
 
 
 class SlicesDatasetFake(Dataset):
-    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2, transform=None, target_transform=None):
+    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
 
         self.xyzs = get_xyzs_in_octant(None, (32, 32, 32))
         self.radius = 0.4
-
-        self.transform = transform
-        self.target_transform = target_transform
 
     def __len__(self):
         return len(self.xyzs)
 
     def __getitem__(self, idx):
-        xyz = self.xyzs[idx]
+        xyz = torch.tensor(self.xyzs[idx])
 
-        label = [INSIDE_LABEL] if np.dot(xyz, xyz) < self.radius else [OUTSIDE_LABEL]
+        label = torch.tensor([INSIDE_LABEL] if np.dot(xyz, xyz) < self.radius else [OUTSIDE_LABEL])
 
-        if self.transform:
-            xyz = self.transform(xyz)
-        if self.target_transform:
-            label = self.target_transform(label)
 
         return xyz, label
