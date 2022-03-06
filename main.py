@@ -40,26 +40,26 @@ class HP:
 
         # architecture
         self.num_embedding_freqs = 4
-        self.hidden_layers = [128]*6  #  [64, 64, 64, 64, 64]
+        self.hidden_layers = [128]*6  # [64, 64, 64, 64, 64]
         self.is_siren = False
 
         # loss
         self.density_lambda = 0
 
         # vals constraints
-        self.contour_val_lambda = 1e-2
+        self.contour_val_lambda = 1
 
-        self.inter_lambda = 1e-1
+        self.inter_lambda = 1e0
         self.inter_alpha = -1e2
 
-        self.poisson_lambda = 1
-        self.poisson_epsilon = 1e-3
+        self.off_surface_lambda = 0
+        self.off_surface_epsilon = 1e-3
 
         # grad constraints
-        self.eikonal_lambda = 1e-5
+        self.eikonal_lambda = 1e-3
 
-        self.contour_normal_lambda = 1e-2
-        self.contour_tangent_lambda = 1e-2
+        self.contour_normal_lambda = 1e-1
+        self.contour_tangent_lambda = 1e-1
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
@@ -81,7 +81,7 @@ def main():
 
     csl = get_csl(hp.bounding_planes_margin)
 
-    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda}, contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
+    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda}, contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda} inter={hp.inter_lambda} off={hp.off_surface_lambda}')
 
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 

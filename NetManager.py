@@ -121,10 +121,10 @@ class HaimNetManager(INetManager):
             constraints['inter'] = inter_constraint.mean() * self.hp.inter_lambda
 
         # f(x+eps*n)=eps f(x-eps*n)=-eps on counter
-        if self.hp.poisson_lambda > 0:
-            pos_examples = (self.module(contour_xyzs + normals_on_contour * self.hp.poisson_epsilon) - self.hp.poisson_epsilon).abs().mean()
-            neg_examples = (self.module(contour_xyzs - normals_on_contour * self.hp.poisson_epsilon) + self.hp.poisson_epsilon).abs().mean()
-            constraints['poisson'] = (pos_examples + neg_examples) * self.hp.poisson_lambda
+        if self.hp.off_surface_lambda > 0:
+            pos_examples = (self.module(contour_xyzs + normals_on_contour * self.hp.off_surface_epsilon) - self.hp.off_surface_epsilon).abs().mean()
+            neg_examples = (self.module(contour_xyzs - normals_on_contour * self.hp.off_surface_epsilon) + self.hp.off_surface_epsilon).abs().mean()
+            constraints['off_surface'] = (pos_examples + neg_examples) * self.hp.off_surface_lambda
 
         return constraints
 
