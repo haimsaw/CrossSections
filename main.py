@@ -10,11 +10,11 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -52,7 +52,7 @@ class HP:
         self.inter_lambda = 1e0
         self.inter_alpha = -1e2
 
-        self.off_surface_lambda = 0
+        self.off_surface_lambda = 1e-3
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
@@ -131,18 +131,11 @@ if __name__ == "__main__":
 '''
 todo
 check if tree is helping or its just capacity 
-optimization - id dansity lambda ==0 -> no need to calc dansity
 
-read: https://lioryariv.github.io/volsdf/
-        https://lioryariv.github.io/idr/
-        https://arxiv.org/abs/2202.01999
-        poassion reconstruction
-        nural dc
+read: 
+https://arxiv.org/abs/2202.01999 - nural dc
 
-loss: add in boundary grad*tangent = 0  or grad * normal = 0
-          in boundary eikonal 
-          grad =0 away from boundary 
-
+track experiments with mlflow?
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 

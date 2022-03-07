@@ -29,6 +29,7 @@ def get_xyzs_in_octant(oct, sampling_resolution_3d, endpoint=True):
 def dot(a, b):
     return (a*b).sum(axis=1)
 
+
 def timing(f):
     @wraps(f)
     def wrap(*args, **kw):
