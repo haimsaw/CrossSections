@@ -111,8 +111,7 @@ class HaimNetManager(INetManager):
             # losses['contour_tangent'] = ((grad_on_contour * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
             constraints['contour_tangent'] = F.cosine_similarity(grad_on_contour, tangents_on_contour).abs().mean() * self.hp.contour_tangent_lambda
 
-        # e^(-10*|f(x)|) everywhere except contour,
-        # inter_constraint from SIREN - penalizes off-surface points
+        # e^(-10*|f(x)|) everywhere except contour, inter_constraint from SIREN - penalizes off-surface points
         if self.hp.inter_lambda > 0:
             inter_constraint = torch.where((slices_density - 0.5).abs() == 0.5,  # where density == 0 or 1
                                            torch.exp(self.hp.inter_alpha * model_pred_on_slices.abs()),

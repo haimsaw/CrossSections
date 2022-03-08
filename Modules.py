@@ -46,6 +46,10 @@ class HaimNet(nn.Module):
         self.function = nn.Sequential(*layers)
         self.first_layer = neurons[0]
 
+    @property
+    def n_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
     def init_weights(self):
         if self.is_siren:
             self.function.apply(siren_initializer)

@@ -14,8 +14,8 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
-    csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -86,8 +86,8 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
-    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin, calc_density=calc_density)
+    should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
+    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin, calc_density=should_calc_density)
     contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)))  # todo haim
 
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
