@@ -2,20 +2,20 @@ from datetime import datetime
 import json
 
 from CSL import *
-from ContourRasterizer import ContourDataset, ContourDatasetFake
-from SlicesRasterizer import SlicesDataset, SlicesDatasetFake
+from ContourDataset import ContourDataset, ContourDatasetFake
+from SlicesDataset import SlicesDataset, SlicesDatasetFake
 from Renderer import *
 from Mesher import *
 from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -52,7 +52,7 @@ class HP:
         self.inter_lambda = 1e0
         self.inter_alpha = -1e2
 
-        self.off_surface_lambda = 1e-3
+        self.off_surface_lambda = 1
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
@@ -63,7 +63,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 30
+        self.epochs = 50
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -100,13 +100,13 @@ def main():
 
     try:
         mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
-        mesh_mc.save('output_mc.stl')
+        mesh_mc.save('./artifacts/output_mc.stl')
 
         mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=False)
-        mesh_dc.save('output_dc_grad.obj')
+        mesh_dc.save('./artifacts/output_dc_grad.obj')
 
         mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=False)
-        mesh_dc.save('output_dc_no_grad.obj')
+        mesh_dc.save('./artifacts/output_dc_no_grad.obj')
 
         renderer = Renderer3D()
         renderer.add_scene(csl)
@@ -121,7 +121,7 @@ def main():
             for dist in np.linspace(-1, 1, 3):
                 renderer = Renderer2D()
                 renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
-                renderer.save('')
+                renderer.save('./artifacts/')
                 renderer.clear()
 
 

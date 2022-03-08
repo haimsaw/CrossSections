@@ -1,9 +1,9 @@
-from ContourRasterizer import ContourDataset
+from ContourDataset import ContourDataset
 from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SlicesRasterizer import slices_rasterizer_factory
+from SlicesDataset import slices_rasterizer_factory
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
 

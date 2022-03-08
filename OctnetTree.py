@@ -260,7 +260,10 @@ class OctnetTree(INetManager):
         self.is_siren = is_siren
 
     def __str__(self):
-        return f'csl={self.csl.model_name} depth={self.depth}'
+        return f'tree[model:{self.csl.model_name}, depth:{self.depth}]'
+
+    def __repr__(self):
+        return str(self)
 
     def _add_level(self):
         if self.root is None:
@@ -283,6 +286,7 @@ class OctnetTree(INetManager):
         else:
             [self.__get_leaves(child, acc) for child in node.branches]
 
+    @timing
     def train_network(self, epochs):
         leaves = self._get_leaves()
         for i, leaf in enumerate(leaves):
