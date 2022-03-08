@@ -280,11 +280,22 @@ class OctnetTree(INetManager):
         self.__get_leaves(self.root, leaves)
         return leaves
 
-    def __get_leaves(self, node, acc):
+    def __get_leaves(self, node, nodes):
         if node.is_leaf:
-            acc.append(node)
+            nodes.append(node)
         else:
-            [self.__get_leaves(child, acc) for child in node.branches]
+            [self.__get_leaves(child, nodes) for child in node.branches]
+
+    def _get_nodes(self, depth):
+        nodes = []
+        self.__get_nodes(self.root, nodes, depth)
+        return nodes
+
+    def __get_nodes(self, node, nodes, depth):
+        if depth == 0:
+            nodes.append(node)
+        else:
+            [self.__get_nodes(child, nodes, depth - 1) for child in node.branches]
 
     @timing
     def train_network(self, epochs):
@@ -302,8 +313,8 @@ class OctnetTree(INetManager):
             leaf.haim_net_manager.prepare_for_training(slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp)
 
     @torch.no_grad()
-    def soft_predict(self, xyzs, use_sigmoid=True):
-        leaves = self._get_leaves()
+    def soft_predict(self, xyzs, depth=None, use_sigmoid=True):
+        leaves = self._get_leaves() if depth is None else self._get_nodes(depth)
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
 

@@ -131,6 +131,7 @@ if __name__ == "__main__":
 '''
 todo
 check if tree is helping or its just capacity 
+delete INetManager
 
 read: 
 https://arxiv.org/abs/2202.01999 - nural dc

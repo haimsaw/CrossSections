@@ -162,9 +162,9 @@ class PlaneRasterizer(IRasterizer):
 
 
 class SlicesDataset(Dataset):
-    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
+    def __init__(self, csl, should_calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
         self.csl = csl
-        self.calc_density = calc_density
+        self.should_calc_density = should_calc_density
 
         cells = []
         for plane in csl.planes:
@@ -174,14 +174,13 @@ class SlicesDataset(Dataset):
 
         self.xyzs = np.array([cell.xyz for cell in self.cells])
 
-
     def __len__(self):
         return self.cells.size
 
     def __getitem__(self, idx):
         cell = self.cells[idx]
         xyz = torch.tensor(cell.xyz)
-        density = torch.tensor([cell.density] if self.calc_density else [-1])
+        density = torch.tensor([cell.density] if self.should_calc_density else [-1])
 
         return xyz, density
 
