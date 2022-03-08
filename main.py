@@ -134,7 +134,9 @@ check if tree is helping or its just capacity
 
 read: 
 https://arxiv.org/abs/2202.01999 - nural dc
+https://arxiv.org/pdf/1807.02811.pdf - Bayesian Optimization
 
+create slicer for chamfer compare
 track experiments with mlflow?
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)

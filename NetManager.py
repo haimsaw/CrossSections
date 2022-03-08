@@ -122,8 +122,9 @@ class HaimNetManager(INetManager):
 
         # f(x+eps*n)=eps f(x-eps*n)=-eps on counter
         if self.hp.off_surface_lambda > 0:
-            pos_examples = (self.module(contour_xyzs + normals_on_contour * self.hp.off_surface_epsilon) - self.hp.off_surface_epsilon).abs().mean()
-            neg_examples = (self.module(contour_xyzs - normals_on_contour * self.hp.off_surface_epsilon) + self.hp.off_surface_epsilon).abs().mean()
+            scaled_epsilons = dot(grad_on_contour, normals_on_contour) * self.hp.off_surface_epsilon
+            pos_examples = (self.module(contour_xyzs + normals_on_contour * self.hp.off_surface_epsilon) - scaled_epsilons).abs().mean()
+            neg_examples = (self.module(contour_xyzs - normals_on_contour * self.hp.off_surface_epsilon) + scaled_epsilons).abs().mean()
             constraints['off_surface'] = (pos_examples + neg_examples) * self.hp.off_surface_lambda
 
         return constraints
