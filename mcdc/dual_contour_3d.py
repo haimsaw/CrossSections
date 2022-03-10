@@ -73,7 +73,7 @@ def dual_contour_3d(f, get_f_normal, xmax, ymax, zmax):
             vert = np.array(xyz)+0.5
 
         vert_array.append(vert)
-        vert_indices[xyz] = len(vert_array)
+        vert_indices[xyz] = len(vert_array)  # todo haim is this correct?????
 
 
     # For each cell edge, emit a face between the center of the adjacent cells if it is a sign changing edge

@@ -53,7 +53,7 @@ class Mesh:
 
     @property
     def vectors(self):
-        return [self.verts[[face.v1, face.v2, face.v3, face.v4]] for face in self.faces]
+        return [self.verts[[face.v1-1, face.v2-1, face.v3-1, face.v4-1]] for face in self.faces]
 
     def extend(self, other):
         l = len(self.verts)

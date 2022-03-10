@@ -57,7 +57,7 @@ class HP:
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
-        self.eikonal_lambda = 1e-3
+        self.eikonal_lambda = 1e-1
 
         self.contour_normal_lambda = 1e-1
         self.contour_tangent_lambda = 1e-1
@@ -95,7 +95,7 @@ def handle_meshes(tree, hp, save_path):
     mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
     mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
 
-    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
+    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference)
     mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.stl')
     return mesh_dc
 
@@ -110,7 +110,7 @@ def save_heatmaps(tree, save_path, hp):
             renderer = Renderer2D()
             renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
             renderer.save(heatmap_path)
-            # renderer.clear()
+    renderer.clear()
 
 
 def main():
@@ -136,7 +136,7 @@ def main():
         print(e)
 
     finally:
-        renderer.save_animation(save_path, 1)
+        #renderer.save_animation(save_path, 1)
         renderer.show()
 
 
