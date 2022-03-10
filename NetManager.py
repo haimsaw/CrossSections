@@ -238,9 +238,8 @@ class HaimNetManager(INetManager):
             xyzs_batch.requires_grad_(True)
 
             self.module.zero_grad()
-            (torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)).mean().backward()
-
-            grads_batch = xyzs_batch.grad.detach().cpu().numpy()
+            pred = torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)
+            grads_batch = torch.autograd.grad(pred.mean(), [xyzs_batch])[0].detach().cpu().numpy()
             grads = np.concatenate((grads, grads_batch))
         return grads
 

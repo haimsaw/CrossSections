@@ -10,10 +10,10 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-    csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
     # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
@@ -44,26 +44,26 @@ class HP:
         self.is_siren = False
 
         # loss
-        self.density_lambda = 0
+        self.density_lambda = 1
 
         # vals constraints
-        self.contour_val_lambda = 1
+        self.contour_val_lambda = 0
 
-        self.inter_lambda = 1# 1e0
+        self.inter_lambda = 0# 1e0
         self.inter_alpha = -1e2
 
-        self.off_surface_lambda = 1
+        self.off_surface_lambda = 0
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
-        self.eikonal_lambda = 1# 1e-3
+        self.eikonal_lambda = 0# 1e-3
 
-        self.contour_normal_lambda = 1# 1e-1
+        self.contour_normal_lambda = 0# 1e-1
         self.contour_tangent_lambda = 1 # 1e-1
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 50
+        self.epochs = 2
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -100,8 +100,8 @@ def main():
     # tree.show_train_losses()
 
     try:
-        mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
-        mesh_mc.save('./artifacts/output_mc.stl')
+        #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
+        #mesh_mc.save('./artifacts/output_mc.stl')
 
         mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=False)
         mesh_dc.save('./artifacts/output_dc_grad.obj')

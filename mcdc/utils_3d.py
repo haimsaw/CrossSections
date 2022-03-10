@@ -51,6 +51,10 @@ class Mesh:
         self.verts = np.array(verts)
         self.faces = faces or []
 
+    @property
+    def vectors(self):
+        return None
+
     def extend(self, other):
         l = len(self.verts)
         f = lambda v: v + l

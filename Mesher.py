@@ -60,14 +60,6 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
     def get_f_normal(ijks_for_normal):
 
         if use_grads is True and len(ijks_for_normal) > 0:
-            '''
-            def df(i, j, k):
-                xyz = 2 * np.array([i, j, k]) / (sampling_resolution_3d + 1) - 1
-                return net_manager.grad_wrt_input(xyz.reshape((1, -1)))[0]
-
-            return df
-            '''
-
             # translate from ijk (index) coordinate system to xyz
             # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]+1, endpoint=True)
             ijks_for_normal = np.array(ijks_for_normal)
