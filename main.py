@@ -44,22 +44,22 @@ class HP:
         self.is_siren = False
 
         # loss
-        self.density_lambda = 1
+        self.density_lambda = 0
 
         # vals constraints
-        self.contour_val_lambda = 0
+        self.contour_val_lambda = 1e0
 
-        self.inter_lambda = 0# 1e0
+        self.inter_lambda = 1e0
         self.inter_alpha = -1e2
 
-        self.off_surface_lambda = 0
+        self.off_surface_lambda = 1
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
-        self.eikonal_lambda = 0# 1e-3
+        self.eikonal_lambda = 1e-3
 
-        self.contour_normal_lambda = 0# 1e-1
-        self.contour_tangent_lambda = 1 # 1e-1
+        self.contour_normal_lambda = 1e-1
+        self.contour_tangent_lambda = 1e-1
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
