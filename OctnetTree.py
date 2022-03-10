@@ -256,7 +256,7 @@ class OctnetTree(INetManager):
         self.oct_overlap_margin = oct_overlap_margin
         self.hidden_layers = hidden_layers
         self.embedder = embedder
-        self.depth = None
+        self.depth = -1
         self.is_siren = is_siren
 
     def __str__(self):

@@ -13,8 +13,8 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-    # csl = CSL("csl-files/Heart-25-even-better.csl")
-    csl = CSL("csl-files/Armadillo-23-better.csl")
+    csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -49,17 +49,17 @@ class HP:
         # vals constraints
         self.contour_val_lambda = 1
 
-        self.inter_lambda = 1e0
+        self.inter_lambda = 1# 1e0
         self.inter_alpha = -1e2
 
         self.off_surface_lambda = 1
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
-        self.eikonal_lambda = 1e-3
+        self.eikonal_lambda = 1# 1e-3
 
-        self.contour_normal_lambda = 1e-1
-        self.contour_tangent_lambda = 1e-1
+        self.contour_normal_lambda = 1# 1e-1
+        self.contour_tangent_lambda = 1 # 1e-1
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
@@ -87,7 +87,8 @@ def main():
 
     # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
     should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
-    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin, calc_density=should_calc_density)
+
+    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
     contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)))  # todo haim
 
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
