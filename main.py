@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 import json
 
@@ -44,15 +45,15 @@ class HP:
         self.is_siren = False
 
         # loss
-        self.density_lambda = 0
+        self.density_lambda = 1
 
         # vals constraints
-        self.contour_val_lambda = 1e0
+        self.contour_val_lambda = 0
 
-        self.inter_lambda = 1e0
+        self.inter_lambda = 0
         self.inter_alpha = -1e2
 
-        self.off_surface_lambda = 1
+        self.off_surface_lambda = 0
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
@@ -63,7 +64,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 2
+        self.epochs = 10
         self.scheduler_step = 5
         self.lr = 1e-2
 
@@ -76,54 +77,67 @@ class HP:
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
-def main():
-    hp = HP()
-
-    csl = get_csl(hp.bounding_planes_margin)
-
-    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda}, contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda} inter={hp.inter_lambda} off={hp.off_surface_lambda}')
-
-    tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
-
-    # d2_res = [i * (2 ** (tree.depth + 1)) for i in hp.root_sampling_resolution_2d]
-    should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
-
-    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
-    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)))  # todo haim
-
+def train_cycle(csl, hp, tree, should_calc_density, save_path):
+    d2_res = 2 ** (tree.depth + 1) * hp.root_sampling_resolution_2d
+    slices_dataset = SlicesDataset(csl, sampling_resolution=d2_res, sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
+    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)))  # todo haim - remove param or fix this somehow
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
 
-    # level 0:
     tree.prepare_for_training(slices_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
+    tree.show_train_losses(save_path)
 
-    # tree.show_train_losses()
+
+def handle_meshes(tree, hp, save_path):
+    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sigmoid_on_inference)
+    mesh_dc.save(save_path + f'mesh_l{tree.depth}_dc_grad.obj')
+
+    mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
+    mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
+
+    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
+    mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.stl')
+    return mesh_dc
+
+
+def save_heatmaps(tree, save_path, hp):
+    heatmap_path = save_path + f'/heatmaps_l{tree.depth}/'
+
+    os.makedirs(heatmap_path, exist_ok=True)
+
+    for dim in (0,1, 2):
+        for dist in [0]:  # np.linspace(-1, 1, 3):
+            renderer = Renderer2D()
+            renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
+            renderer.save(heatmap_path)
+            # renderer.clear()
+
+
+def main():
+    save_path = './artifacts/'
+    hp = HP()
+    csl = get_csl(hp.bounding_planes_margin)
+    should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
+    tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
+    print(f'csl={csl.model_name}')
+    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda}, contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
+
+    # level 0:
+    train_cycle(csl, hp, tree, should_calc_density, save_path)
+    save_heatmaps(tree, save_path, hp)
+
+    renderer = Renderer3D()
+    renderer.add_scene(csl)
 
     try:
-        #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, hp.sigmoid_on_inference)
-        #mesh_mc.save('./artifacts/output_mc.stl')
-
-        mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=False)
-        mesh_dc.save('./artifacts/output_dc_grad.obj')
-
-        mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=False)
-        mesh_dc.save('./artifacts/output_dc_no_grad.obj')
-
-        renderer = Renderer3D()
-        renderer.add_scene(csl)
-        renderer.add_mesh(mesh_mc)
-        # renderer.add_model_grads(tree, get_xyzs_in_octant(None, sampling_resolution_3d=(10, 10, 10)))
-        renderer.show()
-
+        mesh = handle_meshes(tree, hp, save_path)
+        renderer.add_mesh(mesh)
     except ValueError as e:
         print(e)
+
     finally:
-        for dim in (0, 2):
-            for dist in np.linspace(-1, 1, 3):
-                renderer = Renderer2D()
-                renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
-                renderer.save('./artifacts/')
-                renderer.clear()
+        renderer.save_animation(save_path, 1)
+        renderer.show()
 
 
 if __name__ == "__main__":
