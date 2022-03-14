@@ -176,7 +176,7 @@ class HaimNetManager(INetManager):
         self.hp = hp
 
         self.optimizer = torch.optim.Adam(self.module.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)
-        self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9)
+        self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=self.hp.scheduler_gamma)
         self.scheduler_step = hp.scheduler_step
 
         self.is_training_ready = True

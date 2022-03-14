@@ -11,11 +11,11 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -41,6 +41,7 @@ class HP:
 
         # architecture
         self.num_embedding_freqs = 4
+        self.spherical_coordinates = True
         self.hidden_layers = [128]*6  # [64, 64, 64, 64, 64]
         self.is_siren = False
 
@@ -48,24 +49,25 @@ class HP:
         self.density_lambda = 1
 
         # vals constraints
-        self.contour_val_lambda = 0
+        self.contour_val_lambda = 1e0
 
-        self.inter_lambda = 0
+        self.inter_lambda = 1e0
         self.inter_alpha = -1e2
 
-        self.off_surface_lambda = 0
+        self.off_surface_lambda = 1
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
-        self.eikonal_lambda = 1e-1
+        self.eikonal_lambda = 1e-3
 
         self.contour_normal_lambda = 1e-1
         self.contour_tangent_lambda = 1e-1
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 10
+        self.epochs = 50
         self.scheduler_step = 5
+        self.scheduler_gamma = 0.9
         self.lr = 1e-2
 
         # inference
@@ -118,9 +120,11 @@ def main():
     hp = HP()
     csl = get_csl(hp.bounding_planes_margin)
     should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
-    tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers, get_embedder(hp.num_embedding_freqs), hp.is_siren)
+    tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers,
+                      get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates), hp.is_siren)
     print(f'csl={csl.model_name}')
-    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda}, contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
+    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda},'
+          f' contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
 
     # level 0:
     train_cycle(csl, hp, tree, should_calc_density, save_path)

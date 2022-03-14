@@ -2,6 +2,7 @@ import math
 import torch
 from torch import nn
 from itertools import chain
+from math import pi as PI
 
 
 class Sine(nn.Module):
@@ -72,17 +73,29 @@ class HaimNet(nn.Module):
 
 
 # https://github.com/yenchenlin/nerf-pytorch/blob/a15fd7cb363e93f933012fd1f1ad5395302f63a4/run_nerf_helpers.py#L48
+def _add_spherical(inputs):
+
+    rho = torch.norm(inputs, p=2, dim=-1).view(-1, 1)
+
+    theta = torch.acos(inputs[..., 2] / rho.view(-1)).view(-1, 1)
+
+    phi = torch.atan2(inputs[..., 1], inputs[..., 0]).view(-1, 1)
+    phi = phi + (phi < 0).type_as(phi) * (2 * PI)
+
+    return torch.cat([inputs, rho, theta, phi], dim=-1)
+
+
 class Embedder:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
-        self.create_embedding_fn()
+        self._create_embedding_fn()
 
     def __call__(self, x):
         return self.embed(x)
 
-    def create_embedding_fn(self):
+    def _create_embedding_fn(self):
         embed_fns = []
-        d = self.kwargs['input_dims']
+        d = self.kwargs['input_dims'] * (2 if self.kwargs['spherical_coordinates'] else 1)
         out_dim = 0
         if self.kwargs['include_input']:
             embed_fns.append(lambda x: x)
@@ -105,10 +118,12 @@ class Embedder:
         self.out_dim = out_dim
 
     def embed(self, inputs):
+        if self.kwargs['spherical_coordinates']:
+            inputs = _add_spherical(inputs)
         return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-def get_embedder(multires):
+def get_embedder(multires, use_spherical_coordinates):
 
     embed_kwargs = {
         'include_input': True,
@@ -117,6 +132,7 @@ def get_embedder(multires):
         'num_freqs': multires,
         'log_sampling': True,
         'periodic_fns': [torch.sin, torch.cos],
+        'spherical_coordinates': use_spherical_coordinates
     }
 
     embedder_obj = Embedder(**embed_kwargs)
