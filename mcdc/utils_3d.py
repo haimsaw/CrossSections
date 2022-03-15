@@ -53,7 +53,6 @@ class Mesh:
 
     @property
     def vectors(self):
-        # todo haim scale to [-1,1]^3
         return [self.verts[[face.v1-1, face.v2-1, face.v3-1, face.v4-1]] for face in self.faces]
 
     def extend(self, other):
