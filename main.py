@@ -36,12 +36,12 @@ class HP:
 
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
-        self.sampling_resolution_3d = (8, 8, 8)
+        self.sampling_resolution_3d = (64, 64, 64)
         self.contour_sampling_resolution = 5
 
         # architecture
         self.num_embedding_freqs = 4
-        self.spherical_coordinates = True
+        self.spherical_coordinates = False
         self.hidden_layers = [64]*6
         self.is_siren = False
 
@@ -65,7 +65,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 0
+        self.epochs = 50
         self.scheduler_step = 5
         self.scheduler_gamma = 0.9
         self.lr = 1e-3
@@ -91,14 +91,14 @@ def train_cycle(csl, hp, tree, should_calc_density, save_path):
 
 
 def handle_meshes(tree, hp, save_path):
-    #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference )
-    #mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.obj')
+    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference )
+    mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.obj')
 
     mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sigmoid_on_inference)
     mesh_dc.save(save_path + f'mesh_l{tree.depth}_dc_grad.obj')
 
-    #mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
-    #mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
+    mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
+    mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
 
     return mesh_dc
 
@@ -130,7 +130,7 @@ def main():
 
     # level 0:
     train_cycle(csl, hp, tree, should_calc_density, save_path)
-    # save_heatmaps(tree, save_path, hp)
+    save_heatmaps(tree, save_path, hp)
 
     renderer = Renderer3D()
     renderer.add_scene(csl)

@@ -24,7 +24,7 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d, use_sigmoid
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
     labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid)
-    print(f'max={max(labels)} min={min(labels)}')
+    print(f'labels: max={labels.max()} min={labels.min()}')
 
     if use_sigmoid:
         # set level is at 0
@@ -42,7 +42,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d+1, endpoint=True)
 
     labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid).reshape(sampling_resolution_3d+1)
-    print(f'max={labels.max()} min={labels.min()}')
+    print(f'labels: max={labels.max()} min={labels.min()}')
 
     # set level is at 0 so normalize labels to be in [-1, 1]
     if use_sigmoid:
