@@ -38,7 +38,7 @@ def dual_contour_3d_find_changes(f, x, y, z):
     return changes
 
 
-def dual_contour_3d(f, get_f_normal, xmax, ymax, zmax):
+def dual_contour_3d(f, get_f_normal, ijk_to_xyz, xmax, ymax, zmax):
     """Iterates over a cells of size one between the specified range, and evaluates f and f_normal to produce
         a boundary by Dual Contouring. Returns a Mesh object."""
     # For each cell, find the best vertex for fitting f
@@ -73,8 +73,9 @@ def dual_contour_3d(f, get_f_normal, xmax, ymax, zmax):
             vert = np.array(xyz)+0.5
 
         vert_array.append(vert)
-        vert_indices[xyz] = len(vert_array)  # todo haim is this correct?????
+        vert_indices[xyz] = len(vert_array)  # vert_indices is 1 based
 
+    vert_array = ijk_to_xyz(np.array(vert_array))  # convert vert to lay in [-1,1]^3
 
     # For each cell edge, emit a face between the center of the adjacent cells if it is a sign changing edge
     faces = []
@@ -112,7 +113,7 @@ def dual_contour_3d(f, get_f_normal, xmax, ymax, zmax):
                             vert_indices[(x, y - 1, z - 0)],
                         ).swap(solid2))
 
-    return Mesh(vert_array, faces)  # todo - return stl.mesh
+    return Mesh(vert_array, faces)
 
 
 def circle_function(x, y, z):

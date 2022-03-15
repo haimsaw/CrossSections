@@ -11,11 +11,11 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    # csl = CSL("csl-files/ParallelEight.csl")
+    csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -41,8 +41,8 @@ class HP:
 
         # architecture
         self.num_embedding_freqs = 4
-        self.spherical_coordinates = True
-        self.hidden_layers = [128]*6  # [64, 64, 64, 64, 64]
+        self.spherical_coordinates = False
+        self.hidden_layers = [64]*6  # [64, 64, 64, 64, 64]
         self.is_siren = False
 
         # loss
@@ -65,7 +65,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 50
+        self.epochs = 2
         self.scheduler_step = 5
         self.scheduler_gamma = 0.9
         self.lr = 1e-2
@@ -97,8 +97,6 @@ def handle_meshes(tree, hp, save_path):
     mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
     mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
 
-    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference)
-    mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.stl')
     return mesh_dc
 
 
@@ -107,12 +105,12 @@ def save_heatmaps(tree, save_path, hp):
 
     os.makedirs(heatmap_path, exist_ok=True)
 
-    for dim in (0,1, 2):
-        for dist in [0]:  # np.linspace(-1, 1, 3):
+    for dim in (0, 1, 2):
+        for dist in np.linspace(-0.5, 0.5, 3):
             renderer = Renderer2D()
             renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
             renderer.save(heatmap_path)
-    renderer.clear()
+            renderer.clear()
 
 
 def main():
@@ -122,6 +120,7 @@ def main():
     should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers,
                       get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates), hp.is_siren)
+
     print(f'csl={csl.model_name}')
     print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda},'
           f' contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
@@ -132,16 +131,9 @@ def main():
 
     renderer = Renderer3D()
     renderer.add_scene(csl)
-
-    try:
-        mesh = handle_meshes(tree, hp, save_path)
-        renderer.add_mesh(mesh)
-    except ValueError as e:
-        print(e)
-
-    finally:
-        #renderer.save_animation(save_path, 1)
-        renderer.show()
+    mesh_dc = handle_meshes(tree, hp, save_path)
+    renderer.add_mesh(mesh_dc)
+    renderer.show()
 
 
 if __name__ == "__main__":

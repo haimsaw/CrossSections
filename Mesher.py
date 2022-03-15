@@ -42,14 +42,18 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d+1, endpoint=True)
 
     labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid).reshape(sampling_resolution_3d+1)
+    print(f'max={labels.max()} min={labels.min()}')
 
     # set level is at 0 so normalize labels to be in [-1, 1]
     if use_sigmoid:
         labels = labels * 2 - 1
-    # print(f'labels max={labels.max()} min={labels.min()}')
 
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
+
+    def ijk_to_xyz(ijks):
+        return 2 * ijks / (sampling_resolution_3d + 1) - 1
+
     def f(i, j, k):
         '''d0 = np.array([i, j, k]) - center0
         d1 = np.array([i, j, k]) - center1
@@ -57,25 +61,25 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
 
         return labels[i][j][k]
 
-    def get_f_normal(ijks_for_normal):
+    def get_f_normal(ijks_for_grad):
 
-        if use_grads is True and len(ijks_for_normal) > 0:
+        if use_grads is True and len(ijks_for_grad) > 0:
             # translate from ijk (index) coordinate system to xyz
             # where xyz = np.linspace(-1, 1, sampling_resolution_3d[i]+1, endpoint=True)
-            ijks_for_normal = np.array(ijks_for_normal)
-            xyzs_for_normal = 2 * ijks_for_normal / (sampling_resolution_3d + 1) - 1
+            ijks_for_grad = np.array(ijks_for_grad)
+            xyzs_for_grad = ijk_to_xyz(ijks_for_grad)
 
-            normals = -1 * net_manager.grad_wrt_input(xyzs_for_normal, use_sigmoid=use_sigmoid)
-            # normals = normalize(normals, norm="l2")  # todo haim?
+            grads = net_manager.grad_wrt_input(xyzs_for_grad, use_sigmoid=use_sigmoid)
+            # grads = normalize(grads, norm="l2")  # todo haim?
 
-            # print(f'use_grads={use_grads} avg={np.abs(normals).mean(axis=0)}')
+            # print(f'use_grads={use_grads} avg={np.abs(grads).mean(axis=0)}')
 
-            ijks_to_grad = dict(zip(map(tuple, ijks_for_normal), normals))
+            ijks_to_grad = dict(zip(map(tuple, ijks_for_grad), grads))
             return lambda i, j, k: ijks_to_grad[(i, j, k)]
 
         else:
             return lambda i, j, k: np.array([0.0, 0.0, 0.0])
 
-    return dual_contour_3d(f, get_f_normal, *sampling_resolution_3d)
+    return dual_contour_3d(f, get_f_normal, ijk_to_xyz, *sampling_resolution_3d )
 
 

@@ -72,7 +72,6 @@ class HaimNet(nn.Module):
             return self.function(embbeded)
 
 
-# https://github.com/yenchenlin/nerf-pytorch/blob/a15fd7cb363e93f933012fd1f1ad5395302f63a4/run_nerf_helpers.py#L48
 def _add_spherical(inputs):
 
     rho = torch.norm(inputs, p=2, dim=-1).view(-1, 1)
@@ -85,6 +84,7 @@ def _add_spherical(inputs):
     return torch.cat([inputs, rho, theta, phi], dim=-1)
 
 
+# https://github.com/yenchenlin/nerf-pytorch/blob/a15fd7cb363e93f933012fd1f1ad5395302f63a4/run_nerf_helpers.py#L48
 class Embedder:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
