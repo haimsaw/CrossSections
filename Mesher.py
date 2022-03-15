@@ -80,6 +80,6 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
         else:
             return lambda i, j, k: np.array([0.0, 0.0, 0.0])
 
-    return dual_contour_3d(f, get_f_normal, ijk_to_xyz, *sampling_resolution_3d )
+    return dual_contour_3d(f, get_f_normal, ijk_to_xyz, *sampling_resolution_3d)
 
 

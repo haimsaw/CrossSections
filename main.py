@@ -15,8 +15,8 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
-    csl = CSL("csl-files/Horsers.csl")
+    csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -35,18 +35,18 @@ class HP:
         self.oct_overlap_margin = 0.25
 
         # resolutions
-        self.root_sampling_resolution_2d = (32, 32)
-        self.sampling_resolution_3d = (64, 64, 64)
+        self.root_sampling_resolution_2d = (64, 64)
+        self.sampling_resolution_3d = (8, 8, 8)
         self.contour_sampling_resolution = 5
 
         # architecture
         self.num_embedding_freqs = 4
-        self.spherical_coordinates = False
-        self.hidden_layers = [64]*6  # [64, 64, 64, 64, 64]
+        self.spherical_coordinates = True
+        self.hidden_layers = [64]*6
         self.is_siren = False
 
         # loss
-        self.density_lambda = 1
+        self.density_lambda = 0
 
         # vals constraints
         self.contour_val_lambda = 1e0
@@ -65,10 +65,10 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 2
-        self.scheduler_step = 50
+        self.epochs = 0
+        self.scheduler_step = 5
         self.scheduler_gamma = 0.9
-        self.lr = 1e-2
+        self.lr = 1e-3
 
         # inference
         self.sigmoid_on_inference = False
@@ -87,15 +87,18 @@ def train_cycle(csl, hp, tree, should_calc_density, save_path):
 
     tree.prepare_for_training(slices_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
-    tree.show_train_losses(save_path)
+    # tree.show_train_losses(save_path)
 
 
 def handle_meshes(tree, hp, save_path):
+    #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference )
+    #mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.obj')
+
     mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sigmoid_on_inference)
     mesh_dc.save(save_path + f'mesh_l{tree.depth}_dc_grad.obj')
 
-    mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
-    mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
+    #mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
+    #mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
 
     return mesh_dc
 
@@ -127,7 +130,7 @@ def main():
 
     # level 0:
     train_cycle(csl, hp, tree, should_calc_density, save_path)
-    save_heatmaps(tree, save_path, hp)
+    # save_heatmaps(tree, save_path, hp)
 
     renderer = Renderer3D()
     renderer.add_scene(csl)

@@ -75,9 +75,11 @@ def _add_spherical(inputs):
     rho = torch.norm(inputs, p=2, dim=-1).view(-1, 1)
 
     theta = torch.acos(inputs[..., 2] / rho.view(-1)).view(-1, 1)
+    theta[rho == 0] = 0
 
     phi = torch.atan2(inputs[..., 1], inputs[..., 0]).view(-1, 1)
     phi = phi + (phi < 0).type_as(phi) * (2 * PI)
+    phi[rho == 0] = 0
 
     return torch.cat([inputs, rho, theta, phi], dim=-1)
 
