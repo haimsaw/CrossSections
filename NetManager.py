@@ -81,7 +81,6 @@ class HaimNetManager(INetManager):
         model_pred_on_slices = self.module(slices_xyzs)
         model_pred_on_contour = self.module(contour_xyzs)
 
-        # todo haim grad_outputs
         grad_on_slices = torch.autograd.grad(model_pred_on_slices.sum(), [slices_xyzs], create_graph=True)[0]
         grad_on_contour = torch.autograd.grad(model_pred_on_contour.sum(), [contour_xyzs], create_graph=True)[0]
 
@@ -214,8 +213,6 @@ class HaimNetManager(INetManager):
 
     @torch.no_grad()
     def soft_predict(self, xyzs, use_sigmoid=True):
-        # todo assert in octant
-
         self.module.eval()
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=float)
@@ -226,8 +223,6 @@ class HaimNetManager(INetManager):
         return label_pred
 
     def grad_wrt_input(self, xyzs, use_sigmoid=True):
-        # todo assert in octant
-
         self.module.eval()
 
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)

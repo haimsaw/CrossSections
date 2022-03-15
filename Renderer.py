@@ -168,7 +168,6 @@ class Renderer2D:
 
         pos = self.ax.imshow(labels.reshape(sampling_resolution_2d).T, origin='lower',
                              cmap='plasma', extent=extent, interpolation='bilinear')
-        # todo haim why do I need to transpose the labels? is it a thing of plt or a bug?
 
         self.fig.colorbar(pos)
 
