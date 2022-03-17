@@ -11,7 +11,7 @@ from OctnetTree import *
 
 
 def get_csl(bounding_planes_margin):
-    #  csl = CSL("csl-files/ParallelEight.csl")
+    # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
@@ -46,22 +46,22 @@ class HP:
         self.is_siren = False
 
         # loss
-        self.density_lambda = 0
+        self.density_lambda = 1
 
         # vals constraints
-        self.contour_val_lambda = 1e0
+        self.contour_val_lambda = 1e-1
 
-        self.inter_lambda = 1e0
+        self.inter_lambda = 1e-1
         self.inter_alpha = -1e2
 
-        self.off_surface_lambda = 1
+        self.off_surface_lambda = 1e-1
         self.off_surface_epsilon = 1e-3
 
         # grad constraints
         self.eikonal_lambda = 1e-3
 
-        self.contour_normal_lambda = 1e-1
-        self.contour_tangent_lambda = 1e-1
+        self.contour_normal_lambda = 1e-2
+        self.contour_tangent_lambda = 1e-2
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
@@ -87,7 +87,7 @@ def train_cycle(csl, hp, tree, should_calc_density, save_path):
 
     tree.prepare_for_training(slices_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
-    # tree.show_train_losses(save_path)
+    tree.show_train_losses(save_path)
 
 
 def handle_meshes(tree, hp, save_path):
@@ -124,17 +124,21 @@ def main():
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers,
                       get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates), hp.is_siren)
 
+    with open(save_path + 'hyperparams.json', 'w') as f:
+        f.write(hp.to_json())
+
     print(f'csl={csl.model_name}')
     print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda},'
-          f' contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda}')
+          f' contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda} '
+          f' inter={hp.inter_lambda} off={hp.off_surface_lambda}')
 
     # level 0:
     train_cycle(csl, hp, tree, should_calc_density, save_path)
     save_heatmaps(tree, save_path, hp)
+    mesh_dc = handle_meshes(tree, hp, save_path)
 
     renderer = Renderer3D()
     renderer.add_scene(csl)
-    mesh_dc = handle_meshes(tree, hp, save_path)
     renderer.add_mesh(mesh_dc)
     renderer.show()
 

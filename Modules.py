@@ -5,27 +5,11 @@ from itertools import chain
 from math import pi as PI
 
 
-class Sine(nn.Module):
-    def __init(self):
-        super().__init__()
-
-    def forward(self, input):
-        # See paper sec. 3.2, final paragraph, and supplement Sec. 1.5 for discussion of factor 30
-        return torch.sin(30 * input)
-
-
 def initializer(m):
     if isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform_(m.weight)
         torch.nn.init.uniform_(m.bias, 0, 1)
         # m.bias.data.fill_(0.1)
-
-
-def siren_initializer(m):
-    if isinstance(m, nn.Linear):
-        w_std = math.sqrt(6 / m.in_features)
-        torch.nn.init.uniform_(m.weight, -w_std, w_std)
-        torch.nn.init.uniform_(m.bias, -w_std, w_std)
 
 
 class HaimNet(nn.Module):
@@ -41,7 +25,7 @@ class HaimNet(nn.Module):
         n_neurons = [self.embedder.out_dim] + hidden_layers + [1]
 
         neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
-        activations = [Sine() if is_siren else nn.LeakyReLU() for _ in range(len(n_neurons) - 2)]
+        activations = [nn.LeakyReLU() for _ in range(len(n_neurons) - 2)]
         layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], 1)]
 
         self.function = nn.Sequential(*layers)
@@ -52,15 +36,7 @@ class HaimNet(nn.Module):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def init_weights(self):
-        if self.is_siren:
-            self.function.apply(siren_initializer)
-
-            w_std = 1 / self.first_layer.in_features
-            torch.nn.init.uniform_(self.first_layer.weight, -w_std, w_std)
-            torch.nn.init.uniform_(self.first_layer.bias, -w_std, w_std)
-
-        else:
-            self.function.apply(initializer)
+        self.function.apply(initializer)
 
     def forward(self, xyzs):
         embbeded = self.embedder(xyzs)
