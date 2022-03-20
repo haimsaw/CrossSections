@@ -74,7 +74,8 @@ class HaimNetManager(INetManager):
 
         self.is_training_ready = False
 
-    def _get_constraints(self, slices_xyzs, slices_density, contour_xyzs, normals_on_contour, tangents_on_contour, slice_normals):
+    def _get_constraints(self, slices_xyzs, slices_density, contour_xyzs, normals_on_contour,
+                         tangents_on_contour, slice_normals, density_lambda):
         slices_xyzs.requires_grad_(True)
         contour_xyzs.requires_grad_(True)
 
@@ -88,8 +89,8 @@ class HaimNetManager(INetManager):
 
         # density - zero inside one outside
         # bce_loss has a sigmoid layer build in
-        if self.hp.density_lambda > 0:
-            constraints['density'] = self.bce_loss(model_pred_on_slices, slices_density) * self.hp.density_lambda
+        if density_lambda > 0:
+            constraints['density'] = self.bce_loss(model_pred_on_slices, slices_density) * density_lambda
 
         # grad(f(x)) = 1 everywhere (eikonal)
         if self.hp.eikonal_lambda > 0:
@@ -127,7 +128,7 @@ class HaimNetManager(INetManager):
 
         return constraints
 
-    def _train_epoch(self, epoch):
+    def _train_epoch(self, epoch, density_lambda):
         assert self.is_training_ready
         if self.verbose:
             print(f"\n\nEpoch {self.total_epochs} [{epoch}]\n-------------------------------")
@@ -141,7 +142,8 @@ class HaimNetManager(INetManager):
             contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
             slice_normals = slice_normals.to(self.device)
 
-            constraints = self._get_constraints(slices_xyzs, slices_density, contour_xyzs, contour_normals, contour_tangents, slice_normals)
+            constraints = self._get_constraints(slices_xyzs, slices_density, contour_xyzs, contour_normals,
+                                                contour_tangents, slice_normals, density_lambda)
             running_constraints = {k: constraints.get(k, torch.tensor([0])).item() + running_constraints.get(k, 0) for k in set(constraints)}
 
             self.optimizer.zero_grad()
@@ -185,11 +187,12 @@ class HaimNetManager(INetManager):
             print('n_epochs' + '.' * epochs)
             print('_running', end="")
 
+        density_lambdas = np.linspace(self.hp.initial_density_lambda, 0, epochs / 2)
         self.module.train()
-        for epoch in range(epochs):
+        for epoch, density_lambda in zip(range(epochs), density_lambdas):
             if not self.verbose:
                 print('.', end='')
-            self._train_epoch(epoch)
+            self._train_epoch(epoch, density_lambda)
             self.total_epochs += 1
 
         if not self.verbose:

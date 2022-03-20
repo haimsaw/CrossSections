@@ -46,7 +46,7 @@ class HP:
         self.is_siren = False
 
         # loss
-        self.density_lambda = 1
+        self.initial_density_lambda = 1
 
         # vals constraints
         self.contour_val_lambda = 1e-1
@@ -120,7 +120,7 @@ def main():
     save_path = './artifacts/'
     hp = HP()
     csl = get_csl(hp.bounding_planes_margin)
-    should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
+    should_calc_density = hp.initial_density_lambda > 0 or hp.inter_lambda > 0
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers,
                       get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates), hp.is_siren)
 
@@ -128,7 +128,7 @@ def main():
         f.write(hp.to_json())
 
     print(f'csl={csl.model_name}')
-    print(f'loss: density={hp.density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda},'
+    print(f'loss: density={hp.initial_density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda},'
           f' contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda} '
           f' inter={hp.inter_lambda} off={hp.off_surface_lambda}')
 
