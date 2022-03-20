@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
@@ -187,7 +188,7 @@ class HaimNetManager(INetManager):
             print('n_epochs' + '.' * epochs)
             print('_running', end="")
 
-        density_lambdas = np.linspace(self.hp.initial_density_lambda, 0, epochs / 2)
+        density_lambdas = np.concatenate((np.linspace(self.hp.initial_density_lambda, 0, epochs / 2), np.zeros(epochs/2)))
         self.module.train()
         for epoch, density_lambda in zip(range(epochs), density_lambdas):
             if not self.verbose:
