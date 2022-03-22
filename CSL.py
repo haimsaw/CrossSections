@@ -5,6 +5,39 @@ from sklearn.decomposition import PCA
 
 from Helpers import *
 
+'''
+CSLC
+header, keep as is
+6 2
+number of planes, number of labels (should be at least 2 - inside and outside)
+
+1 10 1 0.0 -1.0 0.0 -0.8
+plane index (1-indexing, please state planes in order), number of vertices in the plane image (a hole is counted as another component here), number of connected components, plane parameters A,B,C,D, such that  Ax+By+Cz+D=0
+
+0.6  -0.8 0
+0.48541
+-0.8 0.35267
+0.18541
+-0.8 0.57063
+-0.18541
+-0.8 0.57063
+-0.48541
+-0.8 0.35267
+-0.6  -0.8 0
+-0.48541
+-0.8 -0.35267
+-0.18541
+-0.8 -0.57063
+0.18541
+-0.8 -0.57063
+0.48541
+-0.8 -0.35267
+The vertices in x,y,z coordinates. The should be on the plane, but they are projected to the plane upon loading anyway
+
+10 1 0 1 2 3 4 5 6 7 8 9 
+image component: starts with the number of vertices, then label of the component (in case of a hole, h should be added), then the indices of vertices that form a contour of the inside label, ordered CCW.
+'''
+
 
 class ConnectedComponent:
     def __init__(self, csl_file):
@@ -23,6 +56,9 @@ class ConnectedComponent:
     def __len__(self):
         return len(self.vertices_indices)
 
+    def __repr__(self):
+        return f"{len(self.vertices_indices)}{'h'+str(self.parent_cc_index) if self.is_hole else ''} {self.label} {' '.join(map(str, self.vertices_indices))}\n"
+
     @property
     def is_hole(self):
         return self.parent_cc_index >= 0
@@ -40,6 +76,7 @@ class Plane:
         self.mean = np.mean(self.vertices, axis=0) if len(self.vertices) > 0 else np.zeros((3,))
 
         # self.plane_params = plane_params  # Ax+By+Cz+D=0
+        self.plane_params = plane_params
         self.normal = np.array(plane_params[0:3])
         self.normal /= np.linalg.norm(self.normal)
 
@@ -49,6 +86,32 @@ class Plane:
             self.plane_origin = np.array([0, -plane_params[3] / plane_params[1], 0])
         else:
             self.plane_origin = np.array([0, 0, -plane_params[3] / plane_params[2]])
+
+    def __repr__(self):
+        plane = f"{self.plane_id} {len(self.vertices)} {len(self.connected_components)} {' '.join(map(str, self.plane_params))}\n\n"
+        verts = ''.join([' '.join(map(str, vert)) + '\n' for vert in self.vertices]) + "\n\n"
+        ccs = ''.join(map(repr, self.connected_components))
+        return plane + verts + ccs
+
+    def __len__(self):
+        return sum((len(cc) for cc in self.connected_components))
+
+    def __isub__(self, point: np.array):
+        assert point.shape == (3,)
+        self.vertices -= point
+        self.plane_origin -= point
+
+        # new_D = self.plane_params[3] + np.dot(self.plane_params[:3], point)  # normal*(x-x_0)=0
+        # self.plane_params = self.plane_params[:3] + (new_D,)
+
+    def __itruediv__(self, scale: float):
+        self.vertices /= scale
+        # todo change plane params?
+
+    def __imatmul__(self, rotation: PCA):
+        self.vertices = rotation.transform(self.vertices)
+        self.plane_origin = rotation.transform([self.plane_origin])[0]
+        self.normal = rotation.transform([self.normal])[0]
 
     @classmethod
     def from_csl_file(cls, csl_file, csl):
@@ -79,26 +142,6 @@ class Plane:
         pca = PCA(n_components=2, svd_solver="full")
         pca.fit(self.vertices)
         return pca.transform(self.vertices), pca
-
-    def __len__(self):
-        return sum((len(cc) for cc in self.connected_components))
-
-    def __isub__(self, point: np.array):
-        assert point.shape == (3,)
-        self.vertices -= point
-        self.plane_origin -= point
-
-        # new_D = self.plane_params[3] + np.dot(self.plane_params[:3], point)  # normal*(x-x_0)=0
-        # self.plane_params = self.plane_params[:3] + (new_D,)
-
-    def __itruediv__(self, scale: float):
-        self.vertices /= scale
-        # todo change plane params?
-
-    def __imatmul__(self, rotation: PCA):
-        self.vertices = rotation.transform(self.vertices)
-        self.plane_origin = rotation.transform([self.plane_origin])[0]
-        self.normal = rotation.transform([self.normal])[0]
 
     def project(self, points):
         # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
@@ -132,6 +175,10 @@ class CSL:
 
     def __len__(self):
         return sum((len(plane) for plane in self.planes))
+
+    def __repr__(self):
+        non_empty_planes = list(filter(lambda plane: len(plane.vertices) > 0, self.planes))
+        return f"CSLC\n{len(non_empty_planes)} {self.n_labels} \n\n" + ''.join(map(repr, non_empty_planes))
 
     @property
     def all_vertices(self):
@@ -183,4 +230,3 @@ class CSL:
         self.rotate_by_pca()
         self.scale(bounding_planes_margin)
         self.add_boundary_planes(margin=bounding_planes_margin)
-
