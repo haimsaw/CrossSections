@@ -100,6 +100,7 @@ class Plane:
         assert point.shape == (3,)
         self.vertices -= point
         self.plane_origin -= point
+        # todo change plane params?
 
         # new_D = self.plane_params[3] + np.dot(self.plane_params[:3], point)  # normal*(x-x_0)=0
         # self.plane_params = self.plane_params[:3] + (new_D,)
@@ -112,6 +113,8 @@ class Plane:
         self.vertices = rotation.transform(self.vertices)
         self.plane_origin = rotation.transform([self.plane_origin])[0]
         self.normal = rotation.transform([self.normal])[0]
+        # todo change plane params?
+
 
     @classmethod
     def from_csl_file(cls, csl_file, csl):

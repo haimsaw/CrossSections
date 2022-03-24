@@ -15,8 +15,8 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
     # csl = CSL("csl-files/Heart-25-even-better.csl")
-    csl = CSL("csl-files/Armadillo-23-better.csl")
-    # csl = CSL("csl-files/Horsers.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
     # csl = CSL("csl-files/Vetebrae.csl")
@@ -37,7 +37,6 @@ class HP:
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
         self.sampling_resolution_3d = (64, 64, 64)
-        self.contour_sampling_resolution = 5
 
         # architecture
         self.num_embedding_freqs = 4
@@ -47,6 +46,8 @@ class HP:
 
         # loss
         self.initial_density_lambda = 1
+
+        self.density_schedule_fraction = 3 / 4  # -1 for no schedule
 
         # vals constraints
         self.contour_val_lambda = 1e-1
@@ -120,6 +121,8 @@ def main():
     save_path = './artifacts/'
     hp = HP()
     csl = get_csl(hp.bounding_planes_margin)
+    print(repr(csl))
+    return
     should_calc_density = hp.initial_density_lambda > 0 or hp.inter_lambda > 0
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers,
                       get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates), hp.is_siren)
@@ -142,6 +145,15 @@ def main():
     renderer.add_mesh(mesh_dc)
     renderer.show()
 
+    # level 1
+    train_cycle(csl, hp, tree, should_calc_density, save_path)
+    save_heatmaps(tree, save_path, hp)
+    mesh_dc = handle_meshes(tree, hp, save_path)
+
+    renderer = Renderer3D()
+    renderer.add_scene(csl)
+    renderer.add_mesh(mesh_dc)
+    renderer.show()
 
 if __name__ == "__main__":
     main()
