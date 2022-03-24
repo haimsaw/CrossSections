@@ -1,9 +1,15 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from torch.utils.data import SubsetRandomSampler
+from os import cpu_count
 
 from NetManager import *
 from itertools import combinations
+from pathos.multiprocessing import ProcessPool
+
+
+def train_leaf(leaf, epochs):
+    leaf.haim_net_manager.train_network(epochs=epochs)
 
 
 class OctNode:
@@ -300,9 +306,17 @@ class OctnetTree(INetManager):
     @timing
     def train_network(self, epochs):
         leaves = self._get_leaves()
-        for i, leaf in enumerate(leaves):
+
+        def train(leaf, epochs, i):
             print(f"\nleaf: {i}/{len(leaves) - 1} {leaf.path}")
             leaf.haim_net_manager.train_network(epochs=epochs)
+
+        if False and self.device == 'cpu':
+            with ProcessPool(cpu_count()) as p:
+                p.map(train, leaves, [epochs]*len(leaves), range(len(leaves)))
+        else:
+            for i, leaf in enumerate(leaves):
+                train(leaf, epochs, i)
 
     def prepare_for_training(self, slices_dataset, contour_dataset, hp):
         self._add_level()

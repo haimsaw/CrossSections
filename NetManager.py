@@ -161,10 +161,9 @@ class HaimNetManager(INetManager):
             self.lr_scheduler.step()
 
         loss = running_loss / size
-        print(f'epoch={epoch} running_loss={running_loss:.2f} losses={running_constraints}')
 
         if self.verbose:
-            print(f"\tloss for epoch: {loss}")
+            print(f'epoch={epoch} running_loss={running_loss:.2f} losses={running_constraints}')
         self.train_losses.append(loss)
 
     def prepare_for_training(self, slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp):
