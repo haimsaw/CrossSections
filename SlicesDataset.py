@@ -5,6 +5,8 @@ from CSL import Plane
 from Helpers import *
 from torch.utils.data import Dataset
 
+from hp import INSIDE_LABEL, OUTSIDE_LABEL
+
 
 def slices_rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)

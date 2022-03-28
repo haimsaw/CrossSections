@@ -3,10 +3,6 @@ from functools import wraps
 from time import time
 
 
-INSIDE_LABEL = 0.0
-OUTSIDE_LABEL = 1.0
-
-
 def get_top_bottom(points):
     top = np.amax(points, axis=0)
     bottom = np.amin(points, axis=0)

@@ -72,3 +72,7 @@ class HP:
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+
+INSIDE_LABEL = 0.0
+OUTSIDE_LABEL = 1.0

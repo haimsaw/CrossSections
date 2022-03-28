@@ -10,6 +10,7 @@ from NetManager import INetManager
 import matplotlib.animation as animation
 
 # region 3d
+from hp import INSIDE_LABEL
 
 
 class Renderer3D:
