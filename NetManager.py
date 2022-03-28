@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+from torchviz import make_dot
 
 from Modules import *
 from Helpers import *
@@ -149,6 +150,10 @@ class HaimNetManager(INetManager):
 
             self.optimizer.zero_grad()
             loss = sum(constraints.values())
+
+            if False:
+                make_dot(loss).render()
+
             loss.backward()
             self.optimizer.step()
 
