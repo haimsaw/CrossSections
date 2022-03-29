@@ -133,7 +133,7 @@ class OctNode:
 
         return np.nonzero(map)[0]
 
-    def split_node(self, oct_overlap_margin, hidden_layers, embedder, is_siren):
+    def split_node(self, oct_overlap_margin, hidden_layers, embedder):
         self.haim_net_manager.requires_grad_(False)
 
         new_radius = self.radius / 2
@@ -143,7 +143,7 @@ class OctNode:
         centers = [np.array([top[i] if d == +1 else btm[i] for i, d in enumerate(branch)])
                    for branch in self._directions]
 
-        self.branches = [OctNode(self.csl, center, self, new_radius, oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder, path=self.path + (direction,), is_siren=is_siren)
+        self.branches = [OctNode(self.csl, center, self, new_radius, oct_overlap_margin, hidden_layers=hidden_layers, embedder=embedder, path=self.path + (direction,))
                          for center, direction in zip(centers, self._directions)]
 
         self.is_leaf = False
@@ -253,7 +253,7 @@ class OctnetTree(INetManager):
         https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cube_with_balanced_ternary_labels.svg/800px-Cube_with_balanced_ternary_labels.svg.png
         """
 
-    def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder, is_siren):
+    def __init__(self, csl, oct_overlap_margin, hidden_layers, embedder):
         super().__init__(csl)
         self.csl = csl
 
@@ -263,7 +263,6 @@ class OctnetTree(INetManager):
         self.hidden_layers = hidden_layers
         self.embedder = embedder
         self.depth = -1
-        self.is_siren = is_siren
 
     def __str__(self):
         return f'tree[model:{self.csl.model_name}, depth:{self.depth}]'
@@ -275,10 +274,10 @@ class OctnetTree(INetManager):
         if self.root is None:
             self.root = OctNode(csl=self.csl, center=(0, 0, 0), parent=None, radius=np.array([1, 1, 1]),
                                 oct_overlap_margin=self.oct_overlap_margin, hidden_layers=self.hidden_layers,
-                                embedder=self.embedder, path=tuple(), is_siren=self.is_siren)
+                                embedder=self.embedder, path=tuple())
             self.depth = 0
         else:
-            [leaf.split_node(self.oct_overlap_margin, self.hidden_layers, self.embedder, self.is_siren) for leaf in self._get_leaves()]
+            [leaf.split_node(self.oct_overlap_margin, self.hidden_layers, self.embedder) for leaf in self._get_leaves()]
             self.depth += 1
 
     def _get_leaves(self):

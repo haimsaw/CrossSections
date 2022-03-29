@@ -51,13 +51,13 @@ class INetManager:
 
 
 class HaimNetManager(INetManager):
-    def __init__(self, csl, hidden_layers, embedder, residual_module, octant, is_siren, verbose=False):
+    def __init__(self, csl, hidden_layers, embedder, residual_module, octant, verbose=False):
         super().__init__(csl, verbose)
 
         self.save_path = "trained_model.pt"
         self.octant = octant
 
-        self.module = HaimNet(hidden_layers, residual_module, embedder, is_siren)
+        self.module = HaimNet(hidden_layers, residual_module, embedder)
         self.module.double()
         self.module.to(self.device)
 
@@ -115,9 +115,12 @@ class HaimNetManager(INetManager):
 
         # e^(-10*|f(x)|) everywhere except contour, inter_constraint from SIREN - penalizes off-surface points
         if self.hp.inter_lambda > 0:
-            inter_constraint = torch.where((slices_density - 0.5).abs() == 0.5,  # where density == 0 or 1
-                                           torch.exp(self.hp.inter_alpha * model_pred_on_slices.abs()),
-                                           torch.zeros_like(slices_density))
+            inter_constraint = torch.where(slices_density == 1,  # where density == 0 or 1
+                                           torch.exp(-1 * self.hp.inter_alpha * model_pred_on_slices),
+                                           torch.where(slices_density == 0,
+                                                       torch.exp(1 * self.hp.inter_alpha * model_pred_on_slices),
+                                                       torch.zeros_like(slices_density))
+                                           )
 
             constraints['inter'] = inter_constraint.mean() * self.hp.inter_lambda
 

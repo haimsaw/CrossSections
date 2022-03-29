@@ -3,13 +3,16 @@ from datetime import datetime
 
 from CSL import CSL
 
+INSIDE_LABEL = 0.0
+OUTSIDE_LABEL = 1.0
+
 
 def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-    # csl = CSL("csl-files/Heart-25-even-better.csl")
-    csl = CSL("csl-files/Armadillo-23-better.csl")
+    csl = CSL("csl-files/Heart-25-even-better.csl")
+    # csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -35,8 +38,7 @@ class HP:
         # architecture
         self.num_embedding_freqs = 4
         self.spherical_coordinates = False
-        self.hidden_layers = [64]*1 #todo haim 6
-        self.is_siren = False
+        self.hidden_layers = [64]*6
         self.depth = 2
 
         # loss
@@ -47,7 +49,7 @@ class HP:
         self.contour_val_lambda = 1e-1
 
         self.inter_lambda = 1e-1
-        self.inter_alpha = -1e2
+        self.inter_alpha = 1e2
 
         self.off_surface_lambda = 1e-1
         self.off_surface_epsilon = 1e-3
@@ -60,7 +62,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs = 1
+        self.epochs = 50
         self.scheduler_step = 5
         self.scheduler_gamma = 0.9
         self.lr = 1e-3
@@ -73,6 +75,3 @@ class HP:
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
-
-INSIDE_LABEL = 0.0
-OUTSIDE_LABEL = 1.0

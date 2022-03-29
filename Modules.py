@@ -13,11 +13,10 @@ def initializer(m):
 
 
 class HaimNet(nn.Module):
-    def __init__(self, hidden_layers, residual_module, embedder, is_siren):
+    def __init__(self, hidden_layers, residual_module, embedder):
         super().__init__()
 
         self.embedder = embedder
-        self.is_siren = is_siren
 
         assert residual_module is None or next(residual_module.parameters()).requires_grad is False
         self.residual_module = residual_module

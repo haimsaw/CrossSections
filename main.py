@@ -50,7 +50,7 @@ def main():
     csl = get_csl(hp.bounding_planes_margin)
     should_calc_density = hp.initial_density_lambda > 0 or hp.inter_lambda > 0
     tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers,
-                      get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates), hp.is_siren)
+                      get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates))
 
     with open(save_path + 'hyperparams.json', 'w') as f:
         f.write(hp.to_json())
