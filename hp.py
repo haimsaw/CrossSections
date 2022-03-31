@@ -34,6 +34,7 @@ class HP:
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
         self.sampling_resolution_3d = (64, 64, 64)
+        self.n_samples_per_edge = 32
 
         # architecture
         self.num_embedding_freqs = 4
