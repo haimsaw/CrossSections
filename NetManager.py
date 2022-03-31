@@ -102,8 +102,9 @@ class HaimNetManager(INetManager):
         # grad(f(x)) = 1 away from boundary
         if self.hp.zero_grad > 0:
             constraints['zero_grad'] = torch.where((slices_density - 0.5).abs() == 0.5,  # where density == 0 or 1
-                                                   grad_on_slices.norm(dim=-1).abs().mean() * self.hp.zero_grad,
-                                                   torch.zeros_like(slices_density))
+                                                   grad_on_slices.norm(dim=-1).abs().mean(),
+                                                   torch.zeros_like(slices_density)
+                                                   ).mean() * self.hp.zero_grad
 
         # f(x) = 0 on contour
         if self.hp.contour_val_lambda > 0:

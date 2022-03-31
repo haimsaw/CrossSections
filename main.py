@@ -9,9 +9,10 @@ from hp import get_csl, HP
 
 def train_cycle(csl, hp, tree, should_calc_density, save_path):
     d2_res = 2 ** (tree.depth + 1) * hp.root_sampling_resolution_2d
-    slices_dataset = SlicesDataset(csl, sampling_resolution=d2_res, sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
-    contour_dataset = ContourDataset(csl, round(len(slices_dataset) / len(csl)))  # todo haim - remove param or fix this somehow
-    print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}, samples_per_edge={round(len(slices_dataset) / len(csl))}')
+    slices_dataset = SlicesDataset(csl, sampling_resolution=d2_res, sampling_margin=hp.sampling_margin,
+                                   should_calc_density=should_calc_density)
+    contour_dataset = ContourDataset(csl, hp.n_samples_per_edge)
+    print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}')
 
     tree.prepare_for_training(slices_dataset, contour_dataset, hp)
     tree.train_network(epochs=hp.epochs)
