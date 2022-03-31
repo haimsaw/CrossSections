@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-from torch.utils.data import SubsetRandomSampler
+from torch.utils.data import WeightedRandomSampler
 from os import cpu_count
 
 from NetManager import *
@@ -125,13 +125,14 @@ class OctNode:
     def _overlap_radius(self):
         return 2 * self.radius * self.oct_overlap_margin
 
-    def indices_in_oct(self, xyzs, is_core=False):
+    def is_in_oct(self, xyzs, is_core=False):
         oct = self.oct_core if is_core else self.oct
-        map = (xyzs[:, 0] >= oct[1][0]) & (xyzs[:, 0] <= oct[0][0]) \
+        return (xyzs[:, 0] >= oct[1][0]) & (xyzs[:, 0] <= oct[0][0]) \
               & (xyzs[:, 1] >= oct[1][1]) & (xyzs[:, 1] <= oct[0][1]) \
               & (xyzs[:, 2] >= oct[1][2]) & (xyzs[:, 2] <= oct[0][2])
 
-        return np.nonzero(map)[0]
+    def indices_in_oct(self, xyzs, is_core=False):
+        return np.nonzero(self.is_in_oct(xyzs, is_core))[0]
 
     def split_node(self, oct_overlap_margin, hidden_layers, embedder):
         self.haim_net_manager.requires_grad_(False)
@@ -320,8 +321,13 @@ class OctnetTree(INetManager):
     def prepare_for_training(self, slices_dataset, contour_dataset, hp):
         self._add_level()
         for leaf in self._get_leaves():
-            slices_sampler = SubsetRandomSampler(leaf.indices_in_oct(slices_dataset.xyzs))
-            contour_sampler = SubsetRandomSampler(leaf.indices_in_oct(contour_dataset.xyzs))
+
+            slice_weights = slices_dataset.sampler_weights * leaf.is_in_oct(slices_dataset.xyzs)
+            contour_weights = leaf.is_in_oct(contour_dataset.xyzs)
+            n_samples = int(max(sum(slice_weights), len(contour_weights)))
+
+            slices_sampler = WeightedRandomSampler(slice_weights, n_samples)
+            contour_sampler = WeightedRandomSampler(contour_weights, n_samples)
 
             leaf.haim_net_manager.prepare_for_training(slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp)
 
