@@ -11,8 +11,8 @@ def get_csl(bounding_planes_margin):
     # csl = CSL("csl-files/ParallelEight.csl")
     # csl = CSL("csl-files/ParallelEightMore.csl")
     # csl = CSL("csl-files/SideBishop.csl")
-    csl = CSL("csl-files/Heart-25-even-better.csl")
-    # csl = CSL("csl-files/Armadillo-23-better.csl")
+    # csl = CSL("csl-files/Heart-25-even-better.csl")
+    csl = CSL("csl-files/Armadillo-23-better.csl")
     # csl = CSL("csl-files/Horsers.csl")
     # csl = CSL("csl-files/rocker-arm.csl")
     # csl = CSL("csl-files/Abdomen.csl")
@@ -43,22 +43,23 @@ class HP:
 
         # loss
         self.initial_density_lambda = 1
-        self.density_schedule_fraction = 1  # 3 / 4  # -1 for no schedule
+        self.density_schedule_fraction = -1  # 3 / 4  # -1 for no schedule
 
         # vals constraints
-        self.contour_val_lambda = 1e-1
+        self.contour_val_lambda = 0
 
-        self.inter_lambda = 1e-1
-        self.inter_alpha = 1e2
+        self.inter_lambda = 0
+        self.inter_alpha = 0
 
-        self.off_surface_lambda = 1e-1
-        self.off_surface_epsilon = 1e-3
+        self.off_surface_lambda = 0
+        self.off_surface_epsilon = 0
 
         # grad constraints
-        self.eikonal_lambda = 1e-3
+        self.eikonal_lambda = 0
+        self.zero_grad = 1e-4
 
-        self.contour_normal_lambda = 1e-2
-        self.contour_tangent_lambda = 1e-2
+        self.contour_normal_lambda = 1e-3
+        self.contour_tangent_lambda = 1e-3
 
         # training
         self.weight_decay = 1e-3  # l2 regularization

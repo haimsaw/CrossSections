@@ -19,8 +19,8 @@ def train_cycle(csl, hp, tree, should_calc_density, save_path):
 
 
 def handle_meshes(tree, hp, save_path):
-    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference )
-    mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.obj')
+    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference)
+    mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.stl')
 
     mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sigmoid_on_inference)
     mesh_dc.save(save_path + f'mesh_l{tree.depth}_dc_grad.obj')
