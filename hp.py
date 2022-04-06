@@ -39,7 +39,7 @@ class HP:
         # architecture
         self.num_embedding_freqs = 4
         self.spherical_coordinates = False
-        self.hidden_layers = [64]*6
+        self.hidden_layers = [64]*5
         self.depth = 2
 
         # loss
@@ -50,22 +50,22 @@ class HP:
         self.contour_val_lambda = 0
 
         self.inter_lambda = 0
-        self.inter_alpha = 0
+        self.inter_alpha = 1e0
 
         self.off_surface_lambda = 0
-        self.off_surface_epsilon = 0
+        self.off_surface_epsilon = 1e-3
 
         # grad constraints
         self.eikonal_lambda = 0
-        self.zero_grad = 1e-4
+        self.zero_grad = 0
 
-        self.contour_normal_lambda = 1e-3
-        self.contour_tangent_lambda = 1e-3
+        self.contour_normal_lambda = 1e-2
+        self.contour_tangent_lambda = 1e-2
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
         self.epochs = 50
-        self.scheduler_step = 5
+        self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-3
 

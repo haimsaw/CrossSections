@@ -322,9 +322,12 @@ class OctnetTree(INetManager):
         self._add_level()
         for leaf in self._get_leaves():
 
+            # todo haim is_in_oct can change the ratios - need to calc sampler_weights for each oct
             slice_weights = slices_dataset.sampler_weights * leaf.is_in_oct(slices_dataset.xyzs)
             contour_weights = leaf.is_in_oct(contour_dataset.xyzs)
             n_samples = int(max(sum(slice_weights), len(contour_weights)))
+            # todo haim slice_weights is not normalized->  sum(slice_weights) is not correct
+
 
             slices_sampler = WeightedRandomSampler(slice_weights, n_samples)
             contour_sampler = WeightedRandomSampler(contour_weights, n_samples)
