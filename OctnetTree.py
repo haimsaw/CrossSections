@@ -328,7 +328,6 @@ class OctnetTree(INetManager):
             n_samples = int(max(sum(slice_weights), len(contour_weights)))
             # todo haim slice_weights is not normalized->  sum(slice_weights) is not correct
 
-
             slices_sampler = WeightedRandomSampler(slice_weights, n_samples)
             contour_sampler = WeightedRandomSampler(contour_weights, n_samples)
 
