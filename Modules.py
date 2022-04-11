@@ -18,7 +18,7 @@ class BaseModule(nn.Module):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def init_weights(self):
-        self.function.apply(initializer)
+        self.MLP.apply(initializer)
 
 
 def get_MLP_layers(n_neurons):
@@ -57,7 +57,7 @@ class HaimNetWithState(BaseModule):
         self.MLP = nn.Sequential(*get_MLP_layers(n_neurons))
 
     def forward(self, xyzs, logits, hidden_states):
-        outputs = self.MLP(torch.cat((self.embedder(xyzs), logits, hidden_states)), dim=1)
+        outputs = self.MLP(torch.cat((self.embedder(xyzs), logits, hidden_states), dim=1))
 
         out_logits = outputs[:, 0] + logits
         out_hidden_states = outputs[:, 1:]

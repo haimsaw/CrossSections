@@ -7,16 +7,17 @@ from OctnetTreeTrainer import *
 from hp import get_csl, HP
 
 
-def train_cycle(csl, hp, tree, should_calc_density, save_path):
-    d2_res = 2 ** (tree.depth + 1) * hp.root_sampling_resolution_2d
-    slices_dataset = SlicesDataset(csl, sampling_resolution=d2_res, sampling_margin=hp.sampling_margin,
+def train_cycle(csl, hp, trainer, should_calc_density, save_path):
+    slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    should_calc_density=should_calc_density)
     contour_dataset = ContourDataset(csl, hp.n_samples_per_edge)
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}')
 
-    tree.prepare_for_training(slices_dataset, contour_dataset, hp)
-    tree.train_network(epochs=hp.epochs)
-    tree.show_train_losses(save_path)
+    trainer.prepare_for_training(slices_dataset,None, contour_dataset,None, hp)
+    # todo haim sampler
+
+    trainer.train_network(epochs=hp.epochs)
+    trainer.show_train_losses(save_path)
 
 
 def handle_meshes(tree, hp, save_path):
@@ -57,19 +58,16 @@ def main():
         f.write(hp.to_json())
 
     print(f'csl={csl.model_name}')
-    print(f'loss: density={hp.initial_density_lambda}, eikonal={hp.eikonal_lambda}, contour_val={hp.contour_val_lambda},'
-          f' contour_normal={hp.contour_normal_lambda}, contour_tangent={hp.contour_tangent_lambda} '
-          f' inter={hp.inter_lambda} off={hp.off_surface_lambda}')
 
-    for _ in range(hp.depth):
-        train_cycle(csl, hp, trainer, should_calc_density, save_path)
-        save_heatmaps(trainer, save_path, hp)
-        mesh_dc = handle_meshes(trainer, hp, save_path)
+    # for _ in range(hp.depth):
+    train_cycle(csl, hp, trainer, should_calc_density, save_path)
+    save_heatmaps(trainer, save_path, hp)
+    mesh_dc = handle_meshes(trainer, hp, save_path)
 
-        renderer = Renderer3D()
-        renderer.add_scene(csl)
-        renderer.add_mesh(mesh_dc)
-        renderer.show()
+    renderer = Renderer3D()
+    renderer.add_scene(csl)
+    renderer.add_mesh(mesh_dc)
+    renderer.show()
 
 
 if __name__ == "__main__":
