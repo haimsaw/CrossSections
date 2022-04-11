@@ -244,7 +244,7 @@ class OctNode:
         return np.clip(faces_octs, -1, 1)
 
 
-class OctnetTree(INetManager):
+class OctnetTreeTrainer(INetManager):
     """ Branches (or children) follow a predictable pattern to make accesses simple.
         Here, - means less than 'origin' in that dimension, + means greater than.
         branch: 0 1 2 3 4 5 6 7

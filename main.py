@@ -3,7 +3,7 @@ import os
 from SlicesDataset import SlicesDataset
 from Renderer import *
 from Mesher import *
-from OctnetTree import *
+from OctnetTreeTrainer import *
 from hp import get_csl, HP
 
 
@@ -50,8 +50,8 @@ def main():
     hp = HP()
     csl = get_csl(hp.bounding_planes_margin)
     should_calc_density = hp.initial_density_lambda > 0 or hp.inter_lambda > 0
-    tree = OctnetTree(csl, hp.oct_overlap_margin, hp.hidden_layers,
-                      get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates))
+    trainer = ChainTrainer(csl, hp.hidden_layers, hp.hidden_state_size,
+                           get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates))
 
     with open(save_path + 'hyperparams.json', 'w') as f:
         f.write(hp.to_json())
@@ -62,9 +62,9 @@ def main():
           f' inter={hp.inter_lambda} off={hp.off_surface_lambda}')
 
     for _ in range(hp.depth):
-        train_cycle(csl, hp, tree, should_calc_density, save_path)
-        save_heatmaps(tree, save_path, hp)
-        mesh_dc = handle_meshes(tree, hp, save_path)
+        train_cycle(csl, hp, trainer, should_calc_density, save_path)
+        save_heatmaps(trainer, save_path, hp)
+        mesh_dc = handle_meshes(trainer, hp, save_path)
 
         renderer = Renderer3D()
         renderer.add_scene(csl)
@@ -88,5 +88,6 @@ create slicer for chamfer compare
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 
-
+refinement?
+PE of loop number 
 '''

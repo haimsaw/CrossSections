@@ -56,12 +56,12 @@ class HaimNetWithState(BaseModule):
         n_neurons = [self.embedder.out_dim + 1 + hidden_state_size] + hidden_layers + [1 + hidden_state_size]
         self.MLP = nn.Sequential(*get_MLP_layers(n_neurons))
 
-    def forward(self, xyzs, base_densities, hidden_states):
-        outputs = self.MLP(torch.cat((self.embedder(xyzs), base_densities, hidden_states)), dim=1)
+    def forward(self, xyzs, logits, hidden_states):
+        outputs = self.MLP(torch.cat((self.embedder(xyzs), logits, hidden_states)), dim=1)
 
-        out_densities = outputs[:, 0] + base_densities
+        out_logits = outputs[:, 0] + logits
         out_hidden_states = outputs[:, 1:]
-        return out_densities, out_hidden_states
+        return out_logits, out_hidden_states
 
 
 def _add_spherical(inputs):
