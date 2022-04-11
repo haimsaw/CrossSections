@@ -82,10 +82,9 @@ delete INetManager
 
 read: 
 https://arxiv.org/abs/2202.01999 - nural dc
-https://arxiv.org/pdf/1807.02811.pdf - Bayesian Optimization
+https://arxiv.org/pdf/2104.02699.pdf
 
 create slicer for chamfer compare
-track experiments with mlflow?
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 
@@ -94,10 +93,7 @@ reduce capacity of lower levels (make #params in each level equal)
 
 smooth loss - sink horn 
 
-Use sinusoidal activations (SIREN/SAPE)
 Scale & translate each octant to fit [-1,1]^3
 
 Use loss from the upper level to determine depth \ #epochs
-
-nerfs literature review  
 '''
