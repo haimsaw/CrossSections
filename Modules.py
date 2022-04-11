@@ -59,7 +59,7 @@ class HaimNetWithState(BaseModule):
     def forward(self, xyzs, logits, hidden_states):
         outputs = self.MLP(torch.cat((self.embedder(xyzs), logits, hidden_states), dim=1))
 
-        out_logits = outputs[:, 0] + logits
+        out_logits = outputs[:, 0:1] + logits
         out_hidden_states = outputs[:, 1:]
         return out_logits, out_hidden_states
 

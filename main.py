@@ -22,19 +22,19 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
 
 def handle_meshes(tree, hp, save_path):
     mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference)
-    mesh_mc.save(save_path + f'mesh_l{tree.depth}_mc.stl')
+    mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
     mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sigmoid_on_inference)
-    mesh_dc.save(save_path + f'mesh_l{tree.depth}_dc_grad.obj')
+    mesh_dc.save(save_path + f'mesh_l{0}_dc_grad.obj')
 
     mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
-    mesh_dc_no_grad.save(save_path + f'mesh_l{tree.depth}_dc_no_grad.obj')
+    mesh_dc_no_grad.save(save_path + f'mesh_l{0}_dc_no_grad.obj')
 
     return mesh_dc
 
 
 def save_heatmaps(tree, save_path, hp):
-    heatmap_path = save_path + f'/heatmaps_l{tree.depth}/'
+    heatmap_path = save_path + f'/heatmaps_l{0}/'
 
     os.makedirs(heatmap_path, exist_ok=True)
 
