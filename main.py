@@ -88,12 +88,5 @@ create slicer for chamfer compare
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 
-Sheared weights / find a way to use symmetries 
-reduce capacity of lower levels (make #params in each level equal)
 
-smooth loss - sink horn 
-
-Scale & translate each octant to fit [-1,1]^3
-
-Use loss from the upper level to determine depth \ #epochs
 '''

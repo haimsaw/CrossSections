@@ -12,24 +12,7 @@ def initializer(m):
         # m.bias.data.fill_(0.1)
 
 
-class HaimNet(nn.Module):
-    def __init__(self, hidden_layers, residual_module, embedder):
-        super().__init__()
-
-        self.embedder = embedder
-
-        assert residual_module is None or next(residual_module.parameters()).requires_grad is False
-        self.residual_module = residual_module
-
-        n_neurons = [self.embedder.out_dim] + hidden_layers + [1]
-
-        neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
-        activations = [nn.LeakyReLU() for _ in range(len(n_neurons) - 2)]
-        layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], 1)]
-
-        self.function = nn.Sequential(*layers)
-        self.first_layer = neurons[0]
-
+class BaseModule(nn.Module):
     @property
     def n_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -37,12 +20,48 @@ class HaimNet(nn.Module):
     def init_weights(self):
         self.function.apply(initializer)
 
+
+def get_MLP_layers(n_neurons):
+    neurons = [nn.Linear(n_neurons[i], n_neurons[i + 1]) for i in range(len(n_neurons) - 2)]
+    activations = [nn.LeakyReLU() for _ in range(len(n_neurons) - 2)]
+    layers = list(chain.from_iterable(zip(neurons, activations))) + [nn.Linear(n_neurons[-2], n_neurons[-1])]
+    return layers
+
+
+class HaimNetWithResidual(BaseModule):
+    def __init__(self, hidden_layers, embedder, residual_module):
+        super().__init__()
+
+        assert residual_module is None or next(residual_module.parameters()).requires_grad is False
+        self.residual_module = residual_module
+
+        self.embedder = embedder
+
+        n_neurons = [self.embedder.out_dim] + hidden_layers + [1]
+        self.MLP = nn.Sequential(*get_MLP_layers(n_neurons))
+
     def forward(self, xyzs):
         embbeded = self.embedder(xyzs)
         if self.residual_module is not None:
-            return self.function(embbeded) + self.residual_module(xyzs)
+            return self.MLP(embbeded) + self.residual_module(xyzs)
         else:
-            return self.function(embbeded)
+            return self.MLP(embbeded)
+
+
+class HaimNetWithState(BaseModule):
+    def __init__(self, hidden_layers, embedder, hidden_state_size):
+        super().__init__()
+
+        self.embedder = embedder
+        n_neurons = [self.embedder.out_dim + 1 + hidden_state_size] + hidden_layers + [1 + hidden_state_size]
+        self.MLP = nn.Sequential(*get_MLP_layers(n_neurons))
+
+    def forward(self, xyzs, base_densities, hidden_states):
+        outputs = self.MLP(torch.cat((self.embedder(xyzs), base_densities, hidden_states)), dim=1)
+
+        out_densities = outputs[:, 0] + base_densities
+        out_hidden_states = outputs[:, 1:]
+        return out_densities, out_hidden_states
 
 
 def _add_spherical(inputs):

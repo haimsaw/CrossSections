@@ -24,7 +24,7 @@ class OctNode:
         self.path = path
 
         res = None if parent is None else parent.haim_net_manager.module
-        self.haim_net_manager = HaimNetManager(csl, residual_module=res, octant=self.oct, **haimnet_kwargs)
+        self.haim_net_manager = Trainer(csl, residual_module=res, octant=self.oct, **haimnet_kwargs)
 
     def __str__(self):
         return f"pos: {self.center}, radius: {self.radius}, path={self.path}"

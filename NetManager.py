@@ -51,14 +51,14 @@ class INetManager:
         return soft_labels > threshold
 
 
-class HaimNetManager(INetManager):
+class Trainer(INetManager):
     def __init__(self, csl, hidden_layers, embedder, residual_module, octant, verbose=False):
         super().__init__(csl, verbose)
 
         self.save_path = "trained_model.pt"
         self.octant = octant
 
-        self.module = HaimNet(hidden_layers, residual_module, embedder)
+        self.module = HaimNetWithState(hidden_layers, residual_module, embedder)
         self.module.double()
         self.module.to(self.device)
 
