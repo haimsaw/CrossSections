@@ -13,16 +13,15 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
     contour_dataset = ContourDataset(csl, hp.n_samples_per_edge)
     print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}')
 
-    trainer.prepare_for_training(slices_dataset,None, contour_dataset,None, hp)
-    # todo haim sampler
+    trainer.prepare_for_training(slices_dataset, contour_dataset, hp)
 
     trainer.train_network(epochs=hp.epochs)
     trainer.show_train_losses(save_path)
 
 
 def handle_meshes(tree, hp, save_path):
-    mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference)
-    mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
+    #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference)
+    #mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
     mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sigmoid_on_inference)
     mesh_dc.save(save_path + f'mesh_l{0}_dc_grad.obj')

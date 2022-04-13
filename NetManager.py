@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 import torch.nn.functional as F
 from torchviz import make_dot
 from hp import INSIDE_LABEL, OUTSIDE_LABEL
@@ -201,9 +201,12 @@ class ChainTrainer(INetManager):
     def predict_batch(self, xyzs):
         return self._forward_loop(xyzs)[-1]
 
-    def prepare_for_training(self, slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp):
-        self.slices_data_loader = DataLoader(slices_dataset, batch_size=128, sampler=slices_sampler)
+    def prepare_for_training(self, slices_dataset, contour_dataset, hp):
+        # todo haim samplers
 
+        self.slices_data_loader = DataLoader(slices_dataset, batch_size=128, shuffle=True)
+
+        contour_sampler = WeightedRandomSampler([1]*len(contour_dataset), len(slices_dataset))
         self.contour_data_loader = DataLoader(contour_dataset, batch_size=128, sampler=contour_sampler)
 
         self.module.init_weights()
@@ -216,6 +219,20 @@ class ChainTrainer(INetManager):
         self.scheduler_step = hp.scheduler_step
 
         self.is_training_ready = True
+
+    @torch.no_grad()
+    def refine_sampling(self, threshold=0.5):
+        self.model.eval()
+
+        # next epoch will be with the refined dataset
+        self.epochs_with_refine.append(self.total_epochs + 1)
+        size_before = len(self.dataset)
+        self.refinements_num += 1
+
+        errored_xyz, _ = self.get_train_errors()
+
+        self.dataset.refine_cells(errored_xyz)
+        print(f'refine_sampling before={size_before}, after={len(self.dataset)}, n_refinements = {self.refinements_num}')
 
     def train_network(self, epochs):
         if not self.verbose:
@@ -280,7 +297,7 @@ class ChainTrainer(INetManager):
         return grads
 
     @torch.no_grad()
-    def get_train_errors(self, threshold=0.5):
+    def get_train_errors(self, threshold=0):
         self.module.eval()
         errored_xyzs = np.empty((0, 3), dtype=bool)
         errored_labels = np.empty((0, 1), dtype=bool)
