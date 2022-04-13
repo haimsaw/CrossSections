@@ -54,7 +54,6 @@ class INetManager:
 class ChainTrainer(INetManager):
     def __init__(self, csl, hidden_layers, hidden_state_size, embedder, verbose=False):
         super().__init__(csl, verbose)
-
         self.save_path = "trained_model.pt"
 
         self.module = HaimNetWithState(hidden_layers, embedder, hidden_state_size)
@@ -63,6 +62,9 @@ class ChainTrainer(INetManager):
 
         self.bce_loss = None
         self.hp = None
+
+        self.contour_dataset = None
+        self.slices_dataset = None
 
         self.optimizer = None
         self.lr_scheduler = None
@@ -73,6 +75,8 @@ class ChainTrainer(INetManager):
 
         self.total_epochs = 0
         self.train_losses = []
+        self.epochs_with_refine = []
+        self.refinements_num = 0
 
         self.is_training_ready = False
 
@@ -204,9 +208,12 @@ class ChainTrainer(INetManager):
     def prepare_for_training(self, slices_dataset, contour_dataset, hp):
         # todo haim samplers
 
+        self.slices_dataset = slices_dataset
+        self.contour_dataset = contour_dataset
+
         self.slices_data_loader = DataLoader(slices_dataset, batch_size=128, shuffle=True)
 
-        contour_sampler = WeightedRandomSampler([1]*len(contour_dataset), len(slices_dataset))
+        contour_sampler = WeightedRandomSampler([1]*len(contour_dataset), len(slices_dataset)*2)
         self.contour_data_loader = DataLoader(contour_dataset, batch_size=128, sampler=contour_sampler)
 
         self.module.init_weights()
@@ -222,17 +229,18 @@ class ChainTrainer(INetManager):
 
     @torch.no_grad()
     def refine_sampling(self, threshold=0.5):
-        self.model.eval()
+        self.module.eval()
 
         # next epoch will be with the refined dataset
         self.epochs_with_refine.append(self.total_epochs + 1)
-        size_before = len(self.dataset)
+        size_before = len(self.slices_dataset)
         self.refinements_num += 1
 
         errored_xyz, _ = self.get_train_errors()
 
-        self.dataset.refine_cells(errored_xyz)
-        print(f'refine_sampling before={size_before}, after={len(self.dataset)}, n_refinements = {self.refinements_num}')
+        # todo haim samplers and dataset?
+        self.slices_dataset.refine_cells(errored_xyz)
+        print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
 
     def train_network(self, epochs):
         if not self.verbose:

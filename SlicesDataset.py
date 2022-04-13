@@ -21,6 +21,7 @@ class Cell:
         self.pixel_radius = pixel_radius
 
         self.labeler = labeler
+        self.xyz_transformer = xyz_transformer
         self.xyz = xyz_transformer(np.array([self.pixel_center]))[0]
 
     @property
@@ -37,6 +38,16 @@ class Cell:
         sampels = np.random.random_sample((accuracy, 2)) * self.pixel_radius + self.pixel_center
         labels = self.labeler(sampels)
         return sum(labels)/accuracy
+
+    def split_cell(self):
+        new_cell_radius = self.pixel_radius / 2
+        new_centers = np.array([[1, 1],
+                            [1, -1],
+                            [-1, 1],
+                            [-1, -1]]) * new_cell_radius + self.pixel_center
+
+        # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
+        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer) for xy, label in new_centers]
 
 
 class IRasterizer:
@@ -192,6 +203,18 @@ class SlicesDataset(Dataset):
 
         return xyz, density
 
+    def refine_cells(self, xyz_to_refine):
+        # xyz_to_refine = set(xyz_to_refine)
+        new_cells = []
+        for cell in self.cells:
+            # todo quadratic - can improve by converting xyz_to_refine to set
+            if cell.xyz in xyz_to_refine:
+                new_cells += cell.split_cell()
+            else:
+                new_cells.append(cell)
+
+        self.cells = np.array(new_cells)
+
 
 class SlicesDatasetFake(Dataset):
     def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
@@ -206,6 +229,5 @@ class SlicesDatasetFake(Dataset):
         xyz = torch.tensor(self.xyzs[idx])
 
         label = torch.tensor([INSIDE_LABEL] if np.dot(xyz, xyz) < self.radius else [OUTSIDE_LABEL])
-
-
         return xyz, label
+
