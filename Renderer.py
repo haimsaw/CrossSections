@@ -155,7 +155,7 @@ class Renderer2D:
         self.description.append("draw_plane")
         plt.show()
 
-    def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist, add_grad, use_sigmoid):
+    def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist, add_grad):
         assert around_ax in (0, 1, 2)
         self.description.append(f"heatmap around_ax_{around_ax}_at{str(dist)}_{'grad' if add_grad else ''}")
 
@@ -165,7 +165,7 @@ class Renderer2D:
         oct[:, around_ax] = dist
 
         xyzs = get_xyzs_in_octant(oct, sampling_resolution_3d)
-        labels = network_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid)
+        labels = network_manager.soft_predict(xyzs)
 
         pos = self.ax.imshow(labels.reshape(sampling_resolution_2d).T, origin='lower',
                              cmap='plasma', extent=extent, interpolation='bilinear')
@@ -173,7 +173,7 @@ class Renderer2D:
         self.fig.colorbar(pos)
 
         if add_grad:
-            grads_2d = np.delete(network_manager.grad_wrt_input(xyzs, use_sigmoid=use_sigmoid), around_ax, axis=1)
+            grads_2d = np.delete(network_manager.grad_wrt_input(xyzs), around_ax, axis=1)
             xys = np.delete(xyzs, around_ax, axis=1)
             self.ax.quiver(*xys.T, *grads_2d.T, color='black', alpha=1.0)
 

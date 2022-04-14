@@ -36,10 +36,10 @@ class INetManager:
     def get_train_errors(self, threshold=0.5): raise NotImplementedError
 
     @abstractmethod
-    def soft_predict(self, xyzs, use_sigmoid=True): raise NotImplementedError
+    def soft_predict(self, xyzs): raise NotImplementedError
 
     @abstractmethod
-    def grad_wrt_input(self, xyzs, use_sigmoid=True): raise NotImplementedError
+    def grad_wrt_input(self, xyzs): raise NotImplementedError
 
     @torch.no_grad()
     def hard_predict(self, xyzs, threshold=0.5):
@@ -241,17 +241,17 @@ class Trainer(INetManager):
         self.module.requires_grad_(requires_grad)
 
     @torch.no_grad()
-    def soft_predict(self, xyzs, use_sigmoid=True):
+    def soft_predict(self, xyzs):
         self.module.eval()
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=float)
         for xyzs_batch in data_loader:
             xyzs_batch = xyzs_batch.to(self.device)
-            batch_labels = torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)
+            batch_labels = self.module(xyzs_batch)
             label_pred = np.concatenate((label_pred, batch_labels.detach().cpu().numpy().reshape(-1)))
         return label_pred
 
-    def grad_wrt_input(self, xyzs, use_sigmoid=True):
+    def grad_wrt_input(self, xyzs):
         self.module.eval()
 
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
@@ -262,7 +262,7 @@ class Trainer(INetManager):
             xyzs_batch.requires_grad_(True)
 
             self.module.zero_grad()
-            pred = torch.sigmoid(self.module(xyzs_batch)) if use_sigmoid else self.module(xyzs_batch)
+            pred = self.module(xyzs_batch)
             grads_batch = torch.autograd.grad(pred.mean(), [xyzs_batch])[0].detach().cpu().numpy()
             grads = np.concatenate((grads, grads_batch))
         return grads

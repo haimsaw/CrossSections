@@ -21,13 +21,13 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
 
 
 def handle_meshes(tree, hp, save_path):
-    #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d, use_sigmoid=hp.sigmoid_on_inference)
+    #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
     #mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
-    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True, use_sigmoid=hp.sigmoid_on_inference)
+    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True)
     mesh_dc.save(save_path + f'mesh_l{0}_dc_grad.obj')
 
-    mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, use_sigmoid=hp.sigmoid_on_inference)
+    mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False)
     mesh_dc_no_grad.save(save_path + f'mesh_l{0}_dc_no_grad.obj')
 
     return mesh_dc
@@ -41,7 +41,7 @@ def save_heatmaps(tree, save_path, hp):
     for dim in (0, 1, 2):
         for dist in np.linspace(-0.5, 0.5, 3):
             renderer = Renderer2D()
-            renderer.heatmap([100] * 2, tree, dim, dist, True, hp.sigmoid_on_inference)
+            renderer.heatmap([100] * 2, tree, dim, dist, True)
             renderer.save(heatmap_path)
             renderer.clear()
 

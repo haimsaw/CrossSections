@@ -334,23 +334,23 @@ class OctnetTreeTrainer(INetManager):
             leaf.haim_net_manager.prepare_for_training(slices_dataset, slices_sampler, contour_dataset, contour_sampler, hp)
 
     @torch.no_grad()
-    def soft_predict(self, xyzs, depth=None, use_sigmoid=True):
+    def soft_predict(self, xyzs, depth=None):
         leaves = self._get_leaves() if depth is None else self._get_nodes(depth)
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
 
-        labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs, use_sigmoid)
+        labels_per_oct = [node.get_mask_for_blending(xyzs) * node.haim_net_manager.soft_predict(xyzs)
                           for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_per_oct_vals(xyzs, xyzs_per_oct, labels_per_oct)
 
-    def grad_wrt_input(self, xyzs, use_sigmoid=True):
+    def grad_wrt_input(self, xyzs):
         leaves = self._get_leaves()
 
         xyzs_per_oct = [xyzs[node.indices_in_oct(xyzs)] for node in leaves]
 
         # since derivative is a linear operation we can blend them the same way we blend labels
-        grad_per_oct = [(node.get_mask_for_blending(xyzs) * node.haim_net_manager.grad_wrt_input(xyzs, use_sigmoid).T).T
+        grad_per_oct = [(node.get_mask_for_blending(xyzs) * node.haim_net_manager.grad_wrt_input(xyzs).T).T
                         for node, xyzs in zip(leaves, xyzs_per_oct)]
 
         return self._merge_per_oct_vals(xyzs, xyzs_per_oct, grad_per_oct)

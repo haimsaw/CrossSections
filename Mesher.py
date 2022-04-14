@@ -20,33 +20,25 @@ def _get_mesh(labels, level, spacing):
 
 
 @timing
-def marching_cubes(net_manager: INetManager, sampling_resolution_3d, use_sigmoid):
+def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
-    labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid)
+    labels = net_manager.soft_predict(xyzs)
     print(f'labels: max={labels.max()} min={labels.min()}')
-
-    if use_sigmoid:
-        # set level is at 0
-        labels = labels * 2 - 1
 
     # use spacing to match original shape boundaries
     return _get_mesh(labels.reshape(sampling_resolution_3d), level=0, spacing=[2/res for res in sampling_resolution_3d])
 
 
 @timing
-def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads, use_sigmoid):
+def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads):
     sampling_resolution_3d = np.array(sampling_resolution_3d)
 
     # since in dc our vertices are inside the grid cells we need to have res+1 grid points
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d+1, endpoint=True)
 
-    labels = net_manager.soft_predict(xyzs, use_sigmoid=use_sigmoid).reshape(sampling_resolution_3d+1)
+    labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d+1)
     print(f'labels: max={labels.max()} min={labels.min()}')
-
-    # set level is at 0 so normalize labels to be in [-1, 1]
-    if use_sigmoid:
-        labels = labels * 2 - 1
 
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
@@ -69,7 +61,7 @@ def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads,
             ijks_for_grad = np.array(ijks_for_grad)
             xyzs_for_grad = ijk_to_xyz(ijks_for_grad)
 
-            grads = net_manager.grad_wrt_input(xyzs_for_grad, use_sigmoid=use_sigmoid)
+            grads = net_manager.grad_wrt_input(xyzs_for_grad)
             # grads = normalize(grads, norm="l2")  # todo haim?
 
             # print(f'use_grads={use_grads} avg={np.abs(grads).mean(axis=0)}')

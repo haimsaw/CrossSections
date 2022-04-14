@@ -202,6 +202,8 @@ class ChainTrainer(INetManager):
             xyz_to_refine = self.get_xyz_on_edge()
         elif self.hp.refinement_type == 'errors':
             xyz_to_refine, _ = self.get_train_errors()
+        else:
+            raise Exception(f'invalid hp.refinement_type {self.hp.refinement_type}')
 
         self.slices_dataset.refine_cells(xyz_to_refine)
         self.update_data_loaders()
@@ -221,6 +223,7 @@ class ChainTrainer(INetManager):
                 self._train_epoch(epoch, self.hp.density_lambda)
                 self.total_epochs += 1
             print('')
+            # todo haim ignore last refine
             self.refine_sampling()
 
         if not self.verbose:
@@ -240,17 +243,17 @@ class ChainTrainer(INetManager):
         torch.save(self.module.state_dict(), self.save_path)
 
     @torch.no_grad()
-    def soft_predict(self, xyzs, use_sigmoid=True):
+    def soft_predict(self, xyzs):
         self.module.eval()
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=float)
         for xyzs_batch in data_loader:
             xyzs_batch = xyzs_batch.to(self.device)
-            batch_labels = torch.sigmoid(self.predict_batch(xyzs_batch)) if use_sigmoid else self.predict_batch(xyzs_batch)
+            batch_labels = self.predict_batch(xyzs_batch)
             label_pred = np.concatenate((label_pred, batch_labels.detach().cpu().numpy().reshape(-1)))
         return label_pred
 
-    def grad_wrt_input(self, xyzs, use_sigmoid=True):
+    def grad_wrt_input(self, xyzs):
         self.module.eval()
 
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
@@ -261,7 +264,7 @@ class ChainTrainer(INetManager):
             xyzs_batch.requires_grad_(True)
 
             self.module.zero_grad()
-            pred = torch.sigmoid(self.predict_batch(xyzs_batch)) if use_sigmoid else self.predict_batch(xyzs_batch)
+            pred = self.predict_batch(xyzs_batch)
             grads_batch = torch.autograd.grad(pred.mean(), [xyzs_batch])[0].detach().cpu().numpy()
             grads = np.concatenate((grads, grads_batch))
         return grads
