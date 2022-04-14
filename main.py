@@ -1,5 +1,6 @@
 import os
 
+from ChainTrainer import ChainTrainer
 from SlicesDataset import SlicesDataset
 from Renderer import *
 from Mesher import *
