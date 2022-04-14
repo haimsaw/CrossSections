@@ -209,10 +209,10 @@ class Trainer(INetManager):
 
         if self.hp.density_schedule_fraction > 0:
             n_pos_density_lambdas = int(epochs * self.hp.density_schedule_fraction)
-            density_lambdas = np.concatenate((np.linspace(self.hp.initial_density_lambda, 0, n_pos_density_lambdas),
+            density_lambdas = np.concatenate((np.linspace(self.hp.density_lambda, 0, n_pos_density_lambdas),
                                               np.zeros(epochs - n_pos_density_lambdas)))
         else:
-            density_lambdas = [self.hp.initial_density_lambda] * epochs
+            density_lambdas = [self.hp.density_lambda] * epochs
 
         self.module.train()
         for epoch, density_lambda in zip(range(epochs), density_lambdas):

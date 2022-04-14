@@ -44,8 +44,7 @@ class HP:
         self.n_loops = 5
 
         # loss
-        self.initial_density_lambda = 1
-        self.density_schedule_fraction = -1  # 3 / 4  # -1 for no schedule
+        self.density_lambda = 1
 
         # training
         self.weight_decay = 1e-3  # l2 regularization

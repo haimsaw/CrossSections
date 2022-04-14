@@ -52,8 +52,8 @@ class ChainTrainer(INetManager):
 
         # density - zero inside one outside
         # bce_loss has a sigmoid layer build in
-        if density_lambda > 0:
-            constraints['density'] = sum([self.bce_loss(pred, slices_density) * density_lambda for pred in pred_loop])
+        if self.hp.density_lambda > 0:
+            constraints['density'] = sum([self.bce_loss(pred, slices_density) * self.hp.density_lambda for pred in pred_loop])
 
         '''
         # grad(f(x)) = 1 everywhere (eikonal)
@@ -188,7 +188,7 @@ class ChainTrainer(INetManager):
         self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=128, sampler=contour_sampler)
 
     @torch.no_grad()
-    def refine_errored(self):
+    def refine_sampling(self, is_boundary):
         self.module.eval()
 
         # next epoch will be with the refined dataset
@@ -196,9 +196,12 @@ class ChainTrainer(INetManager):
         size_before = len(self.slices_dataset)
         self.refinements_num += 1
 
-        errored_xyz, _ = self.get_train_errors()
+        if is_boundary:
+            xyz_to_refine = self.get_xyz_on_edge()
+        else:
+            xyz_to_refine, _ = self.get_train_errors()
 
-        self.slices_dataset.refine_cells(errored_xyz)
+        self.slices_dataset.refine_cells(xyz_to_refine)
         self.update_data_loaders()
         print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
 
@@ -212,9 +215,9 @@ class ChainTrainer(INetManager):
             for epoch in range(epochs):
                 if not self.verbose:
                     print('.', end='')
-                self._train_epoch(epoch, self.hp.initial_density_lambda)
+                self._train_epoch(epoch, self.hp.density_lambda)
                 self.total_epochs += 1
-            self.refine_errored()
+            self.refine_sampling()
 
         if not self.verbose:
             print(f'\ntotal epochs={self.total_epochs}')
@@ -277,3 +280,15 @@ class ChainTrainer(INetManager):
             errored_labels = np.concatenate((errored_labels, label[errors].detach().cpu().numpy()))
 
         return errored_xyzs, errored_labels.reshape(-1)
+
+    @torch.no_grad()
+    def get_xyz_on_edge(self):
+        self.module.eval()
+        xyzs_at_edge = np.empty((0, 3), dtype=bool)
+
+        for xyzs, labels in self.slices_data_loader:
+            xyzs, labels = xyzs.to(self.device), labels.to(self.device)
+
+            xyzs_at_edge = np.concatenate((xyzs_at_edge, xyzs[0 < labels < 1].detach().cpu().numpy()))
+
+        return xyzs_at_edge
