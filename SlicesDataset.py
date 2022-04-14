@@ -34,20 +34,21 @@ class Cell:
     using Hoeffding's inequality we get that for the result to be in range of +- eps=0.1 from actual value w.p 1-alpha=1-0.001=99.9%
     we need 380=math.log(2/alpha)/(2*eps*eps) samples 
     '''
+
     def _get_label(self, accuracy=400):
         sampels = np.random.random_sample((accuracy, 2)) * self.pixel_radius + self.pixel_center
         labels = self.labeler(sampels)
-        return sum(labels)/accuracy
+        return sum(labels) / accuracy
 
     def split_cell(self):
         new_cell_radius = self.pixel_radius / 2
         new_centers = np.array([[1, 1],
-                            [1, -1],
-                            [-1, 1],
-                            [-1, -1]]) * new_cell_radius + self.pixel_center
+                                [1, -1],
+                                [-1, 1],
+                                [-1, -1]]) * new_cell_radius + self.pixel_center
 
         # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
-        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer) for xy, label in new_centers]
+        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer) for xy in new_centers]
 
 
 class IRasterizer:
@@ -98,7 +99,7 @@ class EmptyPlaneRasterizer(IRasterizer):
         xs = np.linspace(bottom[first_dim], top[first_dim], resolution[0], endpoint=False)
         ys = np.linspace(bottom[second_dim], top[second_dim], resolution[1], endpoint=False)
 
-        pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]])/2
+        pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]]) / 2
         xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius
 
         return xys, pixel_radius
@@ -116,7 +117,8 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        return [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in xys]
+        return [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in
+                xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -133,7 +135,7 @@ class PlaneRasterizer(IRasterizer):
 
         xs = np.linspace(bottom[0], top[0], resolution[0], endpoint=False)
         ys = np.linspace(bottom[1], top[1], resolution[1], endpoint=False)
-        pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]])/2
+        pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]]) / 2
 
         xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius
         xyzs = self.pca.inverse_transform(xys)
@@ -165,6 +167,7 @@ class PlaneRasterizer(IRasterizer):
                 mask &= np.logical_not(pixels_in_hole)
             labels = np.where(mask, INSIDE_LABEL, np.full(mask.shape, OUTSIDE_LABEL))
             return labels
+
         return labeler
 
     def get_rasterazation_cells(self, resolution, margin):
@@ -189,7 +192,8 @@ class SlicesDataset(Dataset):
         if self.should_calc_density:
             n_inside = len([cell for cell in self.cells if cell.density == INSIDE_LABEL])
             n_outside = len([cell for cell in self.cells if cell.density == OUTSIDE_LABEL])
-            self.sampler_weights = np.array([cell.density/n_outside + (1-cell.density)/n_inside for cell in self.cells])
+            self.sampler_weights = np.array(
+                [cell.density / n_outside + (1 - cell.density) / n_inside for cell in self.cells])
         else:
             self.sampler_weights = np.ones(self.__len__())
 
@@ -218,7 +222,6 @@ class SlicesDataset(Dataset):
 
 class SlicesDatasetFake(Dataset):
     def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
-
         self.xyzs = get_xyzs_in_octant(None, (32, 32, 32))
         self.radius = 0.4
 
@@ -230,4 +233,3 @@ class SlicesDatasetFake(Dataset):
 
         label = torch.tensor([INSIDE_LABEL] if np.dot(xyz, xyz) < self.radius else [OUTSIDE_LABEL])
         return xyz, label
-

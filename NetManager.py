@@ -211,10 +211,7 @@ class ChainTrainer(INetManager):
         self.slices_dataset = slices_dataset
         self.contour_dataset = contour_dataset
 
-        self.slices_data_loader = DataLoader(slices_dataset, batch_size=128, shuffle=True)
-
-        contour_sampler = WeightedRandomSampler([1]*len(contour_dataset), len(slices_dataset)*2)
-        self.contour_data_loader = DataLoader(contour_dataset, batch_size=128, sampler=contour_sampler)
+        self.update_data_loaders()
 
         self.module.init_weights()
 
@@ -227,8 +224,14 @@ class ChainTrainer(INetManager):
 
         self.is_training_ready = True
 
+    def update_data_loaders(self):
+        # todo haim samplers
+        self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=128, shuffle=True)
+        contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
+        self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=128, sampler=contour_sampler)
+
     @torch.no_grad()
-    def refine_sampling(self, threshold=0.5):
+    def refine_sampling(self):
         self.module.eval()
 
         # next epoch will be with the refined dataset
@@ -238,28 +241,23 @@ class ChainTrainer(INetManager):
 
         errored_xyz, _ = self.get_train_errors()
 
-        # todo haim samplers and dataset?
         self.slices_dataset.refine_cells(errored_xyz)
+        self.update_data_loaders()
         print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
 
-    def train_network(self, epochs):
+    def train_network(self):
         if not self.verbose:
-            print('n_epochs' + '.' * epochs)
+            print('n_epochs' + '.' * sum(self.hp.epochs_batches))
             print('_running', end="")
 
-        if self.hp.density_schedule_fraction > 0:
-            n_pos_density_lambdas = int(epochs * self.hp.density_schedule_fraction)
-            density_lambdas = np.concatenate((np.linspace(self.hp.initial_density_lambda, 0, n_pos_density_lambdas),
-                                              np.zeros(epochs - n_pos_density_lambdas)))
-        else:
-            density_lambdas = [self.hp.initial_density_lambda] * epochs
-
         self.module.train()
-        for epoch, density_lambda in zip(range(epochs), density_lambdas):
-            if not self.verbose:
-                print('.', end='')
-            self._train_epoch(epoch, density_lambda)
-            self.total_epochs += 1
+        for epochs in self.hp.epochs_batches:
+            for epoch in range(epochs):
+                if not self.verbose:
+                    print('.', end='')
+                self._train_epoch(epoch, self.hp.initial_density_lambda)
+                self.total_epochs += 1
+            self.refine_sampling()
 
         if not self.verbose:
             print(f'\ntotal epochs={self.total_epochs}')
