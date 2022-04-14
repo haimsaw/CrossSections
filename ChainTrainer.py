@@ -188,7 +188,9 @@ class ChainTrainer(INetManager):
         self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=128, sampler=contour_sampler)
 
     @torch.no_grad()
-    def refine_sampling(self, is_boundary):
+    def refine_sampling(self):
+        assert self.hp.refinement_type in ['errors', 'edge']
+
         self.module.eval()
 
         # next epoch will be with the refined dataset
@@ -196,9 +198,9 @@ class ChainTrainer(INetManager):
         size_before = len(self.slices_dataset)
         self.refinements_num += 1
 
-        if is_boundary:
+        if self.hp.refinement_type == 'edge':
             xyz_to_refine = self.get_xyz_on_edge()
-        else:
+        elif self.hp.refinement_type == 'errors':
             xyz_to_refine, _ = self.get_train_errors()
 
         self.slices_dataset.refine_cells(xyz_to_refine)
@@ -206,17 +208,19 @@ class ChainTrainer(INetManager):
         print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
 
     def train_network(self):
-        if not self.verbose:
-            print('n_epochs' + '.' * sum(self.hp.epochs_batches))
-            print('_running', end="")
-
         self.module.train()
+
         for epochs in self.hp.epochs_batches:
+            if not self.verbose:
+                print('n_epochs' + '.' * sum(self.hp.epochs_batches))
+                print('_running', end="")
+
             for epoch in range(epochs):
                 if not self.verbose:
                     print('.', end='')
                 self._train_epoch(epoch, self.hp.density_lambda)
                 self.total_epochs += 1
+            print('')
             self.refine_sampling()
 
         if not self.verbose:
