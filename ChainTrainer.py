@@ -212,7 +212,7 @@ class ChainTrainer(INetManager):
 
         for epochs in self.hp.epochs_batches:
             if not self.verbose:
-                print('n_epochs' + '.' * sum(self.hp.epochs_batches))
+                print('n_epochs' + '.' * epochs)
                 print('_running', end="")
 
             for epoch in range(epochs):
@@ -293,6 +293,7 @@ class ChainTrainer(INetManager):
         for xyzs, labels in self.slices_data_loader:
             xyzs, labels = xyzs.to(self.device), labels.to(self.device)
 
-            xyzs_at_edge = np.concatenate((xyzs_at_edge, xyzs[0 < labels < 1].detach().cpu().numpy()))
+            xyzs_at_edge = np.concatenate((xyzs_at_edge, xyzs[torch.logical_and(0 < labels, labels < 1).view(-1)]
+                                           .detach().cpu().numpy()))
 
         return xyzs_at_edge
