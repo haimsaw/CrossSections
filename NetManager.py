@@ -9,7 +9,6 @@ from abc import ABCMeta, abstractmethod
 
 
 class INetManager:
-    __metaclass__ = ABCMeta
 
     def __init__(self, csl, verbose=False):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -18,28 +17,7 @@ class INetManager:
         self.verbose = verbose
 
     @abstractmethod
-    def show_train_losses(self, save_path): raise NotImplementedError
-
-    @abstractmethod
-    def load_from_disk(self): raise NotImplementedError
-
-    @abstractmethod
-    def save_to_disk(self): raise NotImplementedError
-
-    @abstractmethod
-    def requires_grad_(self, requires_grad): raise NotImplementedError
-
-    @abstractmethod
-    def train_network(self, epochs): raise NotImplementedError
-
-    @abstractmethod
-    def get_train_errors(self, threshold=0.5): raise NotImplementedError
-
-    @abstractmethod
     def soft_predict(self, xyzs): raise NotImplementedError
-
-    @abstractmethod
-    def grad_wrt_input(self, xyzs): raise NotImplementedError
 
     @torch.no_grad()
     def hard_predict(self, xyzs, threshold=0.5):

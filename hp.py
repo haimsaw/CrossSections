@@ -42,7 +42,9 @@ class HP:
         self.spherical_coordinates = False
         self.hidden_layers = [64]*5
         self.hidden_state_size = 32
+        self.hidden_state_embedder = True
         self.n_loops = 5
+
 
         # loss
         self.density_lambda = 1

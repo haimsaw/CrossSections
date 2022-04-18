@@ -50,9 +50,9 @@ def main():
     save_path = './artifacts/'
     hp = HP()
     csl = get_csl(hp.bounding_planes_margin)
-    should_calc_density = hp.density_lambda > 0 or hp.inter_lambda > 0
-    trainer = ChainTrainer(csl, hp.hidden_layers, hp.hidden_state_size,
-                           get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates))
+    should_calc_density = hp.density_lambda > 0
+    trainer = ChainTrainer(csl, hp)
+
 
     with open(save_path + 'hyperparams.json', 'w') as f:
         f.write(hp.to_json())

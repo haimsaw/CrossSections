@@ -9,11 +9,12 @@ from NetManager import INetManager
 
 
 class ChainTrainer(INetManager):
-    def __init__(self, csl, hidden_layers, hidden_state_size, embedder, verbose=False):
+    def __init__(self, csl, hp, verbose=False):
         super().__init__(csl, verbose)
         self.save_path = "trained_model.pt"
+        self.hp = hp
 
-        self.module = HaimNetWithState(hidden_layers, embedder, hidden_state_size)
+        self.module = HaimNetWithState(hp)
         self.module.double()
         self.module.to(self.device)
 
@@ -154,8 +155,8 @@ class ChainTrainer(INetManager):
         logits = torch.zeros((len(xyzs), 1))  # todo haim initial values?
         hidden_states = torch.zeros((len(xyzs), self.hp.hidden_state_size))
         ret = []
-        for _ in range(self.hp.n_loops):
-            logits, hidden_states = self.module(xyzs, logits, hidden_states)
+        for i in range(self.hp.n_loops):
+            logits, hidden_states = self.module(xyzs, logits, hidden_states, i)
             ret.append(logits)
         return ret
 

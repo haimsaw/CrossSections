@@ -49,15 +49,23 @@ class HaimNetWithResidual(BaseModule):
 
 
 class HaimNetWithState(BaseModule):
-    def __init__(self, hidden_layers, embedder, hidden_state_size):
+    def __init__(self, hp):
         super().__init__()
 
-        self.embedder = embedder
-        n_neurons = [self.embedder.out_dim + 1 + hidden_state_size] + hidden_layers + [1 + hidden_state_size]
+        self.xyz_embedder = get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates)
+        n_freqs = int(hp.hidden_state_size/2)
+        self.hidden_state_embedder = get_embedder(n_freqs, input_dims=1, include_input=False)\
+            if hp.hidden_state_embedder else None
+
+        assert self.hidden_state_embedder.out_dim == hp.hidden_state_size
+        n_neurons = [self.xyz_embedder.out_dim + 1 + hp.hidden_state_size] + hp.hidden_layers + [1 + hp.hidden_state_size]
+
         self.MLP = nn.Sequential(*get_MLP_layers(n_neurons))
 
-    def forward(self, xyzs, logits, hidden_states):
-        outputs = self.MLP(torch.cat((self.embedder(xyzs), logits, hidden_states), dim=1))
+    def forward(self, xyzs, logits, hidden_states, i):
+        if self.hidden_state_embedder is not None:
+            hidden_states = hidden_states + self.hidden_state_embedder(torch.tensor([i]))
+        outputs = self.MLP(torch.cat((self.xyz_embedder(xyzs), logits, hidden_states), dim=1))
 
         out_logits = outputs[:, 0:1] + logits
         out_hidden_states = outputs[:, 1:]
@@ -117,11 +125,11 @@ class Embedder:
         return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-def get_embedder(multires, use_spherical_coordinates):
+def get_embedder(multires, use_spherical_coordinates=False, input_dims=3, include_input=True):
 
     embed_kwargs = {
-        'include_input': True,
-        'input_dims': 3,
+        'include_input': include_input,
+        'input_dims': input_dims,
         'max_freq_log2': multires - 1,
         'num_freqs': multires,
         'log_sampling': True,
