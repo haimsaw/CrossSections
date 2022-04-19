@@ -57,14 +57,14 @@ class HaimNetWithState(BaseModule):
         self.hidden_state_embedder = get_embedder(n_freqs, input_dims=1, include_input=False)\
             if hp.hidden_state_embedder else None
 
-        assert self.hidden_state_embedder.out_dim == hp.hidden_state_size
+        assert self.hidden_state_embedder is None or self.hidden_state_embedder.out_dim == hp.hidden_state_size
         n_neurons = [self.xyz_embedder.out_dim + 1 + hp.hidden_state_size] + hp.hidden_layers + [1 + hp.hidden_state_size]
 
         self.MLP = nn.Sequential(*get_MLP_layers(n_neurons))
 
     def forward(self, xyzs, logits, hidden_states, i):
         if self.hidden_state_embedder is not None:
-            hidden_states = hidden_states + self.hidden_state_embedder(torch.tensor([i]))
+            hidden_states = hidden_states + self.hidden_state_embedder(i)
         outputs = self.MLP(torch.cat((self.xyz_embedder(xyzs), logits, hidden_states), dim=1))
 
         out_logits = outputs[:, 0:1] + logits

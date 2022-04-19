@@ -56,56 +56,6 @@ class ChainTrainer(INetManager):
         if self.hp.density_lambda > 0:
             constraints['density'] = sum([self.bce_loss(pred, slices_density) * self.hp.density_lambda for pred in pred_loop])
 
-        '''
-        # grad(f(x)) = 1 everywhere (eikonal)
-        if self.hp.eikonal_lambda > 0:
-            constraints['eikonal'] = (grad_on_slices.norm(dim=-1) - 1).abs().mean() * self.hp.eikonal_lambda
-
-        # grad(f(x)) = 1 away from boundary
-        if self.hp.zero_grad > 0:
-            constraints['zero_grad'] = torch.where((slices_density - 0.5).abs() == 0.5,  # where density == 0 or 1
-                                                   grad_on_slices.norm(dim=-1).abs().mean(),
-                                                   torch.zeros_like(slices_density)
-                                                   ).mean() * self.hp.zero_grad
-
-        # f(x) = 0 on contour
-        if self.hp.contour_val_lambda > 0:
-            constraints['contour_val'] = model_pred_on_contour.abs().mean() * self.hp.contour_val_lambda
-
-        # grad(f(x))*normal = 1 on contour
-        if self.hp.contour_normal_lambda > 0:
-            # losses['contour_normal'] = ((grad_on_contour * normals_on_contour).sum(dim=-1) - 1).abs().mean() * self.hp.contour_normal_lambda
-            grad_proj_on_slice = grad_on_contour - dot(grad_on_contour, slice_normals).view((-1, 1)) * slice_normals
-            constraints['contour_normal'] = (1 - F.cosine_similarity(grad_proj_on_slice,
-                                                                     normals_on_contour)).mean() * self.hp.contour_normal_lambda
-
-        # grad(f(x)) * contour_tangent = 0 on contour
-        if self.hp.contour_tangent_lambda > 0:
-            # losses['contour_tangent'] = ((grad_on_contour * tangents_on_contour).sum(dim=-1)).abs().mean() * self.hp.contour_tangent_lambda
-            constraints['contour_tangent'] = F.cosine_similarity(grad_on_contour,
-                                                                 tangents_on_contour).abs().mean() * self.hp.contour_tangent_lambda
-
-        # e^(-10*|f(x)|) everywhere except contour, inter_constraint from SIREN - penalizes off-surface points
-        if self.hp.inter_lambda > 0:
-            # noinspection PyTypeChecker
-            inter_constraint = torch.where(slices_density == OUTSIDE_LABEL,
-                                           torch.exp(-1 * self.hp.inter_alpha * model_pred_on_slices),
-                                           torch.where(slices_density == INSIDE_LABEL,
-                                                       torch.exp(1 * self.hp.inter_alpha * model_pred_on_slices),
-                                                       torch.zeros_like(slices_density))
-                                           )
-
-            constraints['inter'] = inter_constraint.mean() * self.hp.inter_lambda
-
-        # f(x+eps*n)=eps f(x-eps*n)=-eps on counter
-        if self.hp.off_surface_lambda > 0:
-            scaled_epsilons = dot(grad_on_contour, normals_on_contour) * self.hp.off_surface_epsilon
-            pos_examples = (self.module(
-                contour_xyzs + normals_on_contour * self.hp.off_surface_epsilon) - scaled_epsilons).abs().mean()
-            neg_examples = (self.module(
-                contour_xyzs - normals_on_contour * self.hp.off_surface_epsilon) + scaled_epsilons).abs().mean()
-            constraints['off_surface'] = (pos_examples + neg_examples) * self.hp.off_surface_lambda
-        '''
         return constraints
 
     def _train_epoch(self, epoch, density_lambda):
@@ -152,11 +102,11 @@ class ChainTrainer(INetManager):
         self.train_losses.append(loss)
 
     def _forward_loop(self, xyzs):
-        logits = torch.zeros((len(xyzs), 1))  # todo haim initial values?
-        hidden_states = torch.zeros((len(xyzs), self.hp.hidden_state_size))
+        logits = torch.zeros((len(xyzs), 1)).to(self.device)  # todo haim initial values?
+        hidden_states = torch.zeros((len(xyzs), self.hp.hidden_state_size)).to(self.device)
         ret = []
         for i in range(self.hp.n_loops):
-            logits, hidden_states = self.module(xyzs, logits, hidden_states, i)
+            logits, hidden_states = self.module(xyzs, logits, hidden_states, torch.tensor([i]).to(self.device))
             ret.append(logits)
         return ret
 
@@ -190,7 +140,7 @@ class ChainTrainer(INetManager):
 
     @torch.no_grad()
     def refine_sampling(self):
-        assert self.hp.refinement_type in ['errors', 'edge']
+        assert self.hp.refinement_type in ['errors', 'edge', 'none']
 
         self.module.eval()
 
@@ -203,6 +153,8 @@ class ChainTrainer(INetManager):
             xyz_to_refine = self.get_xyz_on_edge()
         elif self.hp.refinement_type == 'errors':
             xyz_to_refine, _ = self.get_train_errors()
+        elif self.hp.refinement_type == 'none':
+            return
         else:
             raise Exception(f'invalid hp.refinement_type {self.hp.refinement_type}')
 

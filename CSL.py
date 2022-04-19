@@ -233,3 +233,5 @@ class CSL:
         self.rotate_by_pca()
         self.scale(bounding_planes_margin)
         self.add_boundary_planes(margin=bounding_planes_margin)
+
+

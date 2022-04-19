@@ -47,27 +47,32 @@ def save_heatmaps(tree, save_path, hp):
 
 
 def main():
-    save_path = './artifacts/'
-    hp = HP()
-    csl = get_csl(hp.bounding_planes_margin)
-    should_calc_density = hp.density_lambda > 0
-    trainer = ChainTrainer(csl, hp)
 
+    for change in ['none', 'edge', 'errors']:
 
-    with open(save_path + 'hyperparams.json', 'w') as f:
-        f.write(hp.to_json())
+        save_path = f'./artifacts/refinement_type_{change}/'
+        os.makedirs(save_path, exist_ok=True)
 
-    print(f'csl={csl.model_name}')
+        hp = HP()
+        hp.refinement_type = change
 
-    # for _ in range(hp.depth):
-    train_cycle(csl, hp, trainer, should_calc_density, save_path)
-    save_heatmaps(trainer, save_path, hp)
-    mesh_dc = handle_meshes(trainer, hp, save_path)
+        csl = get_csl(hp.bounding_planes_margin)
+        should_calc_density = hp.density_lambda > 0
+        trainer = ChainTrainer(csl, hp)
 
-    renderer = Renderer3D()
-    renderer.add_scene(csl)
-    renderer.add_mesh(mesh_dc)
-    renderer.show()
+        with open(save_path + 'hyperparams.json', 'w') as f:
+            f.write(hp.to_json())
+
+        print(f'csl={csl.model_name}')
+
+        train_cycle(csl, hp, trainer, should_calc_density, save_path)
+        save_heatmaps(trainer, save_path, hp)
+        mesh_dc = handle_meshes(trainer, hp, save_path)
+
+        renderer = Renderer3D()
+        renderer.add_scene(csl)
+        renderer.add_mesh(mesh_dc)
+        renderer.show()
 
 
 if __name__ == "__main__":
@@ -86,6 +91,5 @@ create slicer for chamfer compare
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 
-refinement?
-PE of loop number 
+dual conturing - play with setting & debug
 '''
