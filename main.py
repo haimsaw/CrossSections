@@ -48,13 +48,12 @@ def save_heatmaps(tree, save_path, hp):
 
 def main():
 
-    for change in ['none', 'edge', 'errors']:
-
-        save_path = f'./artifacts/refinement_type_{change}/'
-        os.makedirs(save_path, exist_ok=True)
-
         hp = HP()
-        hp.refinement_type = change
+        hp.hidden_state_size = 64
+        save_path = f'./artifacts/test{64}/'
+
+        print(f'{"=" * 50} {save_path}')
+        os.makedirs(save_path, exist_ok=True)
 
         csl = get_csl(hp.bounding_planes_margin)
         should_calc_density = hp.density_lambda > 0
@@ -72,7 +71,8 @@ def main():
         renderer = Renderer3D()
         renderer.add_scene(csl)
         renderer.add_mesh(mesh_dc)
-        renderer.show()
+        # renderer.show()
+        print(f'DONE {"=" * 50} {save_path}\n\n')
 
 
 if __name__ == "__main__":
@@ -80,6 +80,8 @@ if __name__ == "__main__":
 
 '''
 todo
+batch size to hp
+remove contoure dataset
 check if tree is helping or its just capacity 
 delete INetManager
 

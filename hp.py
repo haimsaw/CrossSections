@@ -30,7 +30,7 @@ class HP:
         self.bounding_planes_margin = 0.05
         self.sampling_margin = 0.05  # same as bounding_planes_margin
         self.oct_overlap_margin = 0.25
-        self.refinement_type = 'edge'
+        self.refinement_type = 'none'
 
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
@@ -42,9 +42,8 @@ class HP:
         self.spherical_coordinates = False
         self.hidden_layers = [64]*5
         self.hidden_state_size = 32
-        self.hidden_state_embedder = True
-        self.n_loops = 5
-
+        self.hidden_state_embedder = False
+        self.n_loops = 10
 
         # loss
         self.density_lambda = 1

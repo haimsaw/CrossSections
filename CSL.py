@@ -115,7 +115,6 @@ class Plane:
         self.normal = rotation.transform([self.normal])[0]
         # todo change plane params?
 
-
     @classmethod
     def from_csl_file(cls, csl_file, csl):
         line = next(csl_file).strip()
