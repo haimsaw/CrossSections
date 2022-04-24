@@ -158,12 +158,14 @@ class PlaneRasterizer(IRasterizer):
                 hole_vertices += list(self.pca_projected_vertices[component.vertices_indices]) + [
                     [0, 0]]
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]
+        path = Path(shape_vertices, shape_codes)
+        hole_path = Path(hole_vertices, hole_codes) if len(hole_vertices) > 0 else None
 
         # noinspection PyTypeChecker
         def labeler(xys):
-            mask = Path(shape_vertices, shape_codes).contains_points(xys)
-            if len(hole_vertices) > 0:
-                pixels_in_hole = Path(hole_vertices, hole_codes).contains_points(xys)
+            mask = path.contains_points(xys)
+            if hole_path is not None:
+                pixels_in_hole = hole_path.contains_points(xys)
                 mask &= np.logical_not(pixels_in_hole)
             labels = np.where(mask, INSIDE_LABEL, np.full(mask.shape, OUTSIDE_LABEL))
             return labels

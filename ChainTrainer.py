@@ -134,9 +134,9 @@ class ChainTrainer(INetManager):
 
     def update_data_loaders(self):
         # todo haim samplers
-        self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=128, shuffle=True)
+        self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=256, shuffle=True)
         contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
-        self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=128, sampler=contour_sampler)
+        self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=256, sampler=contour_sampler)
 
     @torch.no_grad()
     def refine_sampling(self):
@@ -186,7 +186,7 @@ class ChainTrainer(INetManager):
         plt.bar(range(len(self.train_losses)), self.train_losses)
         if save_path is not None:
             plt.savefig(save_path + f"losses")
-        plt.show()
+        # plt.show()
 
     def load_from_disk(self):
         self.module.load_state_dict(torch.load(self.save_path, map_location=torch.device('cpu')))
