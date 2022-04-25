@@ -5,7 +5,7 @@ from os import cpu_count
 
 from NetManager import *
 from itertools import combinations
-from pathos.multiprocessing import ProcessPool
+# from pathos.multiprocessing import ProcessPool
 
 
 def train_leaf(leaf, epochs):

@@ -137,8 +137,14 @@ class Renderer2D:
         self.description = []
 
     def draw_rasterized_plane(self, plane, resolution=(256, 256), margin=0.2):
-        self.ax.imshow(slices_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)[0].reshape(resolution), cmap='cool',
-                       origin='lower')
+        cells = slices_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)
+        xys = [cell.pixel_center for cell in cells]
+        mask = np.array([cell.density >= 0.5 for cell in cells])
+        alpha = 1
+
+        self.ax.scatter(*xys[mask].T, color="blue", alpha=alpha)
+        self.ax.scatter(*xys[np.logical_not(mask)].T, color="gray", alpha=alpha)
+
         self.description.append("draw_rasterized_plane")
 
     def draw_plane_verts(self, plane):

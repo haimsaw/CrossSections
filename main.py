@@ -66,6 +66,7 @@ def main():
         for i in [20, 49, 53, 130]:
             r=Renderer2D()
             r.draw_plane(csl.planes[10])
+            r.draw_rasterized_plane(csl.planes[10], )
             r.show()
 
         with open(save_path + 'hyperparams.json', 'w') as f:
