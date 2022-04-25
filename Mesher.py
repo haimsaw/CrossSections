@@ -31,13 +31,13 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
 
 
 @timing
-def dual_contouring(net_manager: INetManager, sampling_resolution_3d, use_grads):
+def dual_contouring(net_manager, sampling_resolution_3d, use_grads, loop=-1):
     sampling_resolution_3d = np.array(sampling_resolution_3d)
 
     # since in dc our vertices are inside the grid cells we need to have res+1 grid points
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d+1, endpoint=True)
 
-    labels = net_manager.soft_predict(xyzs).reshape(sampling_resolution_3d+1)
+    labels = net_manager.soft_predict(xyzs, loop).reshape(sampling_resolution_3d+1)
     print(f'labels: max={labels.max()} min={labels.min()}')
 
     # dual_contour_3d uses grid points as coordinates

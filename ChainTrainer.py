@@ -110,8 +110,8 @@ class ChainTrainer(INetManager):
             ret.append(logits)
         return ret
 
-    def predict_batch(self, xyzs):
-        return self._forward_loop(xyzs)[-1]
+    def predict_batch(self, xyzs, loop=-1):
+        return self._forward_loop(xyzs)[loop]
 
     def prepare_for_training(self, slices_dataset, contour_dataset, hp):
         # todo haim samplers
@@ -196,13 +196,13 @@ class ChainTrainer(INetManager):
         torch.save(self.module.state_dict(), self.save_path)
 
     @torch.no_grad()
-    def soft_predict(self, xyzs):
+    def soft_predict(self, xyzs, loop=-1):
         self.module.eval()
         data_loader = DataLoader(xyzs, batch_size=128, shuffle=False)
         label_pred = np.empty(0, dtype=float)
         for xyzs_batch in data_loader:
             xyzs_batch = xyzs_batch.to(self.device)
-            batch_labels = self.predict_batch(xyzs_batch)
+            batch_labels = self.predict_batch(xyzs_batch, loop)
             label_pred = np.concatenate((label_pred, batch_labels.detach().cpu().numpy().reshape(-1)))
         return label_pred
 

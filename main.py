@@ -30,6 +30,11 @@ def handle_meshes(tree, hp, save_path):
     mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False)
     mesh_dc_no_grad.save(save_path + f'mesh_l{0}_dc_no_grad.obj')
 
+    for loop in [-1, -2, 5, 1]:
+        mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, loop=loop)
+        mesh_dc_no_grad.save(save_path + f'mesh_loop{loop}_dc_no_grad.obj')
+
+
     return mesh_dc
 
 
@@ -49,8 +54,7 @@ def save_heatmaps(tree, save_path, hp):
 def main():
 
         hp = HP()
-        hp.hidden_state_size = 64
-        save_path = f'./artifacts/test{64}/'
+        save_path = f'./artifacts/other_loops/'
 
         print(f'{"=" * 50} {save_path}')
         os.makedirs(save_path, exist_ok=True)
@@ -58,6 +62,11 @@ def main():
         csl = get_csl(hp.bounding_planes_margin)
         should_calc_density = hp.density_lambda > 0
         trainer = ChainTrainer(csl, hp)
+
+        for i in [20, 49, 53, 130]:
+            r=Renderer2D()
+            r.draw_plane(csl.planes[10])
+            r.show()
 
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
@@ -80,10 +89,16 @@ if __name__ == "__main__":
 
 '''
 todo
-batch size to hp
-remove contoure dataset
-check if tree is helping or its just capacity 
+batch size to hp and invrese to 4048, icrese step size??
 delete INetManager
+PE not bad
+slicer https://shapely.readthedocs.io/en/stable/manual.html
+lable points with generalized winding number
+sample - samples around edges + blue noise
+start paper
+compare with basic nerf and Robust optimization for topological surface reconstruction
+talk with guy or amir hertz about vizualizations
+
 
 read: 
 https://arxiv.org/abs/2202.01999 - nural dc
