@@ -42,7 +42,7 @@ class HP:
         self.spherical_coordinates = False
         self.hidden_layers = [64]*5
         self.hidden_state_size = 32
-        self.hidden_state_embedder = False
+        self.hidden_state_embedder = True
         self.n_loops = 10
 
         # loss
@@ -54,6 +54,7 @@ class HP:
         self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-3
+        self.batch_size = 2 ** 13
 
         self.now = str(datetime.now())
 

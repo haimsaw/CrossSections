@@ -68,16 +68,14 @@ class ChainTrainer(INetManager):
         size = len(self.slices_data_loader.dataset)
         is_first = True
 
-        for batch, (
-        (slices_xyzs, slices_density), (contour_xyzs, contour_normals, contour_tangents, slice_normals)) in enumerate(
-                zip(self.slices_data_loader, self.contour_data_loader)):
+        for batch, (slices_xyzs, slices_density) in enumerate(self.slices_data_loader):
 
             slices_xyzs, slices_density = slices_xyzs.to(self.device), slices_density.to(self.device)
             #contour_xyzs, contour_normals, contour_tangents = contour_xyzs.to(self.device), contour_normals.to(self.device), contour_tangents.to(self.device)
             #slice_normals = slice_normals.to(self.device)
 
-            constraints = self._get_constraints(slices_xyzs, slices_density, contour_xyzs, contour_normals,
-                                                contour_tangents, slice_normals, density_lambda)
+            constraints = self._get_constraints(slices_xyzs, slices_density, None, None,
+                                                None, None, density_lambda)
             running_constraints = {k: constraints.get(k, torch.tensor([0])).item() + running_constraints.get(k, 0) for k
                                    in set(constraints)}
 
@@ -134,9 +132,9 @@ class ChainTrainer(INetManager):
 
     def update_data_loaders(self):
         # todo haim samplers
-        self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=256, shuffle=True)
-        contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
-        self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=256, sampler=contour_sampler)
+        self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
+        # contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
+        # self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=self.hp.batch_size, sampler=contour_sampler)
 
     @torch.no_grad()
     def refine_sampling(self):

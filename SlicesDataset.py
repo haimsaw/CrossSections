@@ -36,6 +36,7 @@ class Cell:
     '''
 
     def _get_label(self, accuracy=400):
+        return self.labeler([self.pixel_center])[0]
         sampels = np.random.random_sample((accuracy, 2)) * self.pixel_radius + self.pixel_center
         labels = self.labeler(sampels)
         return sum(labels) / accuracy
@@ -150,24 +151,23 @@ class PlaneRasterizer(IRasterizer):
         for component in self.plane.connected_components:
             if not component.is_hole:
                 # last vertex is ignored
-                shape_vertices += list(self.pca_projected_vertices[component.vertices_indices]) + [
-                    [0, 0]]
+                shape_vertices += list(self.pca_projected_vertices[component.vertices_indices]) + [[0, 0]]
                 shape_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]
             else:
                 # last vertex is ignored
-                hole_vertices += list(self.pca_projected_vertices[component.vertices_indices]) + [
-                    [0, 0]]
+                hole_vertices += list(self.pca_projected_vertices[component.vertices_indices]) + [[0, 0]]
                 hole_codes += [Path.MOVETO] + [Path.LINETO] * (len(component) - 1) + [Path.CLOSEPOLY]
+
+        # noinspection PyTypeChecker
         path = Path(shape_vertices, shape_codes)
         hole_path = Path(hole_vertices, hole_codes) if len(hole_vertices) > 0 else None
 
-        # noinspection PyTypeChecker
         def labeler(xys):
             mask = path.contains_points(xys)
             if hole_path is not None:
                 pixels_in_hole = hole_path.contains_points(xys)
                 mask &= np.logical_not(pixels_in_hole)
-            labels = np.where(mask, INSIDE_LABEL, np.full(mask.shape, OUTSIDE_LABEL))
+            labels = np.where(mask,  np.full(mask.shape, INSIDE_LABEL), np.full(mask.shape, OUTSIDE_LABEL))
             return labels
 
         return labeler

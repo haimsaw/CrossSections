@@ -11,8 +11,7 @@ from hp import get_csl, HP
 def train_cycle(csl, hp, trainer, should_calc_density, save_path):
     slices_dataset = SlicesDataset(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
                                    should_calc_density=should_calc_density)
-    contour_dataset = ContourDataset(csl, hp.n_samples_per_edge)
-    print(f'slices={len(slices_dataset)}, contour={len(contour_dataset)}')
+    contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
 
     trainer.prepare_for_training(slices_dataset, contour_dataset, hp)
 
@@ -63,12 +62,6 @@ def main():
         should_calc_density = hp.density_lambda > 0
         trainer = ChainTrainer(csl, hp)
 
-        for i in [20, 49, 53, 130]:
-            r=Renderer2D()
-            r.draw_plane(csl.planes[10])
-            r.draw_rasterized_plane(csl.planes[10], )
-            r.show()
-
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
 
@@ -91,14 +84,13 @@ if __name__ == "__main__":
 '''
 todo
 batch size to hp and invrese to 4048, icrese step size??
-delete INetManager
 PE not bad
 slicer https://shapely.readthedocs.io/en/stable/manual.html
-lable points with generalized winding number
 sample - samples around edges + blue noise
 start paper
 compare with basic nerf and Robust optimization for topological surface reconstruction
 talk with guy or amir hertz about vizualizations
+dual conturing - play with setting & debug
 
 
 read: 
@@ -109,5 +101,4 @@ create slicer for chamfer compare
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 
-dual conturing - play with setting & debug
 '''

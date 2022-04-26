@@ -138,13 +138,10 @@ class Renderer2D:
 
     def draw_rasterized_plane(self, plane, resolution=(256, 256), margin=0.2):
         cells = slices_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)
-        xys = [cell.pixel_center for cell in cells]
-        mask = np.array([cell.density >= 0.5 for cell in cells])
-        alpha = 1
-
-        self.ax.scatter(*xys[mask].T, color="blue", alpha=alpha)
-        self.ax.scatter(*xys[np.logical_not(mask)].T, color="gray", alpha=alpha)
-
+        is_inside = np.array([cell.density == INSIDE_LABEL for cell in cells])
+        xyz = np.array([cell.pixel_center for cell in cells])
+        self.ax.scatter(*xyz[is_inside].T, color='red')
+        self.ax.scatter(*xyz[np.logical_not(is_inside)].T, color='blue')
         self.description.append("draw_rasterized_plane")
 
     def draw_plane_verts(self, plane):
@@ -159,7 +156,6 @@ class Renderer2D:
         for component in plane.connected_components:
             self.ax.plot(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
         self.description.append("draw_plane")
-        plt.show()
 
     def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist, add_grad):
         assert around_ax in (0, 1, 2)
