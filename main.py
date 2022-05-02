@@ -87,10 +87,13 @@ batch size to hp and invrese to 4048, icrese step size??
 PE not bad
 slicer https://shapely.readthedocs.io/en/stable/manual.html
 sample - samples around edges + blue noise
+
 start paper
 compare with basic nerf and Robust optimization for topological surface reconstruction
-talk with guy or amir hertz about vizualizations
-dual conturing - play with setting & debug
+talk with guy or amir hertz about visualizations
+dual contouring - play with setting & debug
+
+brain - increase persition of sampling
 
 
 read: 

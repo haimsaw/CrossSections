@@ -31,7 +31,8 @@ class Cell:
         return self._label
 
     '''
-    using Hoeffding's inequality we get that for the result to be in range of +- eps=0.1 from actual value w.p 1-alpha=1-0.001=99.9%
+    using Hoeffding's inequality we get that for the result to be in range of +- eps=0.1 from actual value
+    w.p 1-alpha=1-0.001=99.9%
     we need 380=math.log(2/alpha)/(2*eps*eps) samples 
     '''
 
