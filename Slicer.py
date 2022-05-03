@@ -14,7 +14,5 @@ def make_csl():
     for origin, normal in zip(plane_origins, plane_normals):
         intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin, plane_normal=normal)
 
-
-
 if __name__ == '__main__':
     make_csl()

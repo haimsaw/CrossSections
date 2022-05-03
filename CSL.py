@@ -42,18 +42,26 @@ image component: starts with the number of vertices, then label of the component
 
 
 class ConnectedComponent:
-    def __init__(self, csl_file):
+    def __init__(self, parent_cc_index, label, vertices_indices):
+        self.parent_cc_index = parent_cc_index
+        self.label = label
+        self.vertices_indices = vertices_indices
+
+
+    @classmethod
+    def from_cls(cls, csl_file):
         component = iter(next(csl_file).strip().split(" "))
         sizes = next(component).split("h") + [-1]
 
         # parent_cc_index is the index of the ConnectedComponent in which the hole lies (applies only for holes)
-        n_vertices_in_component, self.parent_cc_index = int(sizes[0]), int(sizes[1])
+        n_vertices_in_component, parent_cc_index = int(sizes[0]), int(sizes[1])
         component = map(int, component)
-        self.label = next(component)
+        label = next(component)
 
         # ccw for non holes and cw for holes
-        self.vertices_indices = list(component)
-        assert len(self.vertices_indices) == n_vertices_in_component
+        vertices_indices = list(component)
+        assert len(vertices_indices) == n_vertices_in_component
+        return cls(parent_cc_index, label, vertices_indices)
 
     def __len__(self):
         return len(self.vertices_indices)
@@ -127,7 +135,21 @@ class Plane:
         if n_vertices == 0:
             vertices = np.empty(shape=(0, 3))
         assert len(vertices) == n_vertices
-        connected_components = [ConnectedComponent(csl_file) for _ in range(n_connected_components)]
+        connected_components = [ConnectedComponent.from_cls(csl_file) for _ in range(n_connected_components)]
+        return cls(plane_id, plane_params, vertices, connected_components, csl)
+
+    @classmethod
+    def from_mesh(cls, intersection, plane_origin, plane_normal, plane_id, csl):
+        D = -1 * sum([a*b for a,b in zip(plane_origin, plane_normal)])
+        plane_params = (*plane_normal, D)
+
+        connected_components = []
+        vertices = []
+        for cc in intersection:
+            vert_start = len(vertices)
+            connected_components.append(ConnectedComponent(-1, 1, list(range(vert_start, vert_start+len(cc)))))
+            vertices += cc
+
         return cls(plane_id, plane_params, vertices, connected_components, csl)
 
     @classmethod
@@ -193,15 +215,19 @@ class CSL:
 
     @classmethod
     def from_mesh(cls, filename='./mesh/armadillo.obj'):
+        # todo haim - this only handles one label and no holes
         model_name = filename.split('/')[-1].split('.')[0]
         n_labels = 1
         scene = pywavefront.Wavefront(filename, collect_faces=True)
 
         plane_origins = [(0, 0.30, 0), (0, -0.30, 0), (0, 0, 0)]
         plane_normals = [(0, 1, 0), (1, 0, 0), (0, 0, 1)]
-        for origin, normal in zip(plane_origins, plane_normals):
+
+        planes = []
+        for i, (origin, normal) in enumerate(zip(plane_origins, plane_normals)):
             intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin,
                                          plane_normal=normal)
+            planes.append(Plane.from_meash(intersection, origin, normal, i+1, csl))
 
         return cls(model_name, plane_gen, n_labels)
 
