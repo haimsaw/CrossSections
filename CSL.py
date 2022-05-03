@@ -1,5 +1,6 @@
 from itertools import chain
 
+import numpy as np
 import pywavefront
 from meshcut import cross_section
 from parse import parse
@@ -46,7 +47,6 @@ class ConnectedComponent:
         self.parent_cc_index = parent_cc_index
         self.label = label
         self.vertices_indices = vertices_indices
-
 
     @classmethod
     def from_cls(cls, csl_file):
@@ -144,11 +144,11 @@ class Plane:
         plane_params = (*plane_normal, D)
 
         connected_components = []
-        vertices = []
+        vertices = np.empty(shape=(0, 3))
         for cc in intersection:
             vert_start = len(vertices)
             connected_components.append(ConnectedComponent(-1, 1, list(range(vert_start, vert_start+len(cc)))))
-            vertices += cc
+            vertices = np.concatenate((vertices, cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
 
@@ -214,21 +214,22 @@ class CSL:
             return cls(model_name, plane_gen, n_labels)
 
     @classmethod
-    def from_mesh(cls, filename='./mesh/armadillo.obj'):
+    def from_mesh(cls, filename, plane_origins,  plane_normals):
         # todo haim - this only handles one label and no holes
         model_name = filename.split('/')[-1].split('.')[0]
         n_labels = 1
         scene = pywavefront.Wavefront(filename, collect_faces=True)
-
-        plane_origins = [(0, 0.30, 0), (0, -0.30, 0), (0, 0, 0)]
-        plane_normals = [(0, 1, 0), (1, 0, 0), (0, 0, 1)]
+        # todo haim - rescale to [-1, 1]**3
 
         def plane_gen(csl):
             planes = []
             for i, (origin, normal) in enumerate(zip(plane_origins, plane_normals)):
+
+                # todo haim not sure cc is ccw\cw
                 intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin,
                                              plane_normal=normal)
-                planes.append(Plane.from_meash(intersection, origin, normal, i+1, csl))
+                planes.append(Plane.from_mesh(intersection, origin, normal, i+1, csl))
+            return planes
 
         return cls(model_name, plane_gen, n_labels)
 

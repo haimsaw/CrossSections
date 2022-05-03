@@ -1,18 +1,26 @@
 import numpy as np
 
-import CSL
+from CSL import *
+from Renderer import Renderer3D, Renderer2D
 from meshcut import cross_section
 import pywavefront
 
 
 def make_csl():
-    scene = pywavefront.Wavefront('./mesh/armadillo.obj', collect_faces=True)
+    filename = './mesh/armadillo.obj'
+    plane_origins = [(0, 0.30, 0), (0, -0.30, 0), (0, 0, 0)]
+    plane_normals = [(0, 1.0, 0), (1.0, 0, 0), (0, 0, 1.0)]
 
+    csl = CSL.from_mesh(filename, plane_origins,  plane_normals)
 
-    plane_origins =[(0, 0.30, 0), (0, -0.30, 0), (0, 0, 0)]
-    plane_normals = [(0, 1, 0), (1, 0, 0), (0, 0, 1)]
-    for origin, normal in zip(plane_origins, plane_normals):
-        intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin, plane_normal=normal)
+    r = Renderer3D()
+    r.add_scene(csl)
+    r.show()
+
+    for p in csl.planes:
+        r = Renderer2D()
+        r.draw_plane(p)
+        r.show()
 
 if __name__ == '__main__':
     make_csl()
