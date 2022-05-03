@@ -223,11 +223,12 @@ class CSL:
         plane_origins = [(0, 0.30, 0), (0, -0.30, 0), (0, 0, 0)]
         plane_normals = [(0, 1, 0), (1, 0, 0), (0, 0, 1)]
 
-        planes = []
-        for i, (origin, normal) in enumerate(zip(plane_origins, plane_normals)):
-            intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin,
-                                         plane_normal=normal)
-            planes.append(Plane.from_meash(intersection, origin, normal, i+1, csl))
+        def plane_gen(csl):
+            planes = []
+            for i, (origin, normal) in enumerate(zip(plane_origins, plane_normals)):
+                intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin,
+                                             plane_normal=normal)
+                planes.append(Plane.from_meash(intersection, origin, normal, i+1, csl))
 
         return cls(model_name, plane_gen, n_labels)
 
