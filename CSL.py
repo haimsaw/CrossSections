@@ -1,5 +1,7 @@
 from itertools import chain
 
+import pywavefront
+from meshcut import cross_section
 from parse import parse
 from sklearn.decomposition import PCA
 
@@ -167,13 +169,10 @@ class Plane:
 
 
 class CSL:
-    def __init__(self, filename):
-        self.model_name = filename.split('/')[-1].split('.')[0]
-        with open(filename, 'r') as csl_file:
-            csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
-            assert next(csl_file).strip() == "CSLC"
-            n_planes, self.n_labels = parse("{:d} {:d}", next(csl_file).strip())
-            self.planes = [Plane.from_csl_file(csl_file, self) for _ in range(n_planes)]
+    def __init__(self, model_name, plane_gen, n_labels):
+        self.model_name = model_name
+        self.n_labels = n_labels
+        self.planes = plane_gen(self)
 
     def __len__(self):
         return sum((len(plane) for plane in self.planes))
@@ -181,6 +180,30 @@ class CSL:
     def __repr__(self):
         non_empty_planes = list(filter(lambda plane: len(plane.vertices) > 0, self.planes))
         return f"CSLC\n{len(non_empty_planes)} {self.n_labels} \n\n" + ''.join(map(repr, non_empty_planes))
+
+    @classmethod
+    def from_csl_file(cls, filename):
+        model_name = filename.split('/')[-1].split('.')[0]
+        with open(filename, 'r') as csl_file:
+            csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
+            assert next(csl_file).strip() == "CSLC"
+            n_planes, n_labels = parse("{:d} {:d}", next(csl_file).strip())
+            plane_gen = lambda csl: [Plane.from_csl_file(csl_file, csl) for _ in range(n_planes)]
+            return cls(model_name, plane_gen, n_labels)
+
+    @classmethod
+    def from_mesh(cls, filename='./mesh/armadillo.obj'):
+        model_name = filename.split('/')[-1].split('.')[0]
+        n_labels = 1
+        scene = pywavefront.Wavefront(filename, collect_faces=True)
+
+        plane_origins = [(0, 0.30, 0), (0, -0.30, 0), (0, 0, 0)]
+        plane_normals = [(0, 1, 0), (1, 0, 0), (0, 0, 1)]
+        for origin, normal in zip(plane_origins, plane_normals):
+            intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin,
+                                         plane_normal=normal)
+
+        return cls(model_name, plane_gen, n_labels)
 
     @property
     def all_vertices(self):
