@@ -219,18 +219,18 @@ class CSL:
         model_name = filename.split('/')[-1].split('.')[0]
         n_labels = 1
         scene = pywavefront.Wavefront(filename, collect_faces=True)
-        # todo haim - rescale to [-1, 1]**3
+        assert len(scene.mesh_list) == 1
+        verts = scene.vertices
+        faces = scene.mesh_list[0].faces
 
         def plane_gen(csl):
             planes = []
             for i, (origin, normal) in enumerate(zip(plane_origins, plane_normals)):
 
                 # todo haim not sure cc is ccw\cw
-                intersection = cross_section(scene.vertices, scene.mesh_list[0].faces, plane_orig=origin,
-                                             plane_normal=normal)
+                intersection = cross_section(verts, faces, plane_orig=origin, plane_normal=normal)
                 planes.append(Plane.from_mesh(intersection, origin, normal, i+1, csl))
             return planes
-
         return cls(model_name, plane_gen, n_labels)
 
     @property
