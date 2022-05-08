@@ -12,6 +12,7 @@ class INetManager:
 
     def __init__(self, csl, verbose=False):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f'device={self.device}')
 
         self.csl = csl
         self.verbose = verbose

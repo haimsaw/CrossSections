@@ -45,7 +45,6 @@ class Renderer3D:
         self.description.append('dataset')
 
         xyzs = np.array([xyz.detach().numpy() for xyz, label in dataset if label == INSIDE_LABEL])
-
         self.ax.scatter(*xyzs.T, color="blue")
 
     def add_rasterized_scene(self, csl, sampling_resolution_2d, sampling_margin, show_empty_planes=True, show_outside_shape=False, alpha=0.1):

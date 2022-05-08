@@ -215,14 +215,9 @@ class CSL:
             return cls(model_name, plane_gen, n_labels)
 
     @classmethod
-    def from_mesh(cls, filename, plane_origins,  plane_normals):
+    def from_mesh(cls, model_name, plane_origins,  plane_normals, verts, faces):
         # todo haim - this only handles one label and no holes
-        model_name = filename.split('/')[-1].split('.')[0]
         n_labels = 1
-        scene = pywavefront.Wavefront(filename, collect_faces=True)
-        assert len(scene.mesh_list) == 1
-        verts = scene.vertices
-        faces = scene.mesh_list[0].faces
 
         def plane_gen(csl):
             planes = []
