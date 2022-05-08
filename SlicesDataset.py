@@ -5,6 +5,9 @@ from CSL import Plane
 from Helpers import *
 from torch.utils.data import Dataset
 
+INSIDE_LABEL = 0.0
+OUTSIDE_LABEL = 1.0
+
 
 def slices_rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
@@ -235,6 +238,3 @@ class SlicesDatasetFake(Dataset):
         label = torch.tensor([INSIDE_LABEL] if np.dot(xyz, xyz) < self.radius else [OUTSIDE_LABEL])
         return xyz, label
 
-
-INSIDE_LABEL = 0.0
-OUTSIDE_LABEL = 1.0

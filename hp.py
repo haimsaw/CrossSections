@@ -5,8 +5,8 @@ from CSL import CSL
 from Slicer import make_csl_from_mesh
 
 
-def get_csl(bounding_planes_margin):
-    csl = CSL.from_csl_file("csl-files/ParallelEight.csl")
+def get_csl(bounding_planes_margin, save_path):
+    # csl = CSL.from_csl_file("csl-files/ParallelEight.csl")
     # csl = CSL.from_csl_file("csl-files/ParallelEightMore.csl")
     # csl = CSL.from_csl_file("csl-files/SideBishop.csl")
     # csl = CSL.from_csl_file("csl-files/Heart-25-even-better.csl")
@@ -18,7 +18,7 @@ def get_csl(bounding_planes_margin):
     # csl = CSL.from_csl_file("csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("csl-files/Brain.csl")
 
-    # csl = make_csl_from_mesh('./mesh/eight.obj')
+    csl = make_csl_from_mesh('./mesh/eight.obj', save_path)
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
@@ -49,7 +49,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs_batches = [10] #* 4
+        self.epochs_batches = [25] * 4
         self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-2

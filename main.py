@@ -6,7 +6,7 @@ from SlicesDataset import SlicesDataset
 from Renderer import *
 from Mesher import *
 from OctnetTreeTrainer import *
-from comperator import hausdorff_distance
+from Comperator import hausdorff_distance
 
 
 def train_cycle(csl, hp, trainer, should_calc_density, save_path):
@@ -61,8 +61,15 @@ def main():
         print(f'{"=" * 50} {save_path}')
         os.makedirs(save_path, exist_ok=True)
 
-        csl = get_csl(hp.bounding_planes_margin)
+        csl = get_csl(hp.bounding_planes_margin, save_path)
         should_calc_density = hp.density_lambda > 0
+
+
+
+        r = Renderer3D()
+        r.add_scene(csl)
+        # r.add_rasterized_scene(csl, (20, 20),0.1,True, False)
+        r.show()
 
         trainer = ChainTrainer(csl, hp)
 
