@@ -277,7 +277,7 @@ class CSL:
     def adjust_csl(self, bounding_planes_margin):
         # self.centralize() # todo haim meshes from csl are centralized?
         # self.rotate_by_pca()
-        self.scale(bounding_planes_margin)
+        # self.scale(bounding_planes_margin)
         self.add_boundary_planes(margin=bounding_planes_margin)
 
 

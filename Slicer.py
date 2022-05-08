@@ -32,9 +32,11 @@ def make_csl_from_mesh(filename, save_path):
 def get_verts_faces(filename):
     scene = pywavefront.Wavefront(filename, collect_faces=True)
     assert len(scene.mesh_list) == 1
+
     verts = np.array(scene.vertices)
     verts -= np.mean(verts, axis=0)
-    verts /= np.max(np.absolute(verts))
+    verts /= 0.9 * np.max(np.absolute(verts))
+
     faces = scene.mesh_list[0].faces
     return verts, faces
 

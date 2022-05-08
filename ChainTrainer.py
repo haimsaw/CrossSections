@@ -163,7 +163,7 @@ class ChainTrainer(INetManager):
         self.module.train()
 
         for epochs in self.hp.epochs_batches:
-            self._train_epoche_batch(epochs)
+            self._train_epochs_batch(epochs)
             print('')
             # todo haim ignore last refine
             self.refine_sampling()
@@ -172,7 +172,7 @@ class ChainTrainer(INetManager):
             print(f'\ntotal epochs={self.total_epochs}')
 
     @timing
-    def _train_epoche_batch(self, epochs):
+    def _train_epochs_batch(self, epochs):
         if not self.verbose:
             print('n_epochs' + '.' * epochs)
             print('_running', end="")
