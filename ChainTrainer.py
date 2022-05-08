@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from torch import nn
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
+from Helpers import timing
 from Modules import HaimNetWithState
 from NetManager import INetManager
 
@@ -162,21 +163,24 @@ class ChainTrainer(INetManager):
         self.module.train()
 
         for epochs in self.hp.epochs_batches:
-            if not self.verbose:
-                print('n_epochs' + '.' * epochs)
-                print('_running', end="")
-
-            for epoch in range(epochs):
-                if not self.verbose:
-                    print('.', end='')
-                self._train_epoch(epoch, self.hp.density_lambda)
-                self.total_epochs += 1
+            self._train_epoche_batch(epochs)
             print('')
             # todo haim ignore last refine
             self.refine_sampling()
 
         if not self.verbose:
             print(f'\ntotal epochs={self.total_epochs}')
+
+    @timing
+    def _train_epoche_batch(self, epochs):
+        if not self.verbose:
+            print('n_epochs' + '.' * epochs)
+            print('_running', end="")
+        for epoch in range(epochs):
+            if not self.verbose:
+                print('.', end='')
+            self._train_epoch(epoch, self.hp.density_lambda)
+            self.total_epochs += 1
 
     def show_train_losses(self, save_path):
         plt.bar(range(len(self.train_losses)), self.train_losses)
