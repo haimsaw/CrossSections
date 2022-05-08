@@ -13,7 +13,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
                                    should_calc_density=should_calc_density)
     contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
 
-    trainer.prepare_for_training(slices_dataset, contour_dataset, hp)
+    trainer.prepare_for_training(slices_dataset, contour_dataset)
 
     trainer.train_network()
     trainer.show_train_losses(save_path)
@@ -60,7 +60,14 @@ def main():
 
         csl = get_csl(hp.bounding_planes_margin)
         should_calc_density = hp.density_lambda > 0
+
+
+        r = Renderer2D()
+        r.draw_plane(csl.planes[27])
+        r.show()
+
         trainer = ChainTrainer(csl, hp)
+
 
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())

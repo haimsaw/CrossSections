@@ -9,8 +9,9 @@ import pywavefront
 def make_csl():
     filename = './mesh/armadillo.obj'
 
-    plane_origins = [(0, d, 0) for d in np.linspace(-1, 1, 50)]
-    plane_normals = [(0, 1.0, 0)] * 50
+    n_slices = 50
+    plane_origins = [(0, d, 0) for d in np.linspace(-1, 1, n_slices)]
+    plane_normals = [(0, 1.0, 0)] * n_slices
 
     csl = CSL.from_mesh(filename, plane_origins,  plane_normals)
     csl.adjust_csl(0.05)

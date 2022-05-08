@@ -120,7 +120,8 @@ class Plane:
         # todo change plane params?
 
     def __imatmul__(self, rotation: PCA):
-        self.vertices = rotation.transform(self.vertices)
+        if len(self.vertices) >= 0:
+            self.vertices = rotation.transform(self.vertices)
         self.plane_origin = rotation.transform([self.plane_origin])[0]
         self.normal = rotation.transform([self.normal])[0]
         # todo change plane params?
@@ -280,7 +281,7 @@ class CSL:
 
     def adjust_csl(self, bounding_planes_margin):
         self.centralize()
-        self.rotate_by_pca()
+        # self.rotate_by_pca()
         self.scale(bounding_planes_margin)
         self.add_boundary_planes(margin=bounding_planes_margin)
 

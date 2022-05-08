@@ -19,7 +19,6 @@ class ChainTrainer(INetManager):
         self.module.to(self.device)
 
         self.bce_loss = None
-        self.hp = None
 
         self.contour_dataset = None
         self.slices_dataset = None
@@ -111,7 +110,7 @@ class ChainTrainer(INetManager):
     def predict_batch(self, xyzs, loop=-1):
         return self._forward_loop(xyzs)[loop]
 
-    def prepare_for_training(self, slices_dataset, contour_dataset, hp):
+    def prepare_for_training(self, slices_dataset, contour_dataset):
         # todo haim samplers
 
         self.slices_dataset = slices_dataset
@@ -122,11 +121,10 @@ class ChainTrainer(INetManager):
         self.module.init_weights()
 
         self.bce_loss = nn.BCEWithLogitsLoss()
-        self.hp = hp
 
-        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)
+        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=self.hp.lr, weight_decay=self.hp.weight_decay)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=self.hp.scheduler_gamma)
-        self.scheduler_step = hp.scheduler_step
+        self.scheduler_step = self.hp.scheduler_step
 
         self.is_training_ready = True
 
