@@ -24,8 +24,8 @@ def handle_meshes(tree, hp, save_path, original_mesh):
     #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
     #mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
-    mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True)
-    mesh_dc.save(save_path + f'mesh_dc_grad.obj')
+    #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True)
+    #mesh_dc.save(save_path + f'mesh_dc_grad.obj')
 
     mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False)
     mesh_dc_no_grad.save(save_path + f'mesh_dc_no_grad.obj')
@@ -38,7 +38,7 @@ def handle_meshes(tree, hp, save_path, original_mesh):
         mesh_dc_no_grad.save(save_path + f'mesh_loop{loop}_dc_no_grad.obj')
     '''
 
-    return mesh_dc
+    return mesh_dc_no_grad
 
 
 def save_heatmaps(tree, save_path, hp):
