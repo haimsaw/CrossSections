@@ -64,10 +64,6 @@ def main():
         csl = get_csl(hp.bounding_planes_margin)
         should_calc_density = hp.density_lambda > 0
 
-        r = Renderer2D()
-        r.draw_plane(csl.planes[27])
-        r.show()
-
         trainer = ChainTrainer(csl, hp)
 
         with open(save_path + 'hyperparams.json', 'w') as f:

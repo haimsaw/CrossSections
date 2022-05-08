@@ -151,10 +151,11 @@ class Renderer2D:
         self.description.append("draw_plane_verts")
 
     def draw_plane(self, plane):
-        verts, _ = plane.pca_projection
-        for component in plane.connected_components:
-            self.ax.plot(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
-        self.description.append("draw_plane")
+        if not plane.is_empty:
+            verts, _ = plane.pca_projection
+            for component in plane.connected_components:
+                self.ax.plot(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
+            self.description.append("draw_plane")
 
     def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist, add_grad):
         assert around_ax in (0, 1, 2)

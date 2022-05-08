@@ -6,22 +6,15 @@ from meshcut import cross_section
 import pywavefront
 
 
-def make_csl(filename):
+def make_csl_from_mesh(filename):
     n_slices = 50
-    plane_origins = [(0, d, 0) for d in np.linspace(-1, 1, n_slices)]
-    plane_normals = [(0, 1.0, 0)] * n_slices
+    plane_origins = [(0, 0, d) for d in np.linspace(-1, 1, n_slices)]
+    plane_normals = [(0, 0, 1.0)] * n_slices
+    # todo make sure the normals are normlized
 
     csl = CSL.from_mesh(filename, plane_origins,  plane_normals)
-    csl.adjust_csl(0.05)
+    return csl
 
-    r = Renderer3D()
-    r.add_scene(csl)
-    r.show()
-
-    for p in csl.planes:
-        r = Renderer2D()
-        r.draw_plane(p)
-        r.show()
 
 if __name__ == '__main__':
-    make_csl()
+    make_csl_from_mesh()
