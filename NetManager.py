@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from hp import INSIDE_LABEL, OUTSIDE_LABEL
+from SlicesDataset import INSIDE_LABEL, OUTSIDE_LABEL
 
 from Modules import *
 from Helpers import *

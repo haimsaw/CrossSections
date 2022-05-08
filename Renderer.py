@@ -3,14 +3,13 @@ from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SlicesDataset import slices_rasterizer_factory
+from SlicesDataset import slices_rasterizer_factory, INSIDE_LABEL
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
 
 import matplotlib.animation as animation
 
 # region 3d
-from hp import INSIDE_LABEL
 
 
 class Renderer3D:

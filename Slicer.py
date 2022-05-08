@@ -6,9 +6,7 @@ from meshcut import cross_section
 import pywavefront
 
 
-def make_csl():
-    filename = './mesh/armadillo.obj'
-
+def make_csl(filename):
     n_slices = 50
     plane_origins = [(0, d, 0) for d in np.linspace(-1, 1, n_slices)]
     plane_normals = [(0, 1.0, 0)] * n_slices

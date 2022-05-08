@@ -1,10 +1,7 @@
 import json
 from datetime import datetime
 
-from CSL import CSL
-
-INSIDE_LABEL = 0.0
-OUTSIDE_LABEL = 1.0
+from Slicer import make_csl
 
 
 def get_csl(bounding_planes_margin):
@@ -18,7 +15,9 @@ def get_csl(bounding_planes_margin):
     # csl = CSL.from_csl_file("csl-files/Abdomen.csl")
     # csl = CSL.from_csl_file("csl-files/Vetebrae.csl")
     # csl = CSL.from_csl_file("csl-files/Skull-20.csl")
-    csl = CSL.from_csl_file("csl-files/Brain.csl")
+    # csl = CSL.from_csl_file("csl-files/Brain.csl")
+
+    csl = make_csl('./mesh/eight.obj')
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
@@ -35,7 +34,6 @@ class HP:
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
         self.sampling_resolution_3d = (64, 64, 64)
-        self.n_samples_per_edge = 32
 
         # architecture
         self.num_embedding_freqs = 4
@@ -50,7 +48,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs_batches = [25] * 4
+        self.epochs_batches = [25] #* 4
         self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-3

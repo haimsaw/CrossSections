@@ -1,11 +1,12 @@
 import os
 
+from hp import get_csl, HP
 from ChainTrainer import ChainTrainer
 from SlicesDataset import SlicesDataset
 from Renderer import *
 from Mesher import *
 from OctnetTreeTrainer import *
-from hp import get_csl, HP
+from comperator import hausdorff_distance
 
 
 def train_cycle(csl, hp, trainer, should_calc_density, save_path):
@@ -19,20 +20,23 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
     trainer.show_train_losses(save_path)
 
 
-def handle_meshes(tree, hp, save_path):
+def handle_meshes(tree, hp, save_path, original_mesh):
     #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
     #mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
     mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True)
-    mesh_dc.save(save_path + f'mesh_l{0}_dc_grad.obj')
+    mesh_dc.save(save_path + f'mesh_dc_grad.obj')
 
     mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False)
-    mesh_dc_no_grad.save(save_path + f'mesh_l{0}_dc_no_grad.obj')
+    mesh_dc_no_grad.save(save_path + f'mesh_dc_no_grad.obj')
 
+    hausdorff_distance(original_mesh , save_path + f'mesh_dc_no_grad.obj', save_path)
+
+    '''
     for loop in [-1, -2, 5, 1]:
         mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, loop=loop)
         mesh_dc_no_grad.save(save_path + f'mesh_loop{loop}_dc_no_grad.obj')
-
+    '''
 
     return mesh_dc
 
@@ -51,7 +55,6 @@ def save_heatmaps(tree, save_path, hp):
 
 
 def main():
-
         hp = HP()
         save_path = f'./artifacts/other_loops/'
 
@@ -61,13 +64,11 @@ def main():
         csl = get_csl(hp.bounding_planes_margin)
         should_calc_density = hp.density_lambda > 0
 
-
         r = Renderer2D()
         r.draw_plane(csl.planes[27])
         r.show()
 
         trainer = ChainTrainer(csl, hp)
-
 
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
@@ -76,7 +77,7 @@ def main():
 
         train_cycle(csl, hp, trainer, should_calc_density, save_path)
         save_heatmaps(trainer, save_path, hp)
-        mesh_dc = handle_meshes(trainer, hp, save_path)
+        mesh_dc = handle_meshes(trainer, hp, save_path, './mesh/eight.obj')
 
         renderer = Renderer3D()
         renderer.add_scene(csl)
