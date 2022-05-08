@@ -35,7 +35,7 @@ def get_verts_faces(filename):
 
     verts = np.array(scene.vertices)
     verts -= np.mean(verts, axis=0)
-    verts /= 0.8 * np.max(np.absolute(verts))
+    verts /= 1.1 * np.max(np.absolute(verts))
 
     faces = scene.mesh_list[0].faces
     return verts, faces
