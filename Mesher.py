@@ -44,7 +44,6 @@ def dual_contouring(net_manager, sampling_resolution_3d, use_grads, loop=-1):
     # so i j k are the indices for the label (and not the actual point)
 
     def ijk_to_xyz(ijks):
-        #return [xyzs_for_translate[idx[0], idx[1], idx[2]] for idx in ijks]
         return 2 * ijks / sampling_resolution_3d - 1
 
     def f(i, j, k):

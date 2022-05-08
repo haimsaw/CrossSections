@@ -163,10 +163,10 @@ class ChainTrainer(INetManager):
         self.module.train()
 
         for epochs in self.hp.epochs_batches:
-            self._train_epochs_batch(epochs)
-            print('')
-            # todo haim ignore last refine
             self.refine_sampling()
+            self._train_epochs_batch(epochs)
+
+            # todo haim ignore last refine
 
         if not self.verbose:
             print(f'\ntotal epochs={self.total_epochs}')
@@ -181,6 +181,7 @@ class ChainTrainer(INetManager):
                 print('.', end='')
             self._train_epoch(epoch, self.hp.density_lambda)
             self.total_epochs += 1
+        print('')
 
     def show_train_losses(self, save_path):
         plt.bar(range(len(self.train_losses)), self.train_losses)
