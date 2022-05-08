@@ -19,11 +19,13 @@ def make_csl_from_mesh(filename, save_path):
     with open(f'{save_path}/{model_name}_generated.csl', 'w') as f:
         f.write(repr(csl))
 
-    my_mesh = mesh2.Mesh(np.zeros(faces.shape[0], dtype=mesh2.Mesh.dtype))
+    my_mesh = mesh2.Mesh(np.zeros(len(faces), dtype=mesh2.Mesh.dtype))
     for i, f in enumerate(faces):
         for j in range(3):
             my_mesh.vectors[i][j] = verts[f[j], :]
-    my_mesh.save(f'{save_path}/{model_name}_obj')
+
+    mesh_path = f'{save_path}/original_mesh.stl'
+    my_mesh.save(mesh_path)
     return csl
 
 

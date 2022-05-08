@@ -30,7 +30,7 @@ def handle_meshes(tree, hp, save_path, original_mesh):
     mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False)
     mesh_dc_no_grad.save(save_path + f'mesh_dc_no_grad.obj')
 
-    hausdorff_distance(original_mesh , save_path + f'mesh_dc_no_grad.obj', save_path)
+    hausdorff_distance(f'{save_path}/original_mesh.stl', save_path + f'mesh_dc_no_grad.obj', save_path)
 
     '''
     for loop in [-1, -2, 5, 1]:
@@ -63,13 +63,6 @@ def main():
 
         csl = get_csl(hp.bounding_planes_margin, save_path)
         should_calc_density = hp.density_lambda > 0
-
-
-
-        r = Renderer3D()
-        r.add_scene(csl)
-        # r.add_rasterized_scene(csl, (20, 20),0.1,True, False)
-        r.show()
 
         trainer = ChainTrainer(csl, hp)
 
