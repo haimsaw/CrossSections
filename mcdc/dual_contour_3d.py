@@ -74,7 +74,8 @@ def dual_contour_3d(f, get_f_normal, ijk_to_xyz, xmax, ymax, zmax):
 
         vert_array.append(vert)
         vert_indices[xyz] = len(vert_array)  # vert_indices is 1 based
-
+    if len(vert_array) == 0:
+        raise Exception("Level Set is empty")
     vert_array = ijk_to_xyz(np.array(vert_array))  # convert vert to lay in [-1,1]^3
 
     # For each cell edge, emit a face between the center of the adjacent cells if it is a sign changing edge

@@ -11,8 +11,8 @@ def hausdorff_distance(original_mesh_path, recon_mesh_path, save_path):
     print(f'original={original_mesh_path}, recon={recon_mesh_path}')
     print(f'hausdorff_distance={res}')
     if save_path is not None:
-        with open(save_path, 'w') as fp:
-            json.dump(dict, fp, indent=4)
+        with open(f'{save_path}/hausdorff_distance.json', 'w') as fp:
+            json.dump(res, fp, indent=4)
     return res
 
 

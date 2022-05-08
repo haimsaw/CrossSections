@@ -56,7 +56,7 @@ def save_heatmaps(tree, save_path, hp):
 
 def main():
         hp = HP()
-        save_path = f'./artifacts/other_loops/'
+        save_path = f'./artifacts/test/'
 
         print(f'{"=" * 50} {save_path}')
         os.makedirs(save_path, exist_ok=True)

@@ -48,7 +48,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs_batches = [25] #* 4
+        self.epochs_batches = [3] #* 4
         self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-3
