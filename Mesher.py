@@ -36,15 +36,16 @@ def dual_contouring(net_manager, sampling_resolution_3d, use_grads, loop=-1):
 
     # since in dc our vertices are inside the grid cells we need to have res+1 grid points
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d+1, endpoint=True)
+    xyzs_for_translate = xyzs.reshape((*(sampling_resolution_3d+1), 3))
 
     labels = net_manager.soft_predict(xyzs, loop).reshape(sampling_resolution_3d+1)
     print(f'labels: max={labels.max()} min={labels.min()}')
-
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
 
     def ijk_to_xyz(ijks):
-        return 2 * ijks / (sampling_resolution_3d + 1) - 1
+        return [xyzs_for_translate[idx[0], idx[1], idx[2]] for idx in ijks]
+        #return 2 * ijks / (sampling_resolution_3d + 1) - 1
 
     def f(i, j, k):
         '''d0 = np.array([i, j, k]) - center0
