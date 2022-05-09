@@ -1,3 +1,5 @@
+import multiprocessing
+
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
@@ -7,6 +9,7 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 from Helpers import timing
 from Modules import HaimNetWithState
 from NetManager import INetManager
+from SlicesDataset import SlicesDataset
 
 
 class ChainTrainer(INetManager):
@@ -114,10 +117,10 @@ class ChainTrainer(INetManager):
     def prepare_for_training(self, slices_dataset, contour_dataset):
         # todo haim samplers
 
-        self.slices_dataset = slices_dataset
+        self.slices_dataset = None
         self.contour_dataset = contour_dataset
 
-        self.update_data_loaders()
+        self.update_data_loaders(slices_dataset)
 
         self.module.init_weights()
 
@@ -129,14 +132,17 @@ class ChainTrainer(INetManager):
 
         self.is_training_ready = True
 
-    def update_data_loaders(self):
+    def update_data_loaders(self, new_dataset):
         # todo haim samplers
+        print(f'update_data_loaders dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }'
+              f' new={len(new_dataset)}')
+        self.slices_dataset = new_dataset
         self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
         # contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
         # self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=self.hp.batch_size, sampler=contour_sampler)
 
     @torch.no_grad()
-    def refine_sampling(self):
+    def get_refined_dataset(self, pool):
         assert self.hp.refinement_type in ['errors', 'edge', 'none']
 
         self.module.eval()
@@ -155,9 +161,21 @@ class ChainTrainer(INetManager):
         else:
             raise Exception(f'invalid hp.refinement_type {self.hp.refinement_type}')
 
-        self.slices_dataset.refine_cells(xyz_to_refine)
-        self.update_data_loaders()
-        print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
+        xyz_to_refine = set([x.tobytes() for x in xyz_to_refine])
+        new_cells = []
+        for cell in self.slices_dataset.cells:
+            # todo quadratic - can improve by converting xyz_to_refine to set
+            if cell.xyz.tobytes() in xyz_to_refine:
+                new_cells += cell.split_cell()
+            else:
+                new_cells.append(cell)
+
+       # print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
+
+        res = pool.apply_async(SlicesDataset.from_cells, (self.csl, self.slices_dataset.should_calc_density, new_cells))
+
+        return res
+
 
     def train_network(self):
 

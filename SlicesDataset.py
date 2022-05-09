@@ -13,6 +13,23 @@ def slices_rasterizer_factory(plane: Plane):
     return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
 
 
+class Labler:
+    def __init__(self, path, hole_path):
+        self.path = path
+        self.hole_path = hole_path
+
+    def __call__(self, xys):
+        if self.path is None:
+            return np.full(len(xys), OUTSIDE_LABEL)
+        mask = self.path.contains_points(xys)
+        # todo haim - this does not handles non empty holes
+        if self.hole_path is not None:
+            pixels_in_hole = self.hole_path.contains_points(xys)
+            mask &= np.logical_not(pixels_in_hole)
+        labels = np.where(mask, np.full(mask.shape, INSIDE_LABEL), np.full(mask.shape, OUTSIDE_LABEL))
+        return labels
+
+
 class Cell:
     def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer):
         assert min(pixel_radius) > 0
@@ -119,8 +136,8 @@ class EmptyPlaneRasterizer(IRasterizer):
         else:
             raise Exception("invalid plane")
 
-        return [Cell(xy, pixel_radius, lambda centers: np.full(len(centers), OUTSIDE_LABEL), xyz_transformer) for xy in
-                xys]
+        labler = Labler(None, None)
+        return [Cell(xy, pixel_radius, labler, xyz_transformer) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -163,16 +180,7 @@ class PlaneRasterizer(IRasterizer):
         path = Path(shape_vertices, shape_codes)
         hole_path = Path(hole_vertices, hole_codes) if len(hole_vertices) > 0 else None
 
-        def labeler(xys):
-            mask = path.contains_points(xys)
-            # todo haim - this does not handles non empty holes
-            if hole_path is not None:
-                pixels_in_hole = hole_path.contains_points(xys)
-                mask &= np.logical_not(pixels_in_hole)
-            labels = np.where(mask,  np.full(mask.shape, INSIDE_LABEL), np.full(mask.shape, OUTSIDE_LABEL))
-            return labels
-
-        return labeler
+        return Labler(path, hole_path)
 
     def get_rasterazation_cells(self, resolution, margin):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
@@ -182,17 +190,12 @@ class PlaneRasterizer(IRasterizer):
 
 
 class SlicesDataset(Dataset):
-    def __init__(self, csl, should_calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
+    def __init__(self, csl, should_calc_density, cells):
         self.csl = csl
         self.should_calc_density = should_calc_density
 
-        cells = []
-        for plane in csl.planes:
-            cells += slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
+        self.cells = cells
 
-        self.cells = np.array(cells)
-
-        self.xyzs = np.array([cell.xyz for cell in self.cells])
         if self.should_calc_density:
             n_inside = len([cell for cell in self.cells if cell.density == INSIDE_LABEL])
             n_outside = len([cell for cell in self.cells if cell.density == OUTSIDE_LABEL])
@@ -200,6 +203,19 @@ class SlicesDataset(Dataset):
                 [cell.density / n_outside + (1 - cell.density) / n_inside for cell in self.cells])
         else:
             self.sampler_weights = np.ones(self.__len__())
+
+    @classmethod
+    def from_cells(cls, csl, should_calc_density, cells):
+        return cls(csl, should_calc_density, np.array(cells))
+
+    @classmethod
+    def from_csl(cls, csl, should_calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
+        cells = []
+        for plane in csl.planes:
+            cells += slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
+
+        cells = np.array(cells)
+        return cls(csl, should_calc_density, cells)
 
     def __len__(self):
         return self.cells.size
@@ -210,18 +226,6 @@ class SlicesDataset(Dataset):
         density = torch.tensor([cell.density] if self.should_calc_density else [-1])
 
         return xyz, density
-
-    def refine_cells(self, xyz_to_refine):
-        # xyz_to_refine = set(xyz_to_refine)
-        new_cells = []
-        for cell in self.cells:
-            # todo quadratic - can improve by converting xyz_to_refine to set
-            if cell.xyz in xyz_to_refine:
-                new_cells += cell.split_cell()
-            else:
-                new_cells.append(cell)
-
-        self.cells = np.array(new_cells)
 
 
 class SlicesDatasetFake(Dataset):
