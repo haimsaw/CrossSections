@@ -16,7 +16,11 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
 
     trainer.prepare_for_training(slices_dataset, contour_dataset)
 
-    trainer.train_network()
+    for epochs in hp.epochs_batches:
+        trainer.refine_sampling()
+        trainer.train_epochs_batch(epochs)
+        handle_meshes()
+
     trainer.show_train_losses(save_path)
 
 

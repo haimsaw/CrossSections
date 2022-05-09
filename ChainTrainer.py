@@ -160,11 +160,7 @@ class ChainTrainer(INetManager):
         print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
 
     def train_network(self):
-        self.module.train()
 
-        for epochs in self.hp.epochs_batches:
-            self.refine_sampling()
-            self._train_epochs_batch(epochs)
 
             # todo haim ignore last refine
 
@@ -172,7 +168,9 @@ class ChainTrainer(INetManager):
             print(f'\ntotal epochs={self.total_epochs}')
 
     @timing
-    def _train_epochs_batch(self, epochs):
+    def train_epochs_batch(self, epochs):
+        self.module.train()
+
         if not self.verbose:
             print('n_epochs' + '.' * epochs)
             print('_running', end="")
