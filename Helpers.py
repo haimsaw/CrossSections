@@ -35,3 +35,16 @@ def timing(f):
         print(f'func:{f.__name__} args:[{args}, {kw}] took: {te-ts:2.4f} sec')
         return result
     return wrap
+
+
+def plane_origin_from_params(plane_params):
+    if plane_params[0] != 0:
+        return np.array([-plane_params[3] / plane_params[0], 0, 0])
+    elif plane_params[1] != 0:
+        return np.array([0, -plane_params[3] / plane_params[1], 0])
+    else:
+        return np.array([0, 0, -plane_params[3] / plane_params[2]])
+
+
+def plane_d_from_origin(origin, normal):
+    return -1 * sum([a * b for a, b in zip(origin, normal)])
