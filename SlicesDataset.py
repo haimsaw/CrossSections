@@ -165,6 +165,7 @@ class PlaneRasterizer(IRasterizer):
 
         def labeler(xys):
             mask = path.contains_points(xys)
+            # todo haim - this does not handles non empty holes
             if hole_path is not None:
                 pixels_in_hole = hole_path.contains_points(xys)
                 mask &= np.logical_not(pixels_in_hole)

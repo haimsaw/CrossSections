@@ -1,10 +1,10 @@
 from itertools import chain
 
 import numpy as np
-import pywavefront
 from meshcut import cross_section
 from parse import parse
 from sklearn.decomposition import PCA
+from matplotlib.path import Path
 
 from Helpers import *
 
@@ -90,12 +90,7 @@ class Plane:
         self.normal = np.array(plane_params[0:3])
         self.normal /= np.linalg.norm(self.normal)
 
-        if plane_params[0] != 0:
-            self.plane_origin = np.array([-plane_params[3] / plane_params[0], 0, 0])
-        elif plane_params[1] != 0:
-            self.plane_origin = np.array([0, -plane_params[3] / plane_params[1], 0])
-        else:
-            self.plane_origin = np.array([0, 0, -plane_params[3] / plane_params[2]])
+        self.plane_origin = plane_origin_from_params(plane_params)
 
     def __repr__(self):
         plane = f"{self.plane_id} {len(self.vertices)} {len(self.connected_components)} {' '.join(map(str, self.plane_params))}\n\n"
@@ -140,15 +135,31 @@ class Plane:
         return cls(plane_id, plane_params, vertices, connected_components, csl)
 
     @classmethod
-    def from_mesh(cls, intersection, plane_origin, plane_normal, plane_id, csl):
-        D = -1 * sum([a*b for a,b in zip(plane_origin, plane_normal)])
-        plane_params = (*plane_normal, D)
+    def from_mesh(cls, ccs, plane_params, plane_id, csl):
 
         connected_components = []
         vertices = np.empty(shape=(0, 3))
-        for cc in intersection:
+
+        pca = PCA(n_components=2, svd_solver="full")
+        pca.fit(ccs[0][0:3])
+
+        for cc in ccs:
+            # todo haim - this does not handles non empty holes
+
+            parent_cc_index = -1
+            point_inside_cc = pca.transform(cc[0:1])
+            for other_cc in ccs:
+                if other_cc is cc:
+                    continue
+                shape_vertices = list(pca.transform(other_cc)) + [[0, 0]]
+                shape_codes = [Path.MOVETO] + [Path.LINETO] * (len(other_cc) - 1) + [Path.CLOSEPOLY]
+                path = Path(shape_vertices, shape_codes)
+                if path.contains_points(point_inside_cc)[0]:
+                    parent_cc_index = 1
+                    break
+
             vert_start = len(vertices)
-            connected_components.append(ConnectedComponent(-1, 1, list(range(vert_start, vert_start+len(cc)))))
+            connected_components.append(ConnectedComponent(parent_cc_index, 1, list(range(vert_start, vert_start+len(cc)))))
             vertices = np.concatenate((vertices, cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
@@ -215,17 +226,20 @@ class CSL:
             return cls(model_name, plane_gen, n_labels)
 
     @classmethod
-    def from_mesh(cls, model_name, plane_origins,  plane_normals, verts, faces):
-        # todo haim - this only handles one label and no holes
+    def from_mesh(cls, model_name, plane_origins,  plane_normals, ds, verts, faces):
         n_labels = 1
 
         def plane_gen(csl):
             planes = []
-            for i, (origin, normal) in enumerate(zip(plane_origins, plane_normals)):
+            for i, (origin, normal, d) in enumerate(zip(plane_origins, plane_normals, ds)):
+                plane_params = (*normal, d)
 
                 # todo haim not sure cc is ccw\cw
-                intersection = cross_section(verts, faces, plane_orig=origin, plane_normal=normal)
-                planes.append(Plane.from_mesh(intersection, origin, normal, i+1, csl))
+                ccs = cross_section(verts, faces, plane_orig=origin, plane_normal=normal)
+                if len(ccs) > 0:
+                    planes.append(Plane.from_mesh(ccs, plane_params, i+1, csl))
+                else:
+                    planes.append(Plane.empty_plane(i+1, plane_params, csl))
             return planes
         return cls(model_name, plane_gen, n_labels)
 

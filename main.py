@@ -118,4 +118,6 @@ create slicer for chamfer compare
 serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 
+
+point 2 mesh
 '''

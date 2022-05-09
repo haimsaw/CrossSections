@@ -243,7 +243,7 @@ class ChainTrainer(INetManager):
     @torch.no_grad()
     def get_xyz_on_edge(self):
         self.module.eval()
-        xyzs_at_edge = np.empty((0, 3), dtype=bool)
+        xyzs_at_edge = np.empty((0, 3), dtype=np.double)
 
         for xyzs, labels in self.slices_data_loader:
             xyzs, labels = xyzs.to(self.device), labels.to(self.device)
