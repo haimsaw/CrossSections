@@ -18,7 +18,11 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
     for i, epochs in enumerate(hp.epochs_batches):
         trainer.refine_sampling()
         trainer.train_epochs_batch(epochs)
-        handle_meshes(trainer, hp, save_path, i)
+        try:
+            handle_meshes(trainer, hp, save_path, i)
+        except Exception as e:
+            print(e)
+
         save_heatmaps(trainer, save_path, i)
 
     trainer.show_train_losses(save_path)
