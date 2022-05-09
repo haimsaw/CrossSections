@@ -12,7 +12,7 @@ def hausdorff_distance(original_mesh_path, recon_mesh_path, save_path):
     print(f'original={original_mesh_path}, recon={recon_mesh_path}')
     print(f'\nhausdorff:\n{res1}\n{res2}\ndist={max(res1["max"], res2["max"])}')
     if save_path is not None:
-        with open(f'{save_path}/hausdorff_distance.json', 'w') as fp:
+        with open(save_path, 'w') as fp:
             json.dump(res1, fp, indent=4)
             json.dump(res2, fp, indent=4)
 

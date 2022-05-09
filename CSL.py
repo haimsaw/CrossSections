@@ -269,15 +269,17 @@ class CSL:
 
     def scale(self, bounding_planes_margin):
         scale_factor = self.scale_factor
+        if scale_factor <= 1:
+            return
         for plane in self.planes:
-            plane.vertices /= scale_factor
+            plane.vertices /= 1.1 * scale_factor
             # scale again so that the bounding planes will be in the range
             # plane.vertices *= (1 - 2 * bounding_planes_margin) # todo haim
 
     def adjust_csl(self, bounding_planes_margin):
         # self.centralize() # todo haim meshes from csl are centralized?
         # self.rotate_by_pca()
-        # self.scale(bounding_planes_margin)
+        self.scale(bounding_planes_margin)
         self.add_boundary_planes(margin=bounding_planes_margin)
 
 

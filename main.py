@@ -5,7 +5,6 @@ from ChainTrainer import ChainTrainer
 from SlicesDataset import SlicesDataset
 from Renderer import *
 from Mesher import *
-from OctnetTreeTrainer import *
 from Comperator import hausdorff_distance
 
 
@@ -16,44 +15,46 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
 
     trainer.prepare_for_training(slices_dataset, contour_dataset)
 
-    for epochs in hp.epochs_batches:
+    for i, epochs in enumerate(hp.epochs_batches):
         trainer.refine_sampling()
         trainer.train_epochs_batch(epochs)
-        handle_meshes()
+        handle_meshes(trainer, hp, save_path, i)
+        save_heatmaps(trainer, save_path, i)
 
     trainer.show_train_losses(save_path)
 
 
-def handle_meshes(tree, hp, save_path, original_mesh):
-    #mesh_mc = marching_cubes(tree, hp.sampling_resolution_3d)
+def handle_meshes(trainer, hp, save_path, label):
+    #mesh_mc = marching_cubes(trainer, hp.sampling_resolution_3d)
     #mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
-    #mesh_dc = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=True)
+    #mesh_dc = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=True)
     #mesh_dc.save(save_path + f'mesh_dc_grad.obj')
 
-    mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False)
-    mesh_dc_no_grad.save(save_path + f'mesh_dc_no_grad.obj')
+    mesh_dc_no_grad = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=False)
+    mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
 
-    hausdorff_distance(f'{save_path}/original_mesh.stl', save_path + f'mesh_dc_no_grad.obj', save_path)
+    hausdorff_distance(f'{save_path}/original_mesh.stl', save_path + f'mesh_dc_no_grad.obj',
+                       f'{save_path}/hausdorff_distance{label}.json')
 
     '''
     for loop in [-1, -2, 5, 1]:
-        mesh_dc_no_grad = dual_contouring(tree, hp.sampling_resolution_3d, use_grads=False, loop=loop)
+        mesh_dc_no_grad = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=False, loop=loop)
         mesh_dc_no_grad.save(save_path + f'mesh_loop{loop}_dc_no_grad.obj')
     '''
 
     return mesh_dc_no_grad
 
 
-def save_heatmaps(tree, save_path, hp):
-    heatmap_path = save_path + f'/heatmaps_l{0}/'
+def save_heatmaps(trainer, save_path, label):
+    heatmap_path = save_path + f'/heatmaps_{label}/'
 
     os.makedirs(heatmap_path, exist_ok=True)
 
     for dim in (0, 1, 2):
         for dist in np.linspace(-0.5, 0.5, 3):
             renderer = Renderer2D()
-            renderer.heatmap([100] * 2, tree, dim, dist, True)
+            renderer.heatmap([100] * 2, trainer, dim, dist, True)
             renderer.save(heatmap_path)
             renderer.clear()
 
@@ -76,8 +77,9 @@ def main():
         print(f'csl={csl.model_name}')
 
         train_cycle(csl, hp, trainer, should_calc_density, save_path)
-        save_heatmaps(trainer, save_path, hp)
-        mesh_dc = handle_meshes(trainer, hp, save_path, './mesh/eight.obj')
+
+        save_heatmaps(trainer, save_path, 'last')
+        mesh_dc = handle_meshes(trainer, hp, save_path, 'last')
 
         renderer = Renderer3D()
         renderer.add_scene(csl)
