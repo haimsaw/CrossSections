@@ -14,6 +14,7 @@ def make_csl_from_mesh(filename, save_path):
 
     # ds = (np.random.random_sample(n_slices)*2 - 1) * 0.75
     ds = np.linspace(-1, 1, n_slices)
+    #ds = [-0.5454545454545454]
 
     plane_origins = [plane_origin_from_params((*n, d)) for n, d in zip(plane_normals, ds)]
 
@@ -25,7 +26,6 @@ def make_csl_from_mesh(filename, save_path):
 
     with open(f'{save_path}/{model_name}_generated.csl', 'w') as f:
         f.write(repr(csl))
-    return csl
 
     my_mesh = mesh2.Mesh(np.zeros(len(faces), dtype=mesh2.Mesh.dtype))
     for i, f in enumerate(faces):

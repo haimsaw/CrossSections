@@ -147,7 +147,7 @@ class Plane:
         for cc in ccs:
             # todo haim - this does not handles non empty holes
 
-            parent_cc_index = -1
+            is_hole = False
             point_inside_cc = pca.transform(cc[0:1])
             for other_cc in ccs:
                 if other_cc is cc:
@@ -157,17 +157,16 @@ class Plane:
                 path = Path(shape_vertices, shape_codes)
                 if path.contains_points(point_inside_cc)[0]:
                     # todo not neccery 1 but enoght for my purpucess
-                    parent_cc_index = 1
+                    is_hole = True
                     break
 
-            if parent_cc_index > 0 != LinearRing(cc).is_ccw:
-                # holes are oriented cc
+            if is_hole == LinearRing(pca.transform(cc)).is_ccw:
                 oriented_cc = cc[::-1]
             else:
                 oriented_cc = cc
 
             vert_start = len(vertices)
-            connected_components.append(ConnectedComponent(parent_cc_index, 1, list(range(vert_start, vert_start+len(cc)))))
+            connected_components.append(ConnectedComponent(1 if is_hole else -1, 1, list(range(vert_start, vert_start+len(cc)))))
             vertices = np.concatenate((vertices, oriented_cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
