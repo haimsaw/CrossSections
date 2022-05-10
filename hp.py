@@ -9,7 +9,7 @@ def get_csl(bounding_planes_margin, save_path):
     # csl = CSL.from_csl_file("csl-files/ParallelEight.csl")
     # csl = CSL.from_csl_file("csl-files/ParallelEightMore.csl")
     # csl = CSL.from_csl_file("csl-files/SideBishop.csl")
-    csl = CSL.from_csl_file("csl-files/Heart-25-even-better.csl")
+    # csl = CSL.from_csl_file("csl-files/Heart-25-even-better.csl")
     # csl = CSL.from_csl_file("csl-files/Armadillo-23-better.csl")
     # csl = CSL.from_csl_file("csl-files/Horsers.csl")
     # csl = CSL.from_csl_file("csl-files/rocker-arm.csl")
@@ -17,10 +17,10 @@ def get_csl(bounding_planes_margin, save_path):
     # csl = CSL.from_csl_file("csl-files/Vetebrae.csl")
     # csl = CSL.from_csl_file("csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("csl-files/Brain.csl")
+    # csl = CSL.from_csl_file('C:\\Users\\hasawday\\PycharmProjects\\CrossSections\\artifacts\\test\\armadillo_generated.csl')
 
     # csl = make_csl_from_mesh('./mesh/eight.obj', save_path)
-    # csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
-
+    csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
@@ -32,7 +32,7 @@ class HP:
         self.bounding_planes_margin = 0.05
         self.sampling_margin = 0.05  # same as bounding_planes_margin
         self.oct_overlap_margin = 0.25
-        self.refinement_type = 'edge' #  ['errors', 'edge', 'none']
+        self.refinement_type = 'edge'  # ['errors', 'edge', 'none']
 
         # resolutions
         self.root_sampling_resolution_2d = (8, 8)

@@ -145,7 +145,11 @@ class Renderer2D:
     def draw_plane_verts(self, plane):
         verts, _ = plane.pca_projection
         for component in plane.connected_components:
-            self.ax.scatter(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
+            cc_verts = verts[component.vertices_indices]
+            self.ax.scatter(*cc_verts.T, color='orange' if component.is_hole else 'black')
+            for i, vert in enumerate(cc_verts):
+                self.ax.annotate( str(i), vert)
+
         self.ax.scatter([0], [0], color='red')
         self.description.append("draw_plane_verts")
 

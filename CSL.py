@@ -3,6 +3,7 @@ from itertools import chain
 import numpy as np
 from meshcut import cross_section
 from parse import parse
+from shapely.geometry.polygon import LinearRing
 from sklearn.decomposition import PCA
 from matplotlib.path import Path
 
@@ -94,7 +95,7 @@ class Plane:
 
     def __repr__(self):
         plane = f"{self.plane_id} {len(self.vertices)} {len(self.connected_components)} {' '.join(map(str, self.plane_params))}\n\n"
-        verts = ''.join([' '.join(map(str, vert)) + '\n' for vert in self.vertices]) + "\n\n"
+        verts = ''.join(['{:.10f} {:.10f} {:.10f}'.format(*vert) + '\n' for vert in self.vertices]) + "\n"
         ccs = ''.join(map(repr, self.connected_components))
         return plane + verts + ccs
 
@@ -127,7 +128,7 @@ class Plane:
         plane_id, n_vertices, n_connected_components, a, b, c, d = \
             parse("{:d} {:d} {:d} {:f} {:f} {:f} {:f}", line)
         plane_params = (a, b, c, d)
-        vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for _ in range(n_vertices)])
+        vertices = np.array([parse("{:f} {:f} {:f}", next(csl_file).strip()).fixed for i in range(n_vertices)])
         if n_vertices == 0:
             vertices = np.empty(shape=(0, 3))
         assert len(vertices) == n_vertices
@@ -155,12 +156,19 @@ class Plane:
                 shape_codes = [Path.MOVETO] + [Path.LINETO] * (len(other_cc) - 1) + [Path.CLOSEPOLY]
                 path = Path(shape_vertices, shape_codes)
                 if path.contains_points(point_inside_cc)[0]:
+                    # todo not neccery 1 but enoght for my purpucess
                     parent_cc_index = 1
                     break
 
+            if parent_cc_index > 0 != LinearRing(cc).is_ccw:
+                # holes are oriented cc
+                oriented_cc = cc[::-1]
+            else:
+                oriented_cc = cc
+
             vert_start = len(vertices)
             connected_components.append(ConnectedComponent(parent_cc_index, 1, list(range(vert_start, vert_start+len(cc)))))
-            vertices = np.concatenate((vertices, cc))
+            vertices = np.concatenate((vertices, oriented_cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
 
@@ -227,19 +235,19 @@ class CSL:
 
     @classmethod
     def from_mesh(cls, model_name, plane_origins,  plane_normals, ds, verts, faces):
-        n_labels = 1
+        n_labels = 2
 
         def plane_gen(csl):
             planes = []
-            for i, (origin, normal, d) in enumerate(zip(plane_origins, plane_normals, ds)):
+            i = 1
+            for origin, normal, d in zip(plane_origins, plane_normals, ds):
                 plane_params = (*normal, d)
 
                 # todo haim not sure cc is ccw\cw
                 ccs = cross_section(verts, faces, plane_orig=origin, plane_normal=normal)
                 if len(ccs) > 0:
-                    planes.append(Plane.from_mesh(ccs, plane_params, i+1, csl))
-                else:
-                    planes.append(Plane.empty_plane(i+1, plane_params, csl))
+                    planes.append(Plane.from_mesh(ccs, plane_params, i, csl))
+                    i += 1
             return planes
         return cls(model_name, plane_gen, n_labels)
 
