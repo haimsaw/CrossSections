@@ -19,7 +19,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
 
     with Pool(processes=cpu_count()) as pool:
         for i, epochs in enumerate(hp.epochs_batches):
-            print(f'{"="*10} epochs batch {i}/{len(hp.epochs_batches)}:')
+            print(f'\n\n{"="*10} epochs batch {i}/{len(hp.epochs_batches)}:')
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             try:

@@ -144,14 +144,13 @@ class Plane:
         b0 = ccs[0][0] - origin
         b0 /= np.linalg.norm(b0)
 
-        b1 = np.cross(b0, normal)
+        b1 = np.cross(normal, b0)
 
         transformation_matrix = np.array([b0, b1])
 
         def to_plane_cords(xyzs):
             alinged = xyzs - origin
             return np.array([transformation_matrix @ v for v in alinged])
-
 
         for cc in ccs:
             # todo haim - this does not handles non empty holes

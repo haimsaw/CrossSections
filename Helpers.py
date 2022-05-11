@@ -38,6 +38,13 @@ def timing(f):
 
 
 def plane_origin_from_params(plane_params):
+    '''
+    normal = np.array(plane_params[0:3])
+    d = plane_params[3]
+    origin = normal*-1*d
+    return origin
+    '''
+
     if plane_params[0] != 0:
         return np.array([-plane_params[3] / plane_params[0], 0, 0])
     elif plane_params[1] != 0:
