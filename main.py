@@ -11,13 +11,14 @@ from Comperator import hausdorff_distance
 
 
 def train_cycle(csl, hp, trainer, should_calc_density, save_path):
-    slices_dataset = SlicesDataset.from_csl(csl, sampling_resolution=hp.root_sampling_resolution_2d,
-                                            sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
-    contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
+    with Pool(processes=cpu_count()//2) as pool:
 
-    trainer.prepare_for_training(slices_dataset, contour_dataset)
+        slices_dataset = SlicesDataset.from_csl(csl, pool=pool, sampling_resolution=hp.root_sampling_resolution_2d,
+                                                sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
+        contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
 
-    with Pool(processes=cpu_count()) as pool:
+        trainer.prepare_for_training(slices_dataset, contour_dataset)
+
         for i, epochs in enumerate(hp.epochs_batches):
             print(f'\n\n{"="*10} epochs batch {i}/{len(hp.epochs_batches)}:')
             new_cells, promise = trainer.get_refined_cells(pool)
@@ -82,11 +83,11 @@ def main():
         csl = get_csl(hp.bounding_planes_margin, save_path)
         should_calc_density = hp.density_lambda > 0
 
-        '''
+
         r = Renderer3D()
         r.add_scene(csl)
         r.show()
-        '''
+
 
         trainer = ChainTrainer(csl, hp)
 

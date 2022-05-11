@@ -46,12 +46,14 @@ def get_verts_faces(filename):
     faces = scene.mesh_list[0].faces
     return verts, faces, 1/scale
 
+
 def get_random_planes(n_slices, scale):
     print('!!!!!! using random slices!!!!!!')
     plane_normals = np.random.randn(n_slices, 3)
 
     ds = (np.random.random_sample(n_slices) * 2*scale - scale)
     return plane_normals, ds
+
 
 def get_armadillo_planes(n_slices, scale):
     n_slices1 = int(n_slices*0.85)

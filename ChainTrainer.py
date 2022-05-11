@@ -170,9 +170,6 @@ class ChainTrainer(INetManager):
             else:
                 new_cells.append(cell)
 
-       # print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
-
-        #res = pool.apply_async(SlicesDataset.from_cells, (self.csl, self.slices_dataset.should_calc_density, new_cells))
         promise = pool.map_async(lambda cell: cell.density, new_cells)
         return new_cells, promise
 

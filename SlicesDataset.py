@@ -209,12 +209,15 @@ class SlicesDataset(Dataset):
         return cls(csl, should_calc_density, np.array(cells))
 
     @classmethod
-    def from_csl(cls, csl, should_calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
+    def from_csl(cls, csl, should_calc_density, pool, sampling_resolution=(256, 256), sampling_margin=0.2):
         cells = []
         for plane in csl.planes:
             cells += slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
 
         cells = np.array(cells)
+
+        # calculate density in pool
+        ret = pool.imap_unordered(lambda cell: cell.density, cells)
         return cls(csl, should_calc_density, cells)
 
     def __len__(self):
@@ -226,19 +229,4 @@ class SlicesDataset(Dataset):
         density = torch.tensor([cell.density] if self.should_calc_density else [-1])
 
         return xyz, density
-
-
-class SlicesDatasetFake(Dataset):
-    def __init__(self, csl, calc_density, sampling_resolution=(256, 256), sampling_margin=0.2):
-        self.xyzs = get_xyzs_in_octant(None, (32, 32, 32))
-        self.radius = 0.4
-
-    def __len__(self):
-        return len(self.xyzs)
-
-    def __getitem__(self, idx):
-        xyz = torch.tensor(self.xyzs[idx])
-
-        label = torch.tensor([INSIDE_LABEL] if np.dot(xyz, xyz) < self.radius else [OUTSIDE_LABEL])
-        return xyz, label
 
