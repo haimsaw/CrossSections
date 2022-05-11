@@ -38,6 +38,8 @@ def dual_contouring(net_manager, sampling_resolution_3d, use_grads, loop=-1):
 
     labels = net_manager.soft_predict(xyzs, loop).reshape(sampling_resolution_3d+1)
     print(f'labels: max={labels.max()} min={labels.min()}')
+    if labels.min() > 0:
+        raise Exception('no zero level set 0')
     # dual_contour_3d uses grid points as coordinates
     # so i j k are the indices for the label (and not the actual point)
 

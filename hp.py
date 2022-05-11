@@ -20,8 +20,8 @@ def get_csl(bounding_planes_margin, save_path):
     # csl = CSL.from_csl_file('C:\\Users\\hasawday\\PycharmProjects\\CrossSections\\artifacts\\test\\armadillo_generated.csl')
 
     # csl = make_csl_from_mesh('./mesh/eight.obj', save_path)
-    csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
-    # csl = CSL.from_csl_file('C:\\Users\\hasawday\\PycharmProjects\\CrossSections\\artifacts\\test\\armadillo_generated.csl')
+    # csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
+    csl = CSL.from_csl_file('C:\\Users\\hasawday\\PycharmProjects\\CrossSections\\artifacts\\test\\armadillo_generated.csl')
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
@@ -36,8 +36,9 @@ class HP:
         self.refinement_type = 'edge'  # ['errors', 'edge', 'none']
 
         # resolutions
-        self.root_sampling_resolution_2d = (8, 8)
-        self.sampling_resolution_3d = (64, 64, 64)
+        self.root_sampling_resolution_2d = (32, 32)
+        self.sampling_resolution_3d = (128, 128, 128)
+        self.intermediate_sampling_resolution_3d = (64, 64, 64)
 
         # architecture
         self.num_embedding_freqs = 4

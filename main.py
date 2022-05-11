@@ -23,30 +23,31 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
             print(f'\n\n{"="*10} epochs batch {i}/{len(hp.epochs_batches)}:')
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
+            trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
             trainer.show_train_losses(save_path)
 
             try:
                 print('meshing')
-                handle_meshes(trainer, hp, save_path, i)
+                handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i)
                 pass
             except Exception as e:
                 print(e)
-            print('heatmaps')
-            save_heatmaps(trainer, save_path, i)
+            # print('heatmaps')
+            # save_heatmaps(trainer, save_path, i)
             print('waiting for cell density calculation...')
             promise.wait()
             trainer.update_data_loaders(new_cells)
 
 
 
-def handle_meshes(trainer, hp, save_path, label):
+def handle_meshes(trainer, sampling_resolution_3d, save_path, label):
     #mesh_mc = marching_cubes(trainer, hp.sampling_resolution_3d)
     #mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
     #mesh_dc = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=True)
     #mesh_dc.save(save_path + f'mesh_dc_grad.obj')
 
-    mesh_dc_no_grad = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=False)
+    mesh_dc_no_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=False)
     mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
 
     hausdorff_distance(f'{save_path}/original_mesh.stl', save_path + f'mesh{label}_dc_no_grad.obj',
@@ -94,7 +95,7 @@ def main():
         train_cycle(csl, hp, trainer, should_calc_density, save_path)
 
         save_heatmaps(trainer, save_path, 'last')
-        mesh_dc = handle_meshes(trainer, hp, save_path, 'last')
+        mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last')
 
         renderer = Renderer3D()
         renderer.add_scene(csl)

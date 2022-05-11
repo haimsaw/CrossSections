@@ -15,7 +15,6 @@ from SlicesDataset import SlicesDataset
 class ChainTrainer(INetManager):
     def __init__(self, csl, hp, verbose=False):
         super().__init__(csl, verbose)
-        self.save_path = "trained_model.pt"
         self.hp = hp
 
         self.module = HaimNetWithState(hp)
@@ -200,14 +199,14 @@ class ChainTrainer(INetManager):
         plt.bar(range(len(self.train_losses)), self.train_losses)
         if save_path is not None:
             plt.savefig(save_path + f"losses")
-        # plt.show()
+        plt.show()
 
-    def load_from_disk(self):
-        self.module.load_state_dict(torch.load(self.save_path, map_location=torch.device('cpu')))
+    def load_from_disk(self, save_path):
+        self.module.load_state_dict(torch.load(save_path))
         self.module.eval()
 
-    def save_to_disk(self):
-        torch.save(self.module.state_dict(), self.save_path)
+    def save_to_disk(self, save_path):
+        torch.save(self.module.state_dict(), save_path)
 
     @torch.no_grad()
     def soft_predict(self, xyzs, loop=-1):
