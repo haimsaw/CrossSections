@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-
+import numpy as np
 from CSL import CSL
 from Slicer import make_csl_from_mesh
 
@@ -35,7 +35,7 @@ class HP:
         self.refinement_type = 'edge'  # ['errors', 'edge', 'none']
 
         # resolutions
-        self.root_sampling_resolution_2d = (8, 8)
+        self.root_sampling_resolution_2d = (32, 32)
         self.sampling_resolution_3d = (64, 64, 64)
 
         # architecture
@@ -51,7 +51,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs_batches = [25, 25, 50, 50, 50]
+        self.epochs_batches = [25, 25, 50, 50, 50, 100, 100]
         self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-2

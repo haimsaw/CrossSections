@@ -160,6 +160,7 @@ class Plane:
                     is_hole = True
                     break
 
+            # todo haim not sure pce is correct here
             if is_hole == LinearRing(pca.transform(cc)).is_ccw:
                 oriented_cc = cc[::-1]
             else:
@@ -242,7 +243,6 @@ class CSL:
             for origin, normal, d in zip(plane_origins, plane_normals, ds):
                 plane_params = (*normal, d)
 
-                # todo haim not sure cc is ccw\cw
                 ccs = cross_section(verts, faces, plane_orig=origin, plane_normal=normal)
                 if len(ccs) > 0:
                     planes.append(Plane.from_mesh(ccs, plane_params, i, csl))
@@ -294,8 +294,7 @@ class CSL:
             return
         for plane in self.planes:
             plane.vertices /= 1.1 * scale_factor
-            # scale again so that the bounding planes will be in the range
-            # plane.vertices *= (1 - 2 * bounding_planes_margin) # todo haim
+            plane.plane_origin /= 1.1 * scale_factor
 
     def adjust_csl(self, bounding_planes_margin):
         # self.centralize() # todo haim meshes from csl are centralized?
