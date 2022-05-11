@@ -136,23 +136,29 @@ class Plane:
         return cls(plane_id, plane_params, vertices, connected_components, csl)
 
     @classmethod
-    def from_mesh(cls, ccs, plane_params, plane_id, csl):
+    def from_mesh(cls, ccs, plane_params, normal, origin, plane_id, csl):
 
         connected_components = []
         vertices = np.empty(shape=(0, 3))
 
-        pca = PCA(n_components=2, svd_solver="full")
-        pca.fit(ccs[0][0:3])
+        b0 = ccs[0][0] - origin
+        b0 /= np.linalg.norm(b0)
+
+        b1 = np.cross(b0, normal)
+
+        transformation_matrix = np.array([b0, b1])
+
+        def to_plane_cords(xyzs):
+            alinged = xyzs - origin
+            return np.array([transformation_matrix @ v for v in alinged])
+
 
         for cc in ccs:
             # todo haim - this does not handles non empty holes
-            is_hole, parent_cc_idx = cls._is_cc_hole(cc, ccs, pca)
+            is_hole, parent_cc_idx = cls._is_cc_hole(cc, ccs, to_plane_cords)
 
             # todo haim not sure pce is correct here
-            if is_hole == LinearRing(pca.transform(cc)).is_ccw:
-                oriented_cc = cc[::-1]
-            else:
-                oriented_cc = cc
+            oriented_cc = cls._orient_cc(cc, is_hole, to_plane_cords)
 
             vert_start = len(vertices)
             if is_hole:
@@ -164,14 +170,23 @@ class Plane:
         return cls(plane_id, plane_params, vertices, connected_components, csl)
 
     @classmethod
-    def _is_cc_hole(cls, cc, ccs, pca):
+    def _orient_cc(cls, cc, is_hole, to_plane_cords):
+        if is_hole == LinearRing(to_plane_cords(cc)).is_ccw:
+            oriented_cc = cc[::-1]
+        else:
+            oriented_cc = cc
+        return oriented_cc
+
+    @classmethod
+    def _is_cc_hole(cls, cc, ccs, transform):
         is_hole = False
         parent_cc_idx = -1
-        point_inside_cc = pca.transform(cc[0:1])
+
+        point_inside_cc = transform(cc[0:1])
         for i, other_cc in enumerate(ccs):
             if other_cc is cc:
                 continue
-            shape_vertices = list(pca.transform(other_cc)) + [[0, 0]]
+            shape_vertices = list(transform(other_cc)) + [[0, 0]]
             shape_codes = [Path.MOVETO] + [Path.LINETO] * (len(other_cc) - 1) + [Path.CLOSEPOLY]
             path = Path(shape_vertices, shape_codes)
             if path.contains_points(point_inside_cc)[0]:
@@ -254,7 +269,7 @@ class CSL:
 
                 ccs = cross_section(verts, faces, plane_orig=origin, plane_normal=normal)
                 if len(ccs) > 0:
-                    planes.append(Plane.from_mesh(ccs, plane_params, i, csl))
+                    planes.append(Plane.from_mesh(ccs, plane_params,normal, origin, i, csl))
                     i += 1
             return planes
         return cls(model_name, plane_gen, n_labels)

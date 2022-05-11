@@ -23,14 +23,15 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             try:
+                print('meshing')
                 handle_meshes(trainer, hp, save_path, i)
                 pass
             except Exception as e:
                 print(e)
+            print('heatmaps')
             save_heatmaps(trainer, save_path, i)
             print('waiting for cell density calculation...')
             promise.wait()
-            print('done waiting')
             trainer.update_data_loaders(new_cells)
 
     trainer.show_train_losses(save_path)
