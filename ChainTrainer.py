@@ -117,10 +117,10 @@ class ChainTrainer(INetManager):
     def prepare_for_training(self, slices_dataset, contour_dataset):
         # todo haim samplers
 
-        self.slices_dataset = None
+        self.slices_dataset = slices_dataset
         self.contour_dataset = contour_dataset
 
-        self.update_data_loaders(slices_dataset)
+        self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
 
         self.module.init_weights()
 
@@ -132,17 +132,17 @@ class ChainTrainer(INetManager):
 
         self.is_training_ready = True
 
-    def update_data_loaders(self, new_dataset):
+    def update_data_loaders(self, new_cells):
         # todo haim samplers
         print(f'update_data_loaders dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }'
-              f' new={len(new_dataset)}')
-        self.slices_dataset = new_dataset
+              f' new={len(new_cells)}')
+        self.slices_dataset = SlicesDataset.from_cells(self.csl, True, new_cells)
         self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
         # contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
         # self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=self.hp.batch_size, sampler=contour_sampler)
 
     @torch.no_grad()
-    def get_refined_dataset(self, pool):
+    def get_refined_cells(self, pool):
         assert self.hp.refinement_type in ['errors', 'edge', 'none']
 
         self.module.eval()
@@ -172,9 +172,9 @@ class ChainTrainer(INetManager):
 
        # print(f'refine_sampling before={size_before}, after={len(self.slices_dataset)}, n_refinements = {self.refinements_num}')
 
-        res = pool.apply_async(SlicesDataset.from_cells, (self.csl, self.slices_dataset.should_calc_density, new_cells))
-
-        return res
+        #res = pool.apply_async(SlicesDataset.from_cells, (self.csl, self.slices_dataset.should_calc_density, new_cells))
+        promise = pool.map_async(lambda cell: cell.density, new_cells)
+        return new_cells, promise
 
 
     def train_network(self):

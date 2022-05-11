@@ -1,5 +1,6 @@
+import multiprocessing
 import os
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 from hp import get_csl, HP
 from ChainTrainer import ChainTrainer
@@ -10,15 +11,15 @@ from Comperator import hausdorff_distance
 
 
 def train_cycle(csl, hp, trainer, should_calc_density, save_path):
-    slices_dataset = SlicesDataset.from_csl(csl, sampling_resolution=hp.root_sampling_resolution_2d, sampling_margin=hp.sampling_margin,
-                                   should_calc_density=should_calc_density)
+    slices_dataset = SlicesDataset.from_csl(csl, sampling_resolution=hp.root_sampling_resolution_2d,
+                                            sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
     contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
 
     trainer.prepare_for_training(slices_dataset, contour_dataset)
 
-    with Pool(processes=1) as pool:
+    with Pool(processes=cpu_count()) as pool:
         for i, epochs in enumerate(hp.epochs_batches):
-            promise = trainer.get_refined_dataset(pool)
+            new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             try:
                 handle_meshes(trainer, hp, save_path, i)
@@ -26,7 +27,10 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
             except Exception as e:
                 print(e)
             save_heatmaps(trainer, save_path, i)
-            trainer.update_data_loaders(promise.get())
+            print('waiting for cell density calculation...')
+            promise.wait()
+            print('done waiting')
+            trainer.update_data_loaders(new_cells)
 
     trainer.show_train_losses(save_path)
 
