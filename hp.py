@@ -21,6 +21,7 @@ def get_csl(bounding_planes_margin, save_path):
 
     # csl = make_csl_from_mesh('./mesh/eight.obj', save_path)
     csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
+    csl = CSL.from_csl_file('C:\\Users\\hasawday\\PycharmProjects\\CrossSections\\artifacts\\test\\armadillo_generated.csl')
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl

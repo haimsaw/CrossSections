@@ -94,7 +94,7 @@ class Plane:
         self.plane_origin = plane_origin_from_params(plane_params)
 
     def __repr__(self):
-        plane = f"{self.plane_id} {len(self.vertices)} {len(self.connected_components)} {' '.join(map(str, self.plane_params))}\n\n"
+        plane = f"{self.plane_id} {len(self.vertices)} {len(self.connected_components)} {'{:.10f} {:.10f} {:.10f} {:.10f}'.format(*self.plane_params)}\n\n"
         verts = ''.join(['{:.10f} {:.10f} {:.10f}'.format(*vert) + '\n' for vert in self.vertices]) + "\n"
         ccs = ''.join(map(repr, self.connected_components))
         return plane + verts + ccs
@@ -148,8 +148,9 @@ class Plane:
             # todo haim - this does not handles non empty holes
 
             is_hole = False
+            parent_cc_idx = -1
             point_inside_cc = pca.transform(cc[0:1])
-            for other_cc in ccs:
+            for i, other_cc in enumerate(ccs):
                 if other_cc is cc:
                     continue
                 shape_vertices = list(pca.transform(other_cc)) + [[0, 0]]
@@ -158,6 +159,7 @@ class Plane:
                 if path.contains_points(point_inside_cc)[0]:
                     # todo not neccery 1 but enoght for my purpucess
                     is_hole = True
+                    parent_cc_idx = i
                     break
 
             # todo haim not sure pce is correct here
@@ -167,7 +169,10 @@ class Plane:
                 oriented_cc = cc
 
             vert_start = len(vertices)
-            connected_components.append(ConnectedComponent(1 if is_hole else -1, 1, list(range(vert_start, vert_start+len(cc)))))
+            if is_hole:
+                connected_components.append(ConnectedComponent(-1, 1, list(range(vert_start, vert_start+len(cc)))))
+            else:
+                connected_components.append(ConnectedComponent(parent_cc_idx, 2, list(range(vert_start, vert_start+len(cc)))))
             vertices = np.concatenate((vertices, oriented_cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
