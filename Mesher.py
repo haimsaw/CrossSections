@@ -19,7 +19,6 @@ def _get_mesh(labels, level, spacing):
     return my_mesh
 
 
-@timing
 def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
@@ -30,7 +29,6 @@ def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
     return _get_mesh(labels.reshape(sampling_resolution_3d), level=0, spacing=[2/res for res in sampling_resolution_3d])
 
 
-@timing
 def dual_contouring(net_manager, sampling_resolution_3d, use_grads, loop=-1):
     sampling_resolution_3d = np.array(sampling_resolution_3d)
 
