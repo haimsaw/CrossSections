@@ -19,6 +19,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
 
     with Pool(processes=cpu_count()) as pool:
         for i, epochs in enumerate(hp.epochs_batches):
+            print(f'{"="*10} epochs batch {i}/{len(hp.epochs_batches)}:')
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             try:
@@ -80,9 +81,11 @@ def main():
         csl = get_csl(hp.bounding_planes_margin, save_path)
         should_calc_density = hp.density_lambda > 0
 
+        '''
         r = Renderer3D()
         r.add_scene(csl)
         r.show()
+        '''
 
         trainer = ChainTrainer(csl, hp)
 

@@ -146,21 +146,7 @@ class Plane:
 
         for cc in ccs:
             # todo haim - this does not handles non empty holes
-
-            is_hole = False
-            parent_cc_idx = -1
-            point_inside_cc = pca.transform(cc[0:1])
-            for i, other_cc in enumerate(ccs):
-                if other_cc is cc:
-                    continue
-                shape_vertices = list(pca.transform(other_cc)) + [[0, 0]]
-                shape_codes = [Path.MOVETO] + [Path.LINETO] * (len(other_cc) - 1) + [Path.CLOSEPOLY]
-                path = Path(shape_vertices, shape_codes)
-                if path.contains_points(point_inside_cc)[0]:
-                    # todo not neccery 1 but enoght for my purpucess
-                    is_hole = True
-                    parent_cc_idx = i
-                    break
+            is_hole, parent_cc_idx = cls._is_cc_hole(cc, ccs, pca)
 
             # todo haim not sure pce is correct here
             if is_hole == LinearRing(pca.transform(cc)).is_ccw:
@@ -176,6 +162,24 @@ class Plane:
             vertices = np.concatenate((vertices, oriented_cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
+
+    @classmethod
+    def _is_cc_hole(cls, cc, ccs, pca):
+        is_hole = False
+        parent_cc_idx = -1
+        point_inside_cc = pca.transform(cc[0:1])
+        for i, other_cc in enumerate(ccs):
+            if other_cc is cc:
+                continue
+            shape_vertices = list(pca.transform(other_cc)) + [[0, 0]]
+            shape_codes = [Path.MOVETO] + [Path.LINETO] * (len(other_cc) - 1) + [Path.CLOSEPOLY]
+            path = Path(shape_vertices, shape_codes)
+            if path.contains_points(point_inside_cc)[0]:
+                # todo not neccery 1 but enoght for my purpucess
+                is_hole = True
+                parent_cc_idx = i
+                break
+        return is_hole, parent_cc_idx
 
     @classmethod
     def empty_plane(cls, plane_id, plane_params, csl):
