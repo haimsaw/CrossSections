@@ -47,7 +47,7 @@ class ConnectedComponent:
     def __init__(self, parent_cc_index, label, vertices_indices):
         self.parent_cc_index = parent_cc_index
         self.label = label
-        self.vertices_indices = vertices_indices
+        self.vertices_indices = np.array(vertices_indices)
 
     @classmethod
     def from_cls(cls, csl_file):

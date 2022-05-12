@@ -8,6 +8,35 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NetManager import INetManager
 
 import matplotlib.animation as animation
+import polyscope as ps
+
+# region polyscope
+
+# endregion
+
+
+class RendererPoly:
+    def __init__(self):
+        ps.init()
+
+    def add_scene(self, csl):
+        verts = np.empty((0, 3))
+        edges = np.empty((0, 2))
+
+        for plane in csl.planes:
+
+            plane_vert_start = len(verts)
+            verts = np.concatenate((verts, plane.vertices))
+
+            for cc in plane.connected_components:
+                e1 = cc.vertices_indices + plane_vert_start
+                e2 = np.concatenate((cc.vertices_indices[1:], cc.vertices_indices[0:1])) + plane_vert_start
+
+                edges = np.concatenate((edges, np.stack((e1, e2)).T))
+        ps_net = ps.register_curve_network(f"scene", verts, edges)
+
+    def show(self):
+        ps.show()
 
 # region 3d
 
