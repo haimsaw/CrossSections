@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from hp import get_csl, HP
 
 def csl_to_xyz():
-    save_path = "artifacts/xyz/"
+    save_path = "xyz-files/"
     hp = HP()
     n_points_per_edge = 5
 
@@ -18,9 +18,13 @@ def csl_to_xyz():
                 pts += [e1*d + e2*(1-d) for d in np.linspace(0, 1, n_points_per_edge)]
 
     pts = np.array(pts)
-    ax = plt.axes(projection='3d')
-    ax.scatter(*pts.T, color='red')
-    plt.show()
+    file_name = f'{save_path}{csl.model_name}.xyz'
+
+    with open(file_name, 'w') as f:
+        for pt in pts:
+            f.write('{:.10f} {:.10f} {:.10f}\n'.format(*pt))
+    print(file_name)
+
 
 if __name__ == "__main__":
     csl_to_xyz()
