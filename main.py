@@ -24,7 +24,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
-            trainer.show_train_losses(save_path)
+            # trainer.show_train_losses(save_path)
 
             try:
                 print('meshing')
