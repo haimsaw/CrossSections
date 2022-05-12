@@ -6,7 +6,7 @@ from Slicer import make_csl_from_mesh
 
 
 def get_csl(bounding_planes_margin, save_path):
-    # csl = CSL.from_csl_file("csl-files/ParallelEight.csl")
+    csl = CSL.from_csl_file("csl-files/ParallelEight.csl")
     # csl = CSL.from_csl_file("csl-files/ParallelEightMore.csl")
     # csl = CSL.from_csl_file("csl-files/SideBishop.csl")
     # csl = CSL.from_csl_file("csl-files/Heart-25-even-better.csl")
@@ -21,7 +21,7 @@ def get_csl(bounding_planes_margin, save_path):
 
     # csl = make_csl_from_mesh('./mesh/eight.obj', save_path)
     # csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
-    csl = CSL.from_csl_file('.\\artifacts\\test\\armadillo_generated.csl')
+    # csl = CSL.from_csl_file('.\\artifacts\\test\\armadillo_generated.csl')
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
