@@ -1,8 +1,20 @@
+from multiprocessing import Pool, cpu_count
+
 import numpy as np
 
 from CSL import *
 import pywavefront
 from stl import mesh as mesh2
+
+
+class GetCcs:
+    def __init__(self, verts, faces):
+        self.verts=verts
+        self.faces= faces
+
+    def __call__(self, orig_normal):
+        o, n = orig_normal[0], orig_normal[1]
+        return cross_section(self.verts, self.faces, plane_orig=o, plane_normal=n)
 
 
 def make_csl_from_mesh(filename, save_path):
@@ -22,7 +34,11 @@ def make_csl_from_mesh(filename, save_path):
     plane_normals = (plane_normals.T / np.linalg.norm(plane_normals.T, axis=0)).T
     plane_origins = [plane_origin_from_params((*n, d)) for n, d in zip(plane_normals, ds)]
 
-    csl = CSL.from_mesh(model_name, plane_origins,  plane_normals, ds, verts, faces)
+    with Pool(processes=cpu_count() - 2) as pool:
+        ccr = GetCcs(verts, faces)
+        ccs_per_plane = pool.map(ccr, zip(plane_origins, plane_normals))
+
+    csl = CSL.from_mesh(model_name, plane_origins,  plane_normals, ds, ccs_per_plane)
 
     with open(f'{save_path}/{model_name}_generated.csl', 'w') as f:
         f.write(repr(csl))
@@ -83,7 +99,8 @@ def get_eight_planes(scale):
     return plane_normals, ds
 
 
-def get_armadillo_planes(n_slices, scale):
+def get_armadillo_planes(scale):
+    n_slices = 50
     n_slices1 = int(n_slices*0.5)
     n_slices2 = n_slices - n_slices1
 

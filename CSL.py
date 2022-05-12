@@ -256,16 +256,16 @@ class CSL:
             return cls(model_name, plane_gen, n_labels)
 
     @classmethod
-    def from_mesh(cls, model_name, plane_origins,  plane_normals, ds, verts, faces):
+    def from_mesh(cls, model_name, plane_origins,  plane_normals, ds, ccs_per_plane):
         n_labels = 2
 
         def plane_gen(csl):
             planes = []
             i = 1
-            for origin, normal, d in zip(plane_origins, plane_normals, ds):
+
+            for origin, normal, d, ccs in zip(plane_origins, plane_normals, ds, ccs_per_plane):
                 plane_params = (*normal, d)
 
-                ccs = cross_section(verts, faces, plane_orig=origin, plane_normal=normal)
                 if len(ccs) > 0:
                     planes.append(Plane.from_mesh(ccs, plane_params,normal, origin, i, csl))
                     i += 1

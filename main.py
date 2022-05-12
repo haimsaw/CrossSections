@@ -85,7 +85,7 @@ def main():
         csl = get_csl(hp.bounding_planes_margin, save_path)
         should_calc_density = hp.density_lambda > 0
 
-        r= Renderer3D()
+        r = RendererPoly()
         r.add_scene(csl)
         r.show()
 

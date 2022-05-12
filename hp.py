@@ -3,10 +3,11 @@ from datetime import datetime
 import numpy as np
 from CSL import CSL
 from Slicer import make_csl_from_mesh
+from csl_to_xyz import csl_to_xyz
 
 
 def get_csl(bounding_planes_margin, save_path):
-    csl = CSL.from_csl_file("csl-files/ParallelEight.csl")
+    # csl = CSL.from_csl_file("csl-files/ParallelEight.csl")
     # csl = CSL.from_csl_file("csl-files/ParallelEightMore.csl")
     # csl = CSL.from_csl_file("csl-files/SideBishop.csl")
     # csl = CSL.from_csl_file("csl-files/Heart-25-even-better.csl")
@@ -17,11 +18,11 @@ def get_csl(bounding_planes_margin, save_path):
     # csl = CSL.from_csl_file("csl-files/Vetebrae.csl")
     # csl = CSL.from_csl_file("csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("csl-files/Brain.csl")
-    # csl = CSL.from_csl_file('C:\\Users\\hasawday\\PycharmProjects\\CrossSections\\artifacts\\test\\armadillo_generated.csl')
+    # csl = CSL.from_csl_file('.\\artifacts\\test\\armadillo_generated.csl')
 
     # csl = make_csl_from_mesh('./mesh/eight.obj', save_path)
-    # csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
-    # csl = CSL.from_csl_file('.\\artifacts\\test\\armadillo_generated.csl')
+    csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
+    csl_to_xyz(csl)
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
