@@ -20,7 +20,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
         trainer.prepare_for_training(slices_dataset, contour_dataset)
 
         for i, epochs in enumerate(hp.epochs_batches):
-            print(f'\n\n{"="*10} epochs batch {i}/{len(hp.epochs_batches)}:')
+            print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             trainer.save_to_disk(save_path+f"trained_model_{i}.pt")

@@ -21,7 +21,7 @@ def get_csl(bounding_planes_margin, save_path):
 
     # csl = make_csl_from_mesh('./mesh/eight.obj', save_path)
     # csl = make_csl_from_mesh('./mesh/armadillo.obj', save_path)
-    csl = CSL.from_csl_file('C:\\Users\\hasawday\\PycharmProjects\\CrossSections\\artifacts\\test\\armadillo_generated.csl')
+    csl = CSL.from_csl_file('.\\artifacts\\test\\armadillo_generated.csl')
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
@@ -53,7 +53,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs_batches = [25, 25, 50, 50, 50, 100, 100]
+        self.epochs_batches = [50, 50, 100, 100, 100, 100]
         self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-2
