@@ -75,9 +75,8 @@ def save_heatmaps(trainer, save_path, label):
 
 
 def main():
-
         hp = HP()
-        model_name = "armadillo"
+        model_name = "eight_15"
         save_path = f'./artifacts/{model_name}/'
 
         print(f'{"=" * 50} {save_path}')
@@ -109,30 +108,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-'''
-todo
-batch size to hp and invrese to 4048, icrese step size??
-PE not bad
-slicer https://shapely.readthedocs.io/en/stable/manual.html
-sample - samples around edges + blue noise
-
-start paper
-compare with basic nerf and Robust optimization for topological surface reconstruction
-talk with guy or amir hertz about visualizations
-dual contouring - play with setting & debug
-
-brain - increase persition of sampling
-
-
-read: 
-https://arxiv.org/abs/2202.01999 - nural dc
-https://arxiv.org/pdf/2104.02699.pdf
-
-create slicer for chamfer compare
-serialize a tree (in case collab crashes)
-increase sampling (in prev work he used 2d= 216, 3d=300)
-
-
-point 2 data
-'''

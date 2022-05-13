@@ -31,7 +31,7 @@ def get_csl(bounding_planes_margin, save_path, name):
 
 
 class HP:
-    def _init_(self):
+    def __init__(self):
         # sampling
         self.bounding_planes_margin = 0.05
         self.sampling_margin = 0.05  # same as bounding_planes_margin
@@ -65,4 +65,4 @@ class HP:
         self.now = str(datetime.now())
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: o._dict_, sort_keys=True, indent=4)
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
