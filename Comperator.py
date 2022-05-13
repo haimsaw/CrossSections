@@ -18,4 +18,4 @@ def hausdorff_distance(original_mesh_path, recon_mesh_path, save_path):
 
 
 if __name__ == '__main__':
-    hausdorff_distance('./mesh/armadillo.obj', './mesh/eight.off', None)
+    hausdorff_distance('data/armadillo.obj', 'data/eight.off', None)

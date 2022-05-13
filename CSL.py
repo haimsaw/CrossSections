@@ -247,7 +247,7 @@ class CSL:
 
     @classmethod
     def from_csl_file(cls, filename):
-        model_name = filename.split('/')[-1].split('.')[0]
+        model_name = filename.split('/')[-1].split('\\')[-1].split('.')[0]
         with open(filename, 'r') as csl_file:
             csl_file = map(str.strip, filter(None, (line.rstrip() for line in csl_file)))
             assert next(csl_file).strip() == "CSLC"
@@ -267,7 +267,7 @@ class CSL:
                 plane_params = (*normal, d)
 
                 if len(ccs) > 0:
-                    planes.append(Plane.from_mesh(ccs, plane_params,normal, origin, i, csl))
+                    planes.append(Plane.from_mesh(ccs, plane_params, normal, origin, i, csl))
                     i += 1
             return planes
         return cls(model_name, plane_gen, n_labels)
@@ -317,6 +317,7 @@ class CSL:
         for plane in self.planes:
             plane.vertices /= 1.1 * scale_factor
             plane.plane_origin /= 1.1 * scale_factor
+            plane.plane_params = (*plane.normal, plane_d_from_origin(plane.plane_origin, plane.normal))
 
     def adjust_csl(self, bounding_planes_margin):
         # self.centralize() # todo haim meshes from csl are centralized?

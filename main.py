@@ -37,7 +37,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
             print('waiting for cell density calculation...')
             promise.wait()
             trainer.update_data_loaders(new_cells)
-
+    print('\n\n done train_cycle')
 
 
 def handle_meshes(trainer, sampling_resolution_3d, save_path, label):
@@ -76,27 +76,36 @@ def save_heatmaps(trainer, save_path, label):
 
 
 def main():
+
         hp = HP()
-        save_path = f'./artifacts/test/'
+        save_path = f'./artifacts/sliced/'
 
         print(f'{"=" * 50} {save_path}')
         os.makedirs(save_path, exist_ok=True)
 
-        csl = get_csl(hp.bounding_planes_margin, save_path)
-        should_calc_density = hp.density_lambda > 0
+        RendererPoly.init()
 
-        r = RendererPoly()
-        r.add_scene(csl)
-        r.show()
+        csl = get_csl(hp.bounding_planes_margin, save_path)
 
         trainer = ChainTrainer(csl, hp)
+        # trainer.load_from_disk(save_path+'trained_model_5.pt')
+        print(f'n slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
+        # render_mid_res(csl, trainer, (150, 150, 150))
+
+
+        RendererPoly.add_scene(csl)
+        RendererPoly.show()
+
+        return
 
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
 
         print(f'csl={csl.model_name}')
 
-        train_cycle(csl, hp, trainer, should_calc_density, save_path)
+        train_cycle(csl, hp, trainer, True, save_path)
+
+        # render_mid_res(csl, trainer, samplig_res_3d=(100, 100, 100))
 
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last')
         save_heatmaps(trainer, save_path, 'last')
@@ -135,5 +144,5 @@ serialize a tree (in case collab crashes)
 increase sampling (in prev work he used 2d= 216, 3d=300)
 
 
-point 2 mesh
+point 2 data
 '''

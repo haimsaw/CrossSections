@@ -5,6 +5,9 @@ import numpy as np
 from CSL import *
 import pywavefront
 from stl import mesh as mesh2
+from  Renderer import *
+
+from csl_to_xyz import csl_to_xyz
 
 
 class GetCcs:
@@ -22,6 +25,8 @@ def make_csl_from_mesh(filename, save_path):
     model_name = filename.split('/')[-1].split('.')[0]
 
     top, bottom = get_top_bottom(verts)
+    top = top * 0.99
+    bottom = bottom * 0.99
 
     if model_name == 'armadillo':
         plane_normals, ds = get_armadillo_planes(scale, top, bottom)
@@ -31,18 +36,22 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_brain_planes(scale, top, bottom)
 
     else:
-        plane_normals, ds = get_random_planes(scale)
+        plane_normals, ds = get_random_planes(scale, top, bottom)
 
     plane_normals = (plane_normals.T / np.linalg.norm(plane_normals.T, axis=0)).T
     plane_origins = [plane_origin_from_params((*n, d)) for n, d in zip(plane_normals, ds)]
 
-    with Pool(processes=cpu_count() // 2) as pool:
-        ccr = GetCcs(verts, faces)
-        ccs_per_plane = pool.map(ccr, zip(plane_origins, plane_normals))
+    # with Pool(processes=cpu_count() // 2) as pool:
+    ccr = GetCcs(verts, faces)
+    ccs_per_plane = list(map(ccr, zip(plane_origins, plane_normals)))
 
     csl = CSL.from_mesh(model_name, plane_origins,  plane_normals, ds, ccs_per_plane)
 
-    with open(f'{save_path}/{model_name}_generated.csl', 'w') as f:
+    RendererPoly.add_mesh(verts, faces)
+    RendererPoly.add_scene(csl)
+
+
+    with open(f'{save_path}/{model_name}_from_mesh.csl', 'w') as f:
         f.write(repr(csl))
 
     my_mesh = mesh2.Mesh(np.zeros(len(faces), dtype=mesh2.Mesh.dtype))
@@ -50,8 +59,10 @@ def make_csl_from_mesh(filename, save_path):
         for j in range(3):
             my_mesh.vectors[i][j] = verts[f[j], :]
 
-    mesh_path = f'{save_path}/original_mesh.stl'
+    mesh_path = f'{save_path}/{model_name}_scaled.stl'
     my_mesh.save(mesh_path)
+
+    # csl_to_xyz(csl, save_path)
     return csl
 
 
@@ -61,7 +72,7 @@ def get_verts_faces(filename):
 
     verts = np.array(scene.vertices)
     verts -= np.mean(verts, axis=0)
-    scale = 1.1
+    scale = 1
 
     verts /= scale * np.max(np.absolute(verts))
 
@@ -76,8 +87,13 @@ def get_brain_planes(scale, top, bottom):
     n_slices2 = n_slices1
     n_slices3 = n_slices - n_slices1 - n_slices2
 
-    plane_normals = np.array([(1.0, 0, 0)] * n_slices1 + [(0, 1.0, 0)]*n_slices2 + [(0, 0.1, 1.0)]*n_slices3)
-    ds = np.concatenate((np.linspace(-0.1, scale, n_slices1), np.linspace(-scale, scale, n_slices2), np.linspace(-0.7, 0.7, n_slices3)))
+    plane_normals = np.array([(1.0, 0, 0)] * n_slices1 +
+                             [(0, 1.0, 0)] * n_slices2 +
+                             [(0, 0, 1.0)] * n_slices3)
+
+    ds = -1 * np.concatenate((np.linspace(bottom[0], top[0], n_slices1),
+                              np.linspace(bottom[1], top[1], n_slices2),
+                              np.linspace(bottom[2], top[2], n_slices3)))
     return plane_normals, ds
 
 
@@ -86,29 +102,32 @@ def get_random_planes(scale, top, bottom):
     n_slices = 50
     plane_normals = np.random.randn(n_slices, 3)
 
-    ds = (np.random.random_sample(n_slices) * 2*scale - scale)
+    ds = -1 *  (np.random.random_sample(n_slices) * 2* scale - scale)
     return plane_normals, ds
 
 
 def get_eight_planes(scale, top, bottom):
-    n_slices = 26
+    n_slices = 2
 
-    n_slices2 = 3  # n_slices - n_slices1
-    n_slices1 = n_slices - n_slices2  # int(n_slices*0.85)
+    n_slices_x = 0  # n_slices - n_slices1
+    n_slices_z = n_slices - n_slices_x  # int(n_slices*0.85)
 
-    plane_normals = np.array([(0, 0, 1.0)] * n_slices1 + [(1, 0.0, 0.0)]*n_slices2)
-    ds = np.concatenate((np.linspace(bottom[2], top[2], n_slices1), np.linspace(bottom[0], top[0], n_slices2)))
+    plane_normals = np.array([(0, 0, 1.0)] * n_slices_z + [(1, 0.0, 0.0)]*n_slices_x)
+    ds = -1 * np.concatenate((np.linspace(bottom[2], top[2], n_slices_z), np.linspace(bottom[0], top[0], n_slices_x)))
 
     return plane_normals, ds
 
 
 def get_armadillo_planes(scale, top, bottom):
-    n_slices = 50
-    n_slices1 = int(n_slices*0.5)
-    n_slices2 = n_slices - n_slices1
+    n_slices = 35
+    n_slices_y = 20
+    n_slices2 = n_slices - n_slices_y
 
-    plane_normals = np.array([(0, 1.0, 0)] * n_slices1 + [(0, 0, 1.0)]*n_slices2)
-    ds = np.concatenate((np.linspace(-0.9, 0.7, n_slices1), np.linspace(-0.7, 0.7, n_slices2)))
+    plane_normals = np.array([(0, 1.0, 0)] * 2)
+
+
+    ds =-1 *  np.concatenate((np.linspace(bottom[1], top[1], 2),))
+
 
     return plane_normals, ds
 

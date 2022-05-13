@@ -9,3 +9,5 @@
 /artifacts/*
 /OtherMethods/*
 /OtherMethods/cross_section_topology_3D_reconstruction/
+/imgui.ini
+/.polyscope.ini

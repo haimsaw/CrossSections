@@ -1,8 +1,9 @@
 import numpy as np
 
 
-def csl_to_xyz(csl):
-    save_path = "xyz-files/"
+def csl_to_xyz(csl, save_path):
+
+    # save_path = "xyz-files/"
     n_points_per_edge = 1
 
     pts = []

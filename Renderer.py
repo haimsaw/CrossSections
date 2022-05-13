@@ -15,11 +15,54 @@ import polyscope as ps
 # endregion
 
 
-class RendererPoly:
-    def __init__(self):
-        ps.init()
+def render_mid_res(csl, trainer, samplig_res_3d):
+    ps.init()
+    # ps.set_ground_plane_height_factor(-0.25)
+    # ps.set_transparency_mode('pretty')
+    ps.set_ground_plane_mode("none")
 
-    def add_scene(self, csl):
+    # ps.look_at((0., 0., -2.5), (0., 0., 0.))
+
+    verts = np.empty((0, 3))
+    edges = np.empty((0, 2))
+
+    for plane in csl.planes:
+
+        plane_vert_start = len(verts)
+        verts = np.concatenate((verts, plane.vertices))
+
+        for cc in plane.connected_components:
+            e1 = cc.vertices_indices + plane_vert_start
+            e2 = np.concatenate((cc.vertices_indices[1:], cc.vertices_indices[0:1])) + plane_vert_start
+
+            edges = np.concatenate((edges, np.stack((e1, e2)).T))
+
+    xyzs = get_xyzs_in_octant(None, samplig_res_3d)
+    labels = trainer.hard_predict(xyzs)
+
+    model = ps.register_point_cloud("model", xyzs[labels], material="candy", transparency=0.5)
+    scene = ps.register_curve_network(f"scene", verts, edges, material="candy")
+
+    scene.set_radius(scene.get_radius()/1.5)
+    model.set_radius(model.get_radius() * 1)
+
+    ps.set_screenshot_extension(".png")
+    ps.screenshot()
+
+    ps.show()
+
+
+class RendererPoly:
+
+    @staticmethod
+    def init():
+        ps.init()
+        # ps.set_ground_plane_height_factor(-0.25)
+        # ps.set_transparency_mode('pretty')
+        ps.set_ground_plane_mode("none")
+
+    @staticmethod
+    def add_scene(csl):
         verts = np.empty((0, 3))
         edges = np.empty((0, 2))
 
@@ -35,7 +78,19 @@ class RendererPoly:
                 edges = np.concatenate((edges, np.stack((e1, e2)).T))
         ps_net = ps.register_curve_network(f"scene", verts, edges)
 
-    def show(self):
+    @staticmethod
+    def add_model_hard_prediction(network_manager: INetManager, sampling_resolution_3d):
+        xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
+        labels = network_manager.hard_predict(xyzs)
+
+        ps_cloud = ps.register_point_cloud("model", xyzs[labels], material="candy", transparency=0.5)
+
+    @staticmethod
+    def add_mesh(vertices, faces):
+        ps.register_surface_mesh("my mesh", vertices, faces)
+
+    @staticmethod
+    def show():
         ps.show()
 
 # region 3d
@@ -99,7 +154,7 @@ class Renderer3D:
         self.ax.scatter(*xyzs[labels].T, alpha=alpha, color='blue')
 
     def add_mesh(self, my_mesh, alpha=0.2):
-        self.description.append('mesh')
+        self.description.append('data')
         collection = Poly3DCollection(my_mesh.vectors, alpha=alpha)
         collection.set_edgecolor('b')
         self.ax.add_collection3d(collection)
