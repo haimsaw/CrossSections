@@ -38,7 +38,7 @@ class HP:
         self.refinement_type = 'edge'  # ['errors', 'edge', 'none']
 
         # resolutions
-        self.root_sampling_resolution_2d = (32, 32)
+        self.root_sampling_resolution_2d = (64, 64)
         self.sampling_resolution_3d = (128, 128, 128)
         self.intermediate_sampling_resolution_3d = (64, 64, 64)
 
