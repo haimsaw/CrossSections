@@ -177,15 +177,6 @@ class ChainTrainer:
         promise = pool.map_async(lambda cell: cell.density, new_cells)
         return new_cells, promise
 
-
-    def train_network(self):
-
-
-            # todo haim ignore last refine
-
-        if not self.verbose:
-            print(f'\ntotal epochs={self.total_epochs}')
-
     @timing
     def train_epochs_batch(self, epochs):
         self.module.train()
