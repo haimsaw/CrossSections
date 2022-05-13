@@ -18,9 +18,10 @@ def get_csl(bounding_planes_margin, save_path):
     # csl = CSL.from_csl_file("data/csl-files/Vetebrae.csl")
     # csl = CSL.from_csl_file("data/csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("data/csl-files/Brain.csl")
-    # csl = CSL.from_csl_file('.\\artifacts\\test\\armadillo_generated.csl')
 
-    csl = make_csl_from_mesh('./data/eight.obj', save_path)
+    csl = CSL.from_csl_file('.\\artifacts\\sliced\\armadillo_from_mesh.csl.csl')
+
+    # csl = make_csl_from_mesh('./data/eight.obj', save_path)
     # csl = make_csl_from_mesh('data/armadillo.obj', save_path)
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
@@ -53,7 +54,7 @@ class HP:
 
         # training
         self.weight_decay = 1e-3  # l2 regularization
-        self.epochs_batches = [25]
+        self.epochs_batches = [50, 50, 100, 100, 100]
         self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-2

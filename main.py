@@ -78,7 +78,7 @@ def save_heatmaps(trainer, save_path, label):
 def main():
 
         hp = HP()
-        save_path = f'./artifacts/sliced/'
+        save_path = f'./artifacts/armdilo/'
 
         print(f'{"=" * 50} {save_path}')
         os.makedirs(save_path, exist_ok=True)
@@ -86,24 +86,14 @@ def main():
         csl = get_csl(hp.bounding_planes_margin, save_path)
 
         trainer = ChainTrainer(csl, hp)
-        # trainer.load_from_disk(save_path+'trained_model_5.pt')
-        print(f'n slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
-        # render_mid_res(csl, trainer, (150, 150, 150))
-
-        RendererPoly.init()
-        RendererPoly.add_scene(csl)
-        RendererPoly.show()
-
-        return
+        print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
 
-        print(f'csl={csl.model_name}')
-
         train_cycle(csl, hp, trainer, True, save_path)
 
-        # render_mid_res(csl, trainer, samplig_res_3d=(100, 100, 100))
+        print('done train_cycle')
 
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last')
         save_heatmaps(trainer, save_path, 'last')

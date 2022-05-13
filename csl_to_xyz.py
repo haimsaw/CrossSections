@@ -1,10 +1,7 @@
 import numpy as np
 
 
-def csl_to_xyz(csl, save_path):
-
-    # save_path = "xyz-files/"
-    n_points_per_edge = 1
+def csl_to_xyz(csl, save_path, n_points_per_edge):
 
     pts = []
     for plane in csl.planes:
@@ -15,7 +12,7 @@ def csl_to_xyz(csl, save_path):
                 pts += [e1*d + e2*(1-d) for d in np.linspace(0, 1, n_points_per_edge)]
 
     pts = np.array(pts)
-    file_name = f'{save_path}{csl.model_name}.xyz'
+    file_name = f'{save_path}{csl.model_name}_{n_points_per_edge}_samples_per_edge.xyz'
 
     with open(file_name, 'w') as f:
         for pt in pts:

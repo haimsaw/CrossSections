@@ -25,8 +25,8 @@ def make_csl_from_mesh(filename, save_path):
     model_name = filename.split('/')[-1].split('.')[0]
 
     top, bottom = get_top_bottom(verts)
-    top = top * 0.99
-    bottom = bottom * 0.99
+    top = top * 0.97
+    bottom = bottom * 0.97
 
     if model_name == 'armadillo':
         plane_normals, ds = get_armadillo_planes(scale, top, bottom)
@@ -108,22 +108,27 @@ def get_eight_planes(scale, top, bottom):
     n_slices_x = 5  # n_slices - n_slices1
     n_slices_z = n_slices - n_slices_x  # int(n_slices*0.85)
 
-    plane_normals = np.array([(0, 0, 1.0)] * n_slices_z + [(1, 0.0, 0.0)]*n_slices_x)
-    ds = -1 * np.concatenate((np.linspace(bottom[2], top[2], n_slices_z), np.linspace(bottom[0], top[0], n_slices_x)))
+    plane_normals = np.array([(0, 0, 1.0)] * n_slices_z +
+                             [(1, 0.0, 0.0)]*n_slices_x)
+    ds = -1 * np.concatenate((np.linspace(bottom[2], top[2], n_slices_z),
+                              np.linspace(bottom[0], top[0], n_slices_x)))
 
     return plane_normals, ds
 
 
 def get_armadillo_planes(scale, top, bottom):
-    n_slices = 35
+    n_slices = 25
+
     n_slices_y = 20
-    n_slices2 = n_slices - n_slices_y
+    n_slices2 = 3
+    n_slices3 = 3
 
     plane_normals = np.array([(0, 1.0, 0)] * n_slices_y +
-                             [[-0.03101598,  0.85343963,  0.52026801],[ 0.13506586, -0.11205464, -0.98448005], [ 0.00800432, -0.3661978 , -0.93050261]])
+                             [(0,  1.3,  -1.0)] * n_slices2 +
+                             [(0, 1.0, 1.5)] * n_slices3)
 
     ds = -1 * np.concatenate((np.linspace(bottom[1], top[1], n_slices_y),
-                        [-21372., -37400.,  -1588.]))
-
+                              np.linspace(-0.5, 0.5, n_slices2),
+                              np.linspace(-0.62, 0.62, n_slices3)))
     return plane_normals, ds
 
