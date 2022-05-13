@@ -1,4 +1,3 @@
-import multiprocessing
 import os
 from multiprocessing import Pool, cpu_count
 
@@ -10,7 +9,7 @@ from Mesher import *
 from Comperator import hausdorff_distance
 
 
-def train_cycle(csl, hp, trainer, should_calc_density, save_path):
+def train_cycle(csl, hp, trainer, should_calc_density, save_path, model_name):
     with Pool(processes=cpu_count()//2) as pool:
 
         slices_dataset = SlicesDataset.from_csl(csl, pool=pool, sampling_resolution=hp.root_sampling_resolution_2d,
@@ -28,7 +27,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
 
             try:
                 print('meshing')
-                handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i)
+                handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
                 pass
             except Exception as e:
                 print(e)
@@ -40,7 +39,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path):
     print('\n\n done train_cycle')
 
 
-def handle_meshes(trainer, sampling_resolution_3d, save_path, label):
+def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
     #mesh_mc = marching_cubes(trainer, hp.sampling_resolution_3d)
     #mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
@@ -50,7 +49,7 @@ def handle_meshes(trainer, sampling_resolution_3d, save_path, label):
     mesh_dc_no_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=False)
     mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
 
-    hausdorff_distance(f'{save_path}/original_mesh.stl', save_path + f'mesh{label}_dc_no_grad.obj',
+    hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.csl", save_path + f'mesh{label}_dc_no_grad.obj',
                        f'{save_path}/hausdorff_distance{label}.json')
 
     '''
@@ -78,27 +77,27 @@ def save_heatmaps(trainer, save_path, label):
 def main():
 
         hp = HP()
-        save_path = f'./artifacts/sliced/'
+        model_name = "armadillo"
+        save_path = f'./artifacts/{model_name}/'
 
         print(f'{"=" * 50} {save_path}')
         os.makedirs(save_path, exist_ok=True)
 
-        csl = get_csl(hp.bounding_planes_margin, save_path)
+        csl = get_csl(hp.bounding_planes_margin, save_path, model_name)
+        print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
         trainer = ChainTrainer(csl, hp)
-        trainer.load_from_disk('.\\artifacts\\test\\trained_model_5.pt')
-        render_mid_res(csl,trainer,samplig_res_3d=(200, 200, 200))
 
         print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
 
-        train_cycle(csl, hp, trainer, True, save_path)
+        train_cycle(csl, hp, trainer, True, save_path, model_name)
 
         print('done train_cycle')
 
-        mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last')
+        mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
         save_heatmaps(trainer, save_path, 'last')
 
         renderer = Renderer3D()

@@ -6,11 +6,11 @@ from Slicer import make_csl_from_mesh
 from csl_to_xyz import csl_to_xyz
 
 
-def get_csl(bounding_planes_margin, save_path):
+def get_csl(bounding_planes_margin, save_path, name):
     # csl = CSL.from_csl_file("data/csl-files/ParallelEight.csl")
     # csl = CSL.from_csl_file("data/csl-files/ParallelEightMore.csl")
     # csl = CSL.from_csl_file("data/csl-files/SideBishop.csl")
-    csl = CSL.from_csl_file("data/csl-files/Heart-25-even-better.csl")
+    # csl = CSL.from_csl_file("data/csl-files/Heart-25-even-better.csl")
     # csl = CSL.from_csl_file("data/csl-files/Armadillo-23-better.csl")
     # csl = CSL.from_csl_file("data/csl-files/Horsers.csl")
     # csl = CSL.from_csl_file("data/csl-files/rocker-arm.csl")
@@ -19,18 +19,19 @@ def get_csl(bounding_planes_margin, save_path):
     # csl = CSL.from_csl_file("data/csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("data/csl-files/Brain.csl")
 
-    # csl = CSL.from_csl_file('.\\artifacts\\sliced\\armadillo_from_mesh.csl')
+    csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
+
 
     # csl = make_csl_from_mesh('./data/eight.obj', save_path)
     # csl = make_csl_from_mesh('data/armadillo.obj', save_path)
-    # csl = make_csl_from_mesh('data/Archaeological/lamp004_fixed.obj', save_path)
+    #csl = make_csl_from_mesh('data/Archaeological/lamp004_fixed.obj', save_path)
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl
 
 
 class HP:
-    def __init__(self):
+    def _init_(self):
         # sampling
         self.bounding_planes_margin = 0.05
         self.sampling_margin = 0.05  # same as bounding_planes_margin
@@ -64,5 +65,4 @@ class HP:
         self.now = str(datetime.now())
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
-
+        return json.dumps(self, default=lambda o: o._dict_, sort_keys=True, indent=4)
