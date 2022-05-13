@@ -6,6 +6,7 @@ from CSL import *
 import pywavefront
 from stl import mesh as mesh2
 from  Renderer import *
+from meshcut import cross_section
 
 from csl_to_xyz import csl_to_xyz
 
@@ -34,16 +35,16 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_eight_planes(scale, top, bottom)
     elif model_name == "brain":
         plane_normals, ds = get_brain_planes(scale, top, bottom)
-
+    elif model_name == 'lamp004':
+        plane_normals, ds = get_lamp_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)
 
     plane_normals = (plane_normals.T / np.linalg.norm(plane_normals.T, axis=0)).T
     plane_origins = [plane_origin_from_params((*n, d)) for n, d in zip(plane_normals, ds)]
 
-    with Pool(processes=cpu_count() // 2) as pool:
-        ccr = GetCcs(verts, faces)
-        ccs_per_plane = pool.map(ccr, zip(plane_origins, plane_normals))
+    ccr = GetCcs(verts, faces)
+    ccs_per_plane = list(map(ccr, zip(plane_origins, plane_normals)))
 
     csl = CSL.from_mesh(model_name, plane_origins,  plane_normals, ds, ccs_per_plane)
 
@@ -57,6 +58,12 @@ def make_csl_from_mesh(filename, save_path):
 
     mesh_path = f'{save_path}/{model_name}_scaled.stl'
     my_mesh.save(mesh_path)
+    print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
+
+    RendererPoly.init()
+    RendererPoly.add_mesh(verts,faces)
+    RendererPoly.add_scene(csl)
+    RendererPoly.show()
 
     # csl_to_xyz(csl, save_path)
     return csl
@@ -99,6 +106,14 @@ def get_random_planes(scale, top, bottom):
     plane_normals = np.random.randn(n_slices, 3)
 
     ds = -1 * (np.random.random_sample(n_slices) * 2* scale - scale)
+    return plane_normals, ds
+
+
+def get_lamp_planes(scale, top, bottom):
+    n_slices = 40
+    plane_normals = np.random.randn(n_slices, 3)
+
+    ds = -1 * (np.random.random_sample(n_slices) * 2 * scale - scale)
     return plane_normals, ds
 
 

@@ -4,7 +4,6 @@ import numpy as np
 from stl import mesh as mesh2
 from Helpers import *
 from skimage import measure
-from NetManager import INetManager
 from mcdc.dual_contour_3d import dual_contour_3d
 from sklearn.preprocessing import normalize
 
@@ -19,7 +18,7 @@ def _get_mesh(labels, level, spacing):
     return my_mesh
 
 
-def marching_cubes(net_manager: INetManager, sampling_resolution_3d):
+def marching_cubes(net_manager , sampling_resolution_3d):
     xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
 
     labels = net_manager.soft_predict(xyzs)

@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 
 from SlicesDataset import slices_rasterizer_factory, INSIDE_LABEL
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from NetManager import INetManager
 
 import matplotlib.animation as animation
 import polyscope as ps
@@ -79,7 +78,7 @@ class RendererPoly:
         ps_net = ps.register_curve_network(f"scene", verts, edges)
 
     @staticmethod
-    def add_model_hard_prediction(network_manager: INetManager, sampling_resolution_3d):
+    def add_model_hard_prediction(network_manager, sampling_resolution_3d):
         xyzs = get_xyzs_in_octant(None, sampling_resolution_3d)
         labels = network_manager.hard_predict(xyzs)
 
@@ -146,7 +145,7 @@ class Renderer3D:
             elif show_empty_planes:
                 self.ax.scatter(*xyzs.T, color="purple", alpha=alpha/2)
 
-    def add_model_hard_prediction(self, network_manager: INetManager, sampling_resolution_3d, alpha=0.05, octant=None):
+    def add_model_hard_prediction(self, network_manager, sampling_resolution_3d, alpha=0.05, octant=None):
         self.description.append('hard_prediction')
         xyzs = get_xyzs_in_octant(octant, sampling_resolution_3d)
         labels = network_manager.hard_predict(xyzs)
@@ -159,13 +158,13 @@ class Renderer3D:
         collection.set_edgecolor('b')
         self.ax.add_collection3d(collection)
 
-    def add_model_errors(self, network_manager: INetManager):
+    def add_model_errors(self, network_manager):
         self.description.append('model_errors')
         errored_xyz, errored_labels = network_manager.get_train_errors()
         self.ax.scatter(*errored_xyz[errored_labels == 1].T, color="purple")
         self.ax.scatter(*errored_xyz[errored_labels == 0].T, color="red")
 
-    def add_model_grads(self, network_manager: INetManager, xyzs, alpha=1, length=0.1, neg=False):
+    def add_model_grads(self, network_manager, xyzs, alpha=1, length=0.1, neg=False):
         self.description.append('grads')
 
         grads = network_manager.grad_wrt_input(xyzs)
@@ -244,7 +243,7 @@ class Renderer2D:
                 self.ax.plot(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
             self.description.append("draw_plane")
 
-    def heatmap(self, sampling_resolution_2d, network_manager: INetManager, around_ax, dist, add_grad):
+    def heatmap(self, sampling_resolution_2d, network_manager, around_ax, dist, add_grad):
         assert around_ax in (0, 1, 2)
         self.description.append(f"heatmap around_ax_{around_ax}_at{str(dist)}_{'grad' if add_grad else ''}")
 

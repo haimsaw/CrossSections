@@ -8,13 +8,18 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from Helpers import timing
 from Modules import HaimNetWithState
-from NetManager import INetManager
 from SlicesDataset import SlicesDataset
 
 
-class ChainTrainer(INetManager):
+class ChainTrainer:
     def __init__(self, csl, hp, verbose=False):
-        super().__init__(csl, verbose)
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f'device={self.device}')
+
+        self.csl = csl
+        self.verbose = verbose
+
         self.hp = hp
 
         self.module = HaimNetWithState(hp)
@@ -267,3 +272,10 @@ class ChainTrainer(INetManager):
                                            .detach().cpu().numpy()))
 
         return xyzs_at_edge
+
+
+    @torch.no_grad()
+    def hard_predict(self, xyzs, threshold=0):
+        self.module.eval()
+        soft_labels = self.soft_predict(xyzs)
+        return soft_labels < threshold

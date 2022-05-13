@@ -1,7 +1,6 @@
 from itertools import chain
 
 import numpy as np
-from meshcut import cross_section
 from parse import parse
 from shapely.geometry.polygon import LinearRing
 from sklearn.decomposition import PCA
