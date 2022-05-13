@@ -177,7 +177,6 @@ class ChainTrainer:
         promise = pool.map_async(lambda cell: cell.density, new_cells)
         return new_cells, promise
 
-    @timing
     def train_epochs_batch(self, epochs):
         self.module.train()
 

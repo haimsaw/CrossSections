@@ -7,21 +7,30 @@ from SlicesDataset import SlicesDataset
 from Renderer import *
 from Mesher import *
 from Comperator import hausdorff_distance
+from time import time
 
 
 def train_cycle(csl, hp, trainer, should_calc_density, save_path, model_name):
+    total_time = 0
     with Pool(processes=cpu_count()//2) as pool:
 
+        ts = time()
         slices_dataset = SlicesDataset.from_csl(csl, pool=pool, sampling_resolution=hp.root_sampling_resolution_2d,
                                                 sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
         contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
 
         trainer.prepare_for_training(slices_dataset, contour_dataset)
-
+        te = time()
+        total_time += ts - te
         for i, epochs in enumerate(hp.epochs_batches):
             print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
+
+            ts = time()
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
+            te = time()
+            total_time += ts - te
+
             trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
             # trainer.show_train_losses(save_path)
 
@@ -34,9 +43,13 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path, model_name):
             # print('heatmaps')
             # save_heatmaps(trainer, save_path, i)
             print('waiting for cell density calculation...')
+
+            ts = time()
             promise.wait()
             trainer.update_data_loaders(new_cells)
-    print('\n\n done train_cycle')
+            te = time()
+            total_time += ts - te
+    print(f'\n\n done train_cycle time = {total_time} sec')
 
 
 def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
@@ -46,7 +59,12 @@ def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
     #mesh_dc = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=True)
     #mesh_dc.save(save_path + f'mesh_dc_grad.obj')
 
+    ts = time()
     mesh_dc_no_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=False)
+    te = time()
+
+    print(f'meshing time of {label}= {te - ts} sec')
+
     mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
 
     hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.stl", save_path + f'mesh{label}_dc_no_grad.obj',
@@ -97,6 +115,7 @@ def main():
         print('done train_cycle')
 
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
+
         save_heatmaps(trainer, save_path, 'last')
 
         renderer = Renderer3D()

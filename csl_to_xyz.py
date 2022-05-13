@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def csl_to_xyz(csl, save_path, n_points_per_edge):
+def csl_to_xyz(csl, save_path, n_points_per_edge=3):
 
     pts = []
     for plane in csl.planes:
@@ -12,7 +12,9 @@ def csl_to_xyz(csl, save_path, n_points_per_edge):
                 pts += [e1*d + e2*(1-d) for d in np.linspace(0, 1, n_points_per_edge)]
 
     pts = np.array(pts)
-    file_name = f'{save_path}{csl.model_name}_{n_points_per_edge}_samples_per_edge.xyz'
+    pts = pts[np.random.permutation(len(pts))[:5000]]  # vipss can handle ~6k points
+
+    file_name = f'{save_path}{csl.model_name}.xyz'
 
     with open(file_name, 'w') as f:
         for pt in pts:
