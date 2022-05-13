@@ -83,8 +83,6 @@ def main():
         print(f'{"=" * 50} {save_path}')
         os.makedirs(save_path, exist_ok=True)
 
-        RendererPoly.init()
-
         csl = get_csl(hp.bounding_planes_margin, save_path)
 
         trainer = ChainTrainer(csl, hp)
@@ -92,7 +90,7 @@ def main():
         print(f'n slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
         # render_mid_res(csl, trainer, (150, 150, 150))
 
-
+        RendererPoly.init()
         RendererPoly.add_scene(csl)
         RendererPoly.show()
 

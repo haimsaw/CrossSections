@@ -41,15 +41,11 @@ def make_csl_from_mesh(filename, save_path):
     plane_normals = (plane_normals.T / np.linalg.norm(plane_normals.T, axis=0)).T
     plane_origins = [plane_origin_from_params((*n, d)) for n, d in zip(plane_normals, ds)]
 
-    # with Pool(processes=cpu_count() // 2) as pool:
-    ccr = GetCcs(verts, faces)
-    ccs_per_plane = list(map(ccr, zip(plane_origins, plane_normals)))
+    with Pool(processes=cpu_count() // 2) as pool:
+        ccr = GetCcs(verts, faces)
+        ccs_per_plane = pool.map(ccr, zip(plane_origins, plane_normals))
 
     csl = CSL.from_mesh(model_name, plane_origins,  plane_normals, ds, ccs_per_plane)
-
-    RendererPoly.add_mesh(verts, faces)
-    RendererPoly.add_scene(csl)
-
 
     with open(f'{save_path}/{model_name}_from_mesh.csl', 'w') as f:
         f.write(repr(csl))
@@ -72,7 +68,7 @@ def get_verts_faces(filename):
 
     verts = np.array(scene.vertices)
     verts -= np.mean(verts, axis=0)
-    scale = 1
+    scale = 1.1
 
     verts /= scale * np.max(np.absolute(verts))
 
@@ -102,14 +98,14 @@ def get_random_planes(scale, top, bottom):
     n_slices = 50
     plane_normals = np.random.randn(n_slices, 3)
 
-    ds = -1 *  (np.random.random_sample(n_slices) * 2* scale - scale)
+    ds = -1 * (np.random.random_sample(n_slices) * 2* scale - scale)
     return plane_normals, ds
 
 
 def get_eight_planes(scale, top, bottom):
-    n_slices = 2
+    n_slices = 20
 
-    n_slices_x = 0  # n_slices - n_slices1
+    n_slices_x = 5  # n_slices - n_slices1
     n_slices_z = n_slices - n_slices_x  # int(n_slices*0.85)
 
     plane_normals = np.array([(0, 0, 1.0)] * n_slices_z + [(1, 0.0, 0.0)]*n_slices_x)
@@ -123,11 +119,11 @@ def get_armadillo_planes(scale, top, bottom):
     n_slices_y = 20
     n_slices2 = n_slices - n_slices_y
 
-    plane_normals = np.array([(0, 1.0, 0)] * 2)
+    plane_normals = np.array([(0, 1.0, 0)] * n_slices_y +
+                             [[-0.03101598,  0.85343963,  0.52026801],[ 0.13506586, -0.11205464, -0.98448005], [ 0.00800432, -0.3661978 , -0.93050261]])
 
-
-    ds =-1 *  np.concatenate((np.linspace(bottom[1], top[1], 2),))
-
+    ds = -1 * np.concatenate((np.linspace(bottom[1], top[1], n_slices_y),
+                        [-21372., -37400.,  -1588.]))
 
     return plane_normals, ds
 
