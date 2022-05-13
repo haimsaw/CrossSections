@@ -112,16 +112,10 @@ def main():
 
         train_cycle(csl, hp, trainer, True, save_path, model_name)
 
-        print('done train_cycle')
-
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
 
         save_heatmaps(trainer, save_path, 'last')
 
-        renderer = Renderer3D()
-        renderer.add_scene(csl)
-        renderer.add_mesh(mesh_dc)
-        # renderer.show()
         print(f'DONE {"=" * 50} {save_path}\n\n')
 
 
