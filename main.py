@@ -1,4 +1,5 @@
 import os
+import sys
 from multiprocessing import Pool, cpu_count
 
 from hp import get_csl, HP
@@ -92,13 +93,12 @@ def save_heatmaps(trainer, save_path, label):
             renderer.clear()
 
 
-def main():
+def main(model_name):
         hp = HP()
-        model_name = "eight_15"
         save_path = f'./artifacts/{model_name}/'
+        os.makedirs(save_path, exist_ok=True)
 
         print(f'{"=" * 50} {save_path}')
-        os.makedirs(save_path, exist_ok=True)
 
         csl = get_csl(hp.bounding_planes_margin, save_path, model_name)
         print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
@@ -120,4 +120,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    models = ['armadillo', 'eight_15', 'eight_20', 'lamp004_fixed', 'brain']
+    for model in models:
+        main(model)
