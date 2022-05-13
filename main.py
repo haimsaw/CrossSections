@@ -49,7 +49,7 @@ def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
     mesh_dc_no_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=False)
     mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
 
-    hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.csl", save_path + f'mesh{label}_dc_no_grad.obj',
+    hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.stl", save_path + f'mesh{label}_dc_no_grad.obj',
                        f'{save_path}/hausdorff_distance{label}.json')
 
     '''
