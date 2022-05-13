@@ -21,12 +21,14 @@ def make_csl_from_mesh(filename, save_path):
     verts, faces, scale = get_verts_faces(filename)
     model_name = filename.split('/')[-1].split('.')[0]
 
+    top, bottom = get_top_bottom(verts)
+
     if model_name == 'armadillo':
-        plane_normals, ds = get_armadillo_planes(scale)
+        plane_normals, ds = get_armadillo_planes(scale, top, bottom)
     elif model_name == "eight":
-        plane_normals, ds = get_eight_planes(scale)
+        plane_normals, ds = get_eight_planes(scale, top, bottom)
     elif model_name == "brain":
-        plane_normals, ds = get_brain_planes(scale)
+        plane_normals, ds = get_brain_planes(scale, top, bottom)
 
     else:
         plane_normals, ds = get_random_planes(scale)
@@ -34,7 +36,7 @@ def make_csl_from_mesh(filename, save_path):
     plane_normals = (plane_normals.T / np.linalg.norm(plane_normals.T, axis=0)).T
     plane_origins = [plane_origin_from_params((*n, d)) for n, d in zip(plane_normals, ds)]
 
-    with Pool(processes=cpu_count() - 2) as pool:
+    with Pool(processes=cpu_count() // 2) as pool:
         ccr = GetCcs(verts, faces)
         ccs_per_plane = pool.map(ccr, zip(plane_origins, plane_normals))
 
@@ -67,7 +69,7 @@ def get_verts_faces(filename):
     return verts, faces, 1/scale
 
 
-def get_brain_planes(scale):
+def get_brain_planes(scale, top, bottom):
     n_slices = 150
 
     n_slices1 = n_slices // 3
@@ -79,7 +81,7 @@ def get_brain_planes(scale):
     return plane_normals, ds
 
 
-def get_random_planes(scale):
+def get_random_planes(scale, top, bottom):
     print('!!!!!! using random slices!!!!!!')
     n_slices = 50
     plane_normals = np.random.randn(n_slices, 3)
@@ -88,18 +90,19 @@ def get_random_planes(scale):
     return plane_normals, ds
 
 
-def get_eight_planes(scale):
-    n_slices = 30
-    n_slices1 = n_slices - 1  # int(n_slices*0.85)
-    n_slices2 = 1  # n_slices - n_slices1
+def get_eight_planes(scale, top, bottom):
+    n_slices = 26
+
+    n_slices2 = 3  # n_slices - n_slices1
+    n_slices1 = n_slices - n_slices2  # int(n_slices*0.85)
 
     plane_normals = np.array([(0, 0, 1.0)] * n_slices1 + [(1, 0.0, 0.0)]*n_slices2)
-    ds = np.concatenate((np.linspace(-scale, scale, n_slices1), [0]))
+    ds = np.concatenate((np.linspace(bottom[2], top[2], n_slices1), np.linspace(bottom[0], top[0], n_slices2)))
 
     return plane_normals, ds
 
 
-def get_armadillo_planes(scale):
+def get_armadillo_planes(scale, top, bottom):
     n_slices = 50
     n_slices1 = int(n_slices*0.5)
     n_slices2 = n_slices - n_slices1

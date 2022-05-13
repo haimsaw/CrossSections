@@ -202,7 +202,7 @@ class ChainTrainer(INetManager):
         plt.show()
 
     def load_from_disk(self, save_path):
-        self.module.load_state_dict(torch.load(save_path))
+        self.module.load_state_dict(torch.load(save_path, map_location=torch.device('cpu')))
         self.module.eval()
 
     def save_to_disk(self, save_path):

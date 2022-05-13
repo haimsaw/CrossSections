@@ -196,14 +196,6 @@ class SlicesDataset(Dataset):
 
         self.cells = cells
 
-        if self.should_calc_density:
-            n_inside = len([cell for cell in self.cells if cell.density == INSIDE_LABEL])
-            n_outside = len([cell for cell in self.cells if cell.density == OUTSIDE_LABEL])
-            self.sampler_weights = np.array(
-                [cell.density / n_outside + (1 - cell.density) / n_inside for cell in self.cells])
-        else:
-            self.sampler_weights = np.ones(self.__len__())
-
     @classmethod
     def from_cells(cls, csl, should_calc_density, cells):
         return cls(csl, should_calc_density, np.array(cells))
