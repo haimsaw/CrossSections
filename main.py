@@ -1,6 +1,7 @@
 import os
 from multiprocessing import Pool, cpu_count
 
+from Slicer import make_csl_from_mesh
 from hp import get_csl, HP
 from ChainTrainer import ChainTrainer
 from SlicesDataset import SlicesDataset
@@ -129,6 +130,10 @@ if __name__ == "__main__":
 
     render_mid_res(csl, trainer, (150, 150, 150))'''
 
-    #models = ['armadillo', 'eight_15', 'eight_20', 'lamp004_fixed', 'brain']
-    #for model in models:
-    main(model)
+    models = ['eight_15', 'eight_20', 'armadillo']  # , 'brain']
+    for model in models:
+        os.makedirs(f'./data/for_vipss/{model}/', exist_ok=True)
+        csl = make_csl_from_mesh(f'data/obj/{model}.obj', f'./data/for_vipss/{model}/')
+
+
+        # main(model)

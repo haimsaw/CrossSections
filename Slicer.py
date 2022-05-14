@@ -31,8 +31,10 @@ def make_csl_from_mesh(filename, save_path):
 
     if model_name == 'armadillo':
         plane_normals, ds = get_armadillo_planes(scale, top, bottom)
-    elif model_name == "eight":
-        plane_normals, ds = get_eight_planes(scale, top, bottom)
+    elif model_name == "eight_15":
+        plane_normals, ds = get_eight_15_planes(scale, top, bottom)
+    elif model_name == "eight_20":
+        plane_normals, ds = get_eight_20_planes(scale, top, bottom)
     elif model_name == "brain":
         plane_normals, ds = get_brain_planes(scale, top, bottom)
     elif model_name == 'lamp004_fixed':
@@ -58,16 +60,16 @@ def make_csl_from_mesh(filename, save_path):
         for j in range(3):
             my_mesh.vectors[i][j] = verts[f[j], :]
 
-    mesh_path = f'{save_path}/{model_name}_scaled.stl'
-    my_mesh.save(mesh_path)
+    # mesh_path = f'{save_path}/{model_name}_scaled.stl'
+    # my_mesh.save(mesh_path)
     print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
-    RendererPoly.init()
-    RendererPoly.add_mesh(verts,faces)
-    RendererPoly.add_scene(csl)
-    RendererPoly.show()
+    # RendererPoly.init()
+    # RendererPoly.add_mesh(verts,faces)
+    # RendererPoly.add_scene(csl)
+    # RendererPoly.show()
 
-    # csl_to_xyz(csl, save_path)
+    csl_to_xyz(csl, save_path, 1)
     return csl
 
 
@@ -126,8 +128,20 @@ def get_shell_planes(scale, top, bottom):
     ds = -1 * (np.random.random_sample(n_slices) * 2 * scale - scale)
     return plane_normals, ds
 
+def get_eight_15_planes(scale, top, bottom):
+    n_slices = 15
 
-def get_eight_planes(scale, top, bottom):
+    n_slices_x = 0  # n_slices - n_slices1
+    n_slices_z = n_slices - n_slices_x  # int(n_slices*0.85)
+
+    plane_normals = np.array([(0, 0, 1.0)] * n_slices_z +
+                             [(1.0, 0, 0.)]*n_slices_x)
+    ds = -1 * np.concatenate((np.linspace(bottom[2], top[2], n_slices_z),
+                              np.linspace(bottom[0], top[0], n_slices_x)))
+
+    return plane_normals, ds
+
+def get_eight_20_planes(scale, top, bottom):
     n_slices = 20
 
     n_slices_x = 5  # n_slices - n_slices1

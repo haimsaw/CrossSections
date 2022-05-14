@@ -12,12 +12,13 @@ def csl_to_xyz(csl, save_path, n_points_per_edge=3):
                 pts += [e1*d + e2*(1-d) for d in np.linspace(0, 1, n_points_per_edge)]
 
     pts = np.array(pts)
-    pts = pts[np.random.permutation(len(pts))[:5000]]  # vipss can handle ~6k points
+    pts = pts[np.random.permutation(len(pts))[:4000]]  # vipss can handle ~6k points
 
     file_name = f'{save_path}{csl.model_name}.xyz'
 
     with open(file_name, 'w') as f:
         for pt in pts:
-            f.write('{:.7f} {:.7f} {:.7f}\n'.format(*pt))
-    print(file_name)
+            f.write('{:.10f} {:.10f} {:.10f}\n'.format(*pt))
+
+    print(f'{file_name} {[len(set(pts[:,i])) for i in [0,1,2]]}')
 
