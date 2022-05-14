@@ -21,13 +21,13 @@ def csl_to_ply(csl, save_path, n_points_per_edge=3):
     header = f'ply\nformat ascii 1.0\nelement vertex {len(pts)}\n' \
              f'property float x\nproperty float y\nproperty float z\n' \
              f'property float nx\nproperty float ny\nproperty float nz\n' \
-             f'element face 0\nproperty list uchar int vertex_index\nend_header'
+             f'element face 0\nproperty list uchar int vertex_index\nend_header\n '
 
     file_name = f'{save_path}{csl.model_name}.ply'
 
     with open(file_name, 'w') as f:
         f.write(header)
-        for pt in pts:
-            f.write('{:.10f} {:.10f} {:.10f}\n'.format(*pt))
+        for pt, n in zip(pts, normals):
+            f.write('{:.10f} {:.10f} {:.10f} {:.10f} {:.10f} {:.10f}\n'.format(*pt, *n))
 
     print(f'{file_name}')
