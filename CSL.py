@@ -280,6 +280,22 @@ class CSL:
     def scale_factor(self):
         return np.max(np.absolute(self.all_vertices))
 
+    @property
+    def edges_verts(self):
+        scene_verts = np.empty((0, 3))
+        scene_edges = np.empty((0, 2))
+        for plane in self.planes:
+
+            plane_vert_start = len(scene_verts)
+            scene_verts = np.concatenate((scene_verts, plane.vertices))
+
+            for cc in plane.connected_components:
+                e1 = cc.vertices_indices + plane_vert_start
+                e2 = np.concatenate((cc.vertices_indices[1:], cc.vertices_indices[0:1])) + plane_vert_start
+
+                scene_edges = np.concatenate((scene_edges, np.stack((e1, e2)).T))
+        return scene_edges, scene_verts
+
     def _add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1
         self.planes.append(Plane.empty_plane(plane_id, plane_params, self))

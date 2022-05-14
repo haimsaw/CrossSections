@@ -13,20 +13,27 @@ import polyscope as ps
 # endregion
 
 
+def render_mesh_and_scene(csl, mesh_verts, mesh_faces):
+    scene_edges, scene_verts = csl.edges_verts
+
+    ps.init()
+    # ps.set_ground_plane_height_factor(-0.25)
+    # ps.set_transparency_mode('pretty')
+    # ps.look_at((0., 0., -2.5), (0., 0., 0.))
+
+    ps.set_ground_plane_mode("none")
+
+    mesh = ps.register_surface_mesh("mesh", mesh_verts, mesh_faces, material="candy")
+    scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
+
+    scene.set_radius(scene.get_radius() / 1.5)
+    ps.screenshot()
+
+    ps.show()
+
+
 def render_mid_res(csl, trainer, samplig_res_3d):
-    verts = np.empty((0, 3))
-    edges = np.empty((0, 2))
-
-    for plane in csl.planes:
-
-        plane_vert_start = len(verts)
-        verts = np.concatenate((verts, plane.vertices))
-
-        for cc in plane.connected_components:
-            e1 = cc.vertices_indices + plane_vert_start
-            e2 = np.concatenate((cc.vertices_indices[1:], cc.vertices_indices[0:1])) + plane_vert_start
-
-            edges = np.concatenate((edges, np.stack((e1, e2)).T))
+    scene_edges, scene_verts = csl.edges_verts
 
     xyzs = get_xyzs_in_octant(None, samplig_res_3d)
     labels = trainer.hard_predict(xyzs)
@@ -38,7 +45,7 @@ def render_mid_res(csl, trainer, samplig_res_3d):
 
     ps.set_ground_plane_mode("none")
     model = ps.register_point_cloud("model", xyzs[labels], material="candy", transparency=0.4)
-    scene = ps.register_curve_network(f"scene", verts, edges, material="candy")
+    scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
 
     scene.set_radius(scene.get_radius()/1.5)
     model.set_radius(model.get_radius() * 1)
