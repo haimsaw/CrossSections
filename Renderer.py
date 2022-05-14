@@ -1,7 +1,9 @@
+import pymeshlab
+
 from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
-
+from CSL import CSL
 from SlicesDataset import slices_rasterizer_factory, INSIDE_LABEL
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -14,20 +16,30 @@ import polyscope as ps
 
 
 def render_mesh_and_scene(csl, mesh_verts, mesh_faces):
+    ms = pymeshlab.MeshSet()
+    path = 'G:/My Drive/DeepSlice/for sig asia/compare/armadillo/'
+    csl = CSL.from_csl_file(path + 'armadillo_from_mesh.csl')
+    ms.load_new_mesh(path + "armadillo_scaled.stl")
+    ms.load_new_mesh(path + "ours/meshlast_dc_no_grad.obj")
+
     scene_edges, scene_verts = csl.edges_verts
 
     ps.init()
     # ps.set_ground_plane_height_factor(-0.25)
     # ps.set_transparency_mode('pretty')
-    # ps.look_at((0., 0., -2.5), (0., 0., 0.))
-
+    ps.look_at((0., 0., 2.5), (0., 0., 0.))
+    ps.set_screenshot_extension(".png")
     ps.set_ground_plane_mode("none")
 
-    mesh = ps.register_surface_mesh("mesh", mesh_verts, mesh_faces, material="candy")
+    # original_mesh = ps.register_surface_mesh("original_mesh", ms[0].vertex_matrix(), ms[0].face_matrix(), smooth_shade=True, transparency=0.7)
+
     scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
 
-    scene.set_radius(scene.get_radius() / 1.5)
-    ps.screenshot()
+    recon_mesh = ps.register_surface_mesh("recon_mesh", ms[1].vertex_matrix(), ms[1].face_matrix(), smooth_shade=True, transparency=0.7)
+
+
+    scene.set_radius(scene.get_radius() / 3)
+    # ps.screenshot()
 
     ps.show()
 
