@@ -1,5 +1,4 @@
 import os
-import sys
 from multiprocessing import Pool, cpu_count
 
 from hp import get_csl, HP
@@ -120,6 +119,16 @@ def main(model_name):
 
 
 if __name__ == "__main__":
-    models = ['armadillo', 'eight_15', 'eight_20', 'lamp004_fixed', 'brain']
-    for model in models:
-        main(model)
+    '''hp = HP()
+    save_path = f'./artifacts/{"hart"}/'
+    os.makedirs(save_path, exist_ok=True)
+    model_name = 'hart'
+    csl = get_csl(hp.bounding_planes_margin, save_path, model_name)
+    trainer = ChainTrainer(csl, hp)
+    trainer.load_from_disk('.\\artifacts\\test\\trained_model_5.pt')
+
+    render_mid_res(csl, trainer, (150, 150, 150))'''
+
+    #models = ['armadillo', 'eight_15', 'eight_20', 'lamp004_fixed', 'brain']
+    #for model in models:
+    main(model)

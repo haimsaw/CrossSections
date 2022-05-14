@@ -14,13 +14,6 @@ import polyscope as ps
 
 
 def render_mid_res(csl, trainer, samplig_res_3d):
-    ps.init()
-    # ps.set_ground_plane_height_factor(-0.25)
-    # ps.set_transparency_mode('pretty')
-    ps.set_ground_plane_mode("none")
-
-    # ps.look_at((0., 0., -2.5), (0., 0., 0.))
-
     verts = np.empty((0, 3))
     edges = np.empty((0, 2))
 
@@ -38,7 +31,13 @@ def render_mid_res(csl, trainer, samplig_res_3d):
     xyzs = get_xyzs_in_octant(None, samplig_res_3d)
     labels = trainer.hard_predict(xyzs)
 
-    model = ps.register_point_cloud("model", xyzs[labels], material="candy", transparency=0.5)
+    ps.init()
+    # ps.set_ground_plane_height_factor(-0.25)
+    # ps.set_transparency_mode('pretty')
+    # ps.look_at((0., 0., -2.5), (0., 0., 0.))
+
+    ps.set_ground_plane_mode("none")
+    model = ps.register_point_cloud("model", xyzs[labels], material="candy", transparency=0.4)
     scene = ps.register_curve_network(f"scene", verts, edges, material="candy")
 
     scene.set_radius(scene.get_radius()/1.5)

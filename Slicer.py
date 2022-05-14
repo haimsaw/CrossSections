@@ -35,7 +35,7 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_eight_planes(scale, top, bottom)
     elif model_name == "brain":
         plane_normals, ds = get_brain_planes(scale, top, bottom)
-    elif model_name == 'lamp004':
+    elif model_name == 'lamp004_fixed':
         plane_normals, ds = get_lamp_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)
@@ -110,10 +110,10 @@ def get_random_planes(scale, top, bottom):
 
 
 def get_lamp_planes(scale, top, bottom):
-    n_slices = 40
+    n_slices = 60
     plane_normals = np.random.randn(n_slices, 3)
 
-    ds = -1 * (np.random.random_sample(n_slices) * 2 * scale - scale)
+    ds = -1 * np.random.normal(size=n_slices)
     return plane_normals, ds
 
 
