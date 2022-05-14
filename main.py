@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     render_mid_res(csl, trainer, (150, 150, 150))'''
 
-    models = ['eight_15', 'eight_20', 'armadillo']  # , 'brain']
+    models = ['eight_15', 'eight_20', 'armadillo', 'brain']
     for model in models:
         os.makedirs(f'./data/for_vipss/{model}/', exist_ok=True)
         csl = make_csl_from_mesh(f'data/obj/{model}.obj', f'./data/for_vipss/{model}/')

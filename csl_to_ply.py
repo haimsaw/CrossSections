@@ -1,8 +1,7 @@
 import numpy as np
-from plyfile import PlyData, PlyElement
 
 
-def csl_to_xyz(csl, save_path, n_points_per_edge=1):
+def csl_to_ply(csl, save_path, n_points_per_edge=3):
     pts = []
     normals = []
     for plane in csl.planes:
@@ -17,20 +16,18 @@ def csl_to_xyz(csl, save_path, n_points_per_edge=1):
                 normals += [pt_normal]
 
     pts = np.array(pts)
+    normals = np.array(normals)
 
-    vertex = np.array([(0, 0, 0),
-                       (0, 1, 1),
-                       (1, 0, 1),
-                       (1, 1, 0)],
-                      dtype=[('x', 'f4'), ('y', 'f4'),
-                             ('z', 'f4')])
+    header = f'ply\nformat ascii 1.0\nelement vertex {len(pts)}\n' \
+             f'property float x\nproperty float y\nproperty float z\n' \
+             f'property float nx\nproperty float ny\nproperty float nz\n' \
+             f'element face 0\nproperty list uchar int vertex_index\nend_header'
 
-    pts = pts[np.random.permutation(len(pts))[:4000]]  # vipss can handle ~6k points
-
-    file_name = f'{save_path}{csl.model_name}.xyz'
+    file_name = f'{save_path}{csl.model_name}.ply'
 
     with open(file_name, 'w') as f:
+        f.write(header)
         for pt in pts:
             f.write('{:.10f} {:.10f} {:.10f}\n'.format(*pt))
 
-    print(f'{file_name} {[len(set(pts[:, i])) for i in [0, 1, 2]]}')
+    print(f'{file_name}')
