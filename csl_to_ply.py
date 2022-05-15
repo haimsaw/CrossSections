@@ -13,7 +13,7 @@ def csl_to_ply(csl, save_path, n_points_per_edge=3):
                 pt_normal = np.cross(e2 - e1, plane.normal)
                 pt_normal /= np.linalg.norm(pt_normal)
 
-                normals += [pt_normal]
+                normals += [pt_normal] * n_points_per_edge
 
     pts = np.array(pts)
     normals = np.array(normals)
@@ -21,7 +21,7 @@ def csl_to_ply(csl, save_path, n_points_per_edge=3):
     header = f'ply\nformat ascii 1.0\nelement vertex {len(pts)}\n' \
              f'property float x\nproperty float y\nproperty float z\n' \
              f'property float nx\nproperty float ny\nproperty float nz\n' \
-             f'element face 0\nproperty list uchar int vertex_index\nend_header\n '
+             f'element face 0\nproperty list uchar int vertex_index\nend_header\n'
 
     file_name = f'{save_path}{csl.model_name}.ply'
 
