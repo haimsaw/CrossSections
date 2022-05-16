@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def csl_to_xyz(csl, save_path, n_points_per_edge=3):
+def csl_to_xyz(csl, save_path, n_points_per_edge=1):
 
     pts = []
     for plane in csl.planes:

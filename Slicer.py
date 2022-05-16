@@ -60,8 +60,8 @@ def make_csl_from_mesh(filename, save_path):
         for j in range(3):
             my_mesh.vectors[i][j] = verts[f[j], :]
 
-    # mesh_path = f'{save_path}/{model_name}_scaled.stl'
-    # my_mesh.save(mesh_path)
+    mesh_path = f'{save_path}/{model_name}_scaled.stl'
+    my_mesh.save(mesh_path)
     print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
     # RendererPoly.init()
