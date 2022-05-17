@@ -8,6 +8,7 @@ from stl import mesh as mesh2
 from  Renderer import *
 from meshcut import cross_section
 
+from csl_to_ply import csl_to_ply
 from csl_to_xyz import csl_to_xyz
 
 
@@ -69,7 +70,8 @@ def make_csl_from_mesh(filename, save_path):
     # RendererPoly.add_scene(csl)
     # RendererPoly.show()
 
-    csl_to_xyz(csl, save_path, 1)
+    # csl_to_ply(csl, './data/for_pt2mesh', verts, faces, normals  )
+    # csl_to_xyz(csl, save_path, 1)
     return csl
 
 

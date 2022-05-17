@@ -1,22 +1,22 @@
 import numpy as np
+import trimesh
 
 
-def csl_to_ply(csl, save_path, n_points_per_edge=3):
+def csl_to_ply(csl, save_path, mesh_path, n_points_per_edge=3):
     pts = []
-    normals = []
     for plane in csl.planes:
         for cc in plane.connected_components:
             verts = plane.vertices[cc.vertices_indices]
             verts2 = np.concatenate((verts[1:], verts[0:1]))
             for e1, e2 in zip(verts, verts2):
                 pts += [e1 * d + e2 * (1 - d) for d in np.linspace(0, 1, n_points_per_edge)]
-                pt_normal = np.cross(e2 - e1, plane.normal)
-                pt_normal /= np.linalg.norm(pt_normal)
-
-                normals += [pt_normal] * n_points_per_edge
 
     pts = np.array(pts)
-    normals = np.array(normals)
+
+    scaled_mesh = trimesh.load_mesh(mesh_path)
+
+    closest_points, distances, triangle_ids = scaled_mesh.nearest.on_surface(pts)
+    normals = scaled_mesh.face_normals[triangle_ids]
 
     header = f'ply\nformat ascii 1.0\nelement vertex {len(pts)}\n' \
              f'property float x\nproperty float y\nproperty float z\n' \
