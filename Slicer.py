@@ -22,7 +22,7 @@ class GetCcs:
 
 
 def make_csl_from_mesh(filename, save_path):
-    verts, faces, scale = get_verts_faces(filename)
+    verts, faces, normals, scale = get_verts_faces(filename)
     model_name = filename.split('/')[-1].split('.')[0]
 
     top, bottom = get_top_bottom(verts)
@@ -84,7 +84,10 @@ def get_verts_faces(filename):
     verts /= scale * np.max(np.absolute(verts))
 
     faces = scene.mesh_list[0].faces
-    return verts, faces, 1/scale
+    normals = np.array(scene.parser.normals)
+
+    assert normals.shape == verts.shape
+    return verts, faces, normals, 1/scale
 
 
 def get_brain_planes(scale, top, bottom):

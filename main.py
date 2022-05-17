@@ -2,6 +2,7 @@ import os
 from multiprocessing import Pool, cpu_count
 
 from Slicer import make_csl_from_mesh
+from csl_to_ply import csl_to_ply
 from hp import get_csl, HP
 from ChainTrainer import ChainTrainer
 from SlicesDataset import SlicesDataset
@@ -120,20 +121,28 @@ def main(model_name):
 
 
 if __name__ == "__main__":
-    '''hp = HP()
-    save_path = f'./artifacts/{"hart"}/'
-    os.makedirs(save_path, exist_ok=True)
-    model_name = 'hart'
-    csl = get_csl(hp.bounding_planes_margin, save_path, model_name)
+    hp = HP()
+    csl = CSL.from_csl_file("data/csl-files/Heart-25-even-better.csl")
     trainer = ChainTrainer(csl, hp)
-    trainer.load_from_disk('.\\artifacts\\test\\trained_model_5.pt')
+    trainer.load_from_disk("./artifacts/hart_model_5.pt")
 
-    render_mid_res(csl, trainer, (150, 150, 150))'''
+    scene_edges, scene_verts = csl.edges_verts
 
-    models = ['eight_15', 'eight_20', 'armadillo', 'brain']
-    for model in models:
-        os.makedirs(f'./data/for_vipss/{model}/', exist_ok=True)
-        csl = make_csl_from_mesh(f'data/obj/{model}.obj', f'./data/for_vipss/{model}/')
+    samplig_res_3d = (50, 50, 50)
+    xyzs = get_xyzs_in_octant(None, samplig_res_3d)
+    labels = trainer.hard_predict(xyzs)
 
+    ps.init()
 
-        # main(model)
+    ps.look_at_dir((-2.5, 0.,0), (0., 0., 0.), (0,0,1))
+    ps.set_ground_plane_mode("none")
+    ps.set_screenshot_extension(".png")
+
+    model = ps.register_point_cloud("model", xyzs[labels], material="candy", transparency=0.4)
+    scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
+
+    scene.set_radius(scene.get_radius() / 1.5)
+    # model.set_radius(model.get_radius() * 1)
+
+    # ps.show()
+    ps.screenshot()

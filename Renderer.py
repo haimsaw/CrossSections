@@ -15,11 +15,12 @@ import polyscope as ps
 # endregion
 
 
+
 def render_mesh_and_scene(csl, mesh_verts, mesh_faces):
     ms = pymeshlab.MeshSet()
-    path = 'G:/My Drive/DeepSlice/for sig asia/compare/armadillo/'
-    csl = CSL.from_csl_file(path + 'armadillo_from_mesh.csl')
-    ms.load_new_mesh(path + "armadillo_scaled.stl")
+    path = 'G:/My Drive/DeepSlice/for sig asia/compare/brain/'
+    csl = CSL.from_csl_file(path + 'brain_from_mesh.csl')
+    ms.load_new_mesh(path + "brain_scaled.stl")
     ms.load_new_mesh(path + "ours/meshlast_dc_no_grad.obj")
 
     scene_edges, scene_verts = csl.edges_verts
@@ -27,20 +28,27 @@ def render_mesh_and_scene(csl, mesh_verts, mesh_faces):
     ps.init()
     # ps.set_ground_plane_height_factor(-0.25)
     # ps.set_transparency_mode('pretty')
-    ps.look_at((0., 0., 2.5), (0., 0., 0.))
+    ps.look_at_dir((-2.5, 0.,0), (0., 0., 0.), (0,0,1))
     ps.set_screenshot_extension(".png")
     ps.set_ground_plane_mode("none")
 
     # original_mesh = ps.register_surface_mesh("original_mesh", ms[0].vertex_matrix(), ms[0].face_matrix(), smooth_shade=True, transparency=0.7)
 
-    scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
-
     recon_mesh = ps.register_surface_mesh("recon_mesh", ms[1].vertex_matrix(), ms[1].face_matrix(), smooth_shade=True, transparency=0.7)
+    scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
 
 
     scene.set_radius(scene.get_radius() / 3)
-    # ps.screenshot()
 
+
+
+    ps.screenshot()
+    for i, t in enumerate(np.linspace(0., 2 * np.pi, 120)):
+        pos = np.cos(t) * .8 + .2
+        ps_plane.set_pose((pos, 0., 0), (0., 0., 0.))
+        # Take a screenshot at each frame
+        ps.screenshot(filename=f'./brain_anim{i}_{t}.png', transparent_bg=False)
+        print(i)
     ps.show()
 
 
