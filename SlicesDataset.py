@@ -31,7 +31,7 @@ class Labler:
 
 
 class Cell:
-    def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer):
+    def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer, plane_id):
         assert min(pixel_radius) > 0
         self._label = None
 
@@ -41,6 +41,7 @@ class Cell:
         self.labeler = labeler
         self.xyz_transformer = xyz_transformer
         self.xyz = xyz_transformer(np.array([self.pixel_center]))[0]
+        self.plane_id = plane_id
 
     @property
     def density(self):
@@ -67,7 +68,7 @@ class Cell:
                                 [-1, -1]]) * new_cell_radius + self.pixel_center
 
         # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
-        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer) for xy in new_centers]
+        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer, self.plane_id) for xy in new_centers]
 
 
 class IRasterizer:
@@ -137,7 +138,7 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
 
         labler = Labler(None, None)
-        return [Cell(xy, pixel_radius, labler, xyz_transformer) for xy in xys]
+        return [Cell(xy, pixel_radius, labler, xyz_transformer, -1) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
@@ -186,7 +187,7 @@ class PlaneRasterizer(IRasterizer):
         xys, _, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
 
-        return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform) for xy in xys]
+        return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys]
 
 
 class SlicesDataset(Dataset):
