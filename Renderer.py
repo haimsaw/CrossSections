@@ -4,7 +4,7 @@ from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
 from CSL import CSL
-from SlicesDataset import slices_rasterizer_factory, INSIDE_LABEL
+from SlicesDataset import slices_rasterizer_factory, INSIDE_LABEL, OUTSIDE_LABEL
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import matplotlib.animation as animation
@@ -32,11 +32,10 @@ def render_mesh_and_scene(csl, mesh_verts, mesh_faces):
     ps.set_screenshot_extension(".png")
     ps.set_ground_plane_mode("none")
 
-    # original_mesh = ps.register_surface_mesh("original_mesh", ms[0].vertex_matrix(), ms[0].face_matrix(), smooth_shade=True, transparency=0.7)
+    original_mesh = ps.register_surface_mesh("original_mesh", ms[0].vertex_matrix(), ms[0].face_matrix(), smooth_shade=True, transparency=0.7)
 
     recon_mesh = ps.register_surface_mesh("recon_mesh", ms[1].vertex_matrix(), ms[1].face_matrix(), smooth_shade=True, transparency=0.7)
     scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
-
 
     scene.set_radius(scene.get_radius() / 3)
 
@@ -252,15 +251,28 @@ class Renderer2D:
         self.ax.scatter(*xyz[np.logical_not(is_inside)].T, color='blue')
         self.description.append("draw_rasterized_plane")
 
+    def draw_cells(self, cells):
+        colors = ['purple', 'blue', 'green', 'yellow', 'orange', 'red']
+        is_edge = np.array([cell.density != INSIDE_LABEL and cell.density != OUTSIDE_LABEL for cell in cells])
+        xyz = np.array([cell.pixel_center for cell in cells])
+        color = np.array([cell.density for cell in cells])
+        # color = np.sqrt(1-abs(np.array([2*cell.density-1 for cell in cells])))
+        self.ax.scatter(*xyz.T, c=color, cmap='Wistia', norm=plt.Normalize(0, 1))
+
+        for cell in cells:
+            self.ax.fill(*cell.boundary.T, color=colors[cell.generation], alpha=0.5, zorder=-1*cell.generation)
+            # self.ax.annotate(str(cell.density), cell.pixel_center)
+
+        self.description.append("draw_rasterized_plane")
+
     def draw_plane_verts(self, plane):
         verts, _ = plane.pca_projection
         for component in plane.connected_components:
             cc_verts = verts[component.vertices_indices]
             self.ax.scatter(*cc_verts.T, color='orange' if component.is_hole else 'black')
-            for i, vert in enumerate(cc_verts):
-                self.ax.annotate(str(i), vert)
+            # for i, vert in enumerate(cc_verts):
+            #    self.ax.annotate(str(i), vert)
 
-        self.ax.scatter([0], [0], color='red')
         self.description.append("draw_plane_verts")
 
     def draw_plane(self, plane):
