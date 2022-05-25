@@ -140,7 +140,7 @@ class ChainTrainer:
         # todo haim samplers
         print(f'update_data_loaders dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }'
               f' new={len(new_cells)}')
-        self.slices_dataset = SlicesDataset.from_cells(self.csl, True, new_cells)
+        self.slices_dataset = SlicesDataset.from_cells(self.csl, new_cells)
         self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
         # contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
         # self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=self.hp.batch_size, sampler=contour_sampler)
@@ -168,7 +168,6 @@ class ChainTrainer:
         xyz_to_refine = set([x.tobytes() for x in xyz_to_refine])
         new_cells = []
         for cell in self.slices_dataset.cells:
-            # todo quadratic - can improve by converting xyz_to_refine to set
             if cell.xyz.tobytes() in xyz_to_refine:
                 new_cells += cell.split_cell()
             else:

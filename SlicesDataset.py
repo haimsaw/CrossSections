@@ -1,3 +1,5 @@
+import pickle
+
 import torch
 from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
@@ -199,18 +201,17 @@ class PlaneRasterizer(IRasterizer):
 
 
 class SlicesDataset(Dataset):
-    def __init__(self, csl, should_calc_density, cells):
+    def __init__(self, csl, cells):
         self.csl = csl
-        self.should_calc_density = should_calc_density
 
         self.cells = cells
 
     @classmethod
-    def from_cells(cls, csl, should_calc_density, cells):
-        return cls(csl, should_calc_density, np.array(cells))
+    def from_cells(cls, csl, cells):
+        return cls(csl, np.array(cells))
 
     @classmethod
-    def from_csl(cls, csl, should_calc_density, pool, sampling_resolution=(256, 256), sampling_margin=0.2):
+    def from_csl(cls, csl, pool, sampling_resolution=(256, 256), sampling_margin=0.2):
         cells = []
         for plane in csl.planes:
             cells += slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
@@ -219,7 +220,7 @@ class SlicesDataset(Dataset):
 
         # calculate density in pool
         ret = pool.imap_unordered(lambda cell: cell.density, cells)
-        return cls(csl, should_calc_density, cells)
+        return cls(csl, cells)
 
     def __len__(self):
         return self.cells.size
@@ -227,7 +228,20 @@ class SlicesDataset(Dataset):
     def __getitem__(self, idx):
         cell = self.cells[idx]
         xyz = torch.tensor(cell.xyz)
-        density = torch.tensor([cell.density] if self.should_calc_density else [-1])
+        density = torch.tensor([cell.density])
 
         return xyz, density
 
+    def pickle(self, file_name):
+        pickle.dump(self.cells, open(file_name, 'wb'))
+
+    def to_ply(self, file_name):
+        header = f'ply\nformat ascii 1.0\nelement vertex {len(self.cells)}\n' \
+                 f'property float x\nproperty float y\nproperty float z\n' \
+                 f'property int generation\nproperty float quality\n' \
+                 f'element face 0\nproperty list uchar int vertex_index\nend_header\n'
+
+        with open(file_name, 'w') as f:
+            f.write(header)
+            for cell in self.cells:
+                f.write('{:.10f} {:.10f} {:.10f} {} {:.10f}\n'.format(*cell.xyz, cell.generation, cell.density))
