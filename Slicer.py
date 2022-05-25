@@ -170,9 +170,12 @@ def get_armadillo_planes(scale, top, bottom):
     plane_normals = np.array([(0, 1.0, 0)] * n_slices_y +
                              [(0,  1.3,  -1.0)] * n_slices2 +
                              [(0, 1.0, 1.5)] * n_slices3)
+                             # [(-0.024,  0.050,  0.200)]*n_slices3) # this samples his fingers
 
     ds = -1 * np.concatenate((np.linspace(bottom[1], top[1], n_slices_y),
                               np.linspace(-0.5, 0.5, n_slices2),
                               np.linspace(-0.62, 0.62, n_slices3)))
+                              # [0.511, 0.566, 0.622]))  # this samples his fingers
+
     return plane_normals, ds
 
