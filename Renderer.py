@@ -32,7 +32,7 @@ def render_mesh_and_scene(csl, mesh_verts, mesh_faces):
     ps.set_screenshot_extension(".png")
     ps.set_ground_plane_mode("none")
 
-    original_mesh = ps.register_surface_mesh("original_mesh", ms[0].vertex_matrix(), ms[0].face_matrix(), smooth_shade=True, transparency=0.7)
+    original_mesh = ps.register_surface_mesh("original_mesh", ms[0].vertex_matrix(), ms[0].face_matrix(), smooth_shade=True)
 
     recon_mesh = ps.register_surface_mesh("recon_mesh", ms[1].vertex_matrix(), ms[1].face_matrix(), smooth_shade=True, transparency=0.7)
     scene = ps.register_curve_network(f"scene", scene_verts, scene_edges, material="candy")
@@ -260,7 +260,7 @@ class Renderer2D:
         self.ax.scatter(*xyz.T, c=color, cmap='Wistia', norm=plt.Normalize(0, 1))
 
         for cell in cells:
-            self.ax.fill(*cell.boundary.T, color=colors[cell.generation], alpha=0.5, zorder=-1*cell.generation)
+            self.ax.fill(*cell.boundary.T, color=colors[cell.generation], alpha=0.2, zorder=-1*cell.generation)
             # self.ax.annotate(str(cell.density), cell.pixel_center)
 
         self.description.append("draw_rasterized_plane")
@@ -279,7 +279,8 @@ class Renderer2D:
         if not plane.is_empty:
             verts, _ = plane.pca_projection
             for component in plane.connected_components:
-                self.ax.plot(*verts[component.vertices_indices].T, color='orange' if component.is_hole else 'black')
+                ind = component.vertices_indices[list(range(len(component.vertices_indices)))+[0]]
+                self.ax.plot(*verts[ind].T, color='orange' if component.is_hole else 'black')
             self.description.append("draw_plane")
 
     def heatmap(self, sampling_resolution_2d, network_manager, around_ax, dist, add_grad):
@@ -304,8 +305,8 @@ class Renderer2D:
             xys = np.delete(xyzs, around_ax, axis=1)
             self.ax.quiver(*xys.T, *grads_2d.T, color='black', alpha=1.0)
 
-    def save(self, save_path):
-        title = '_'.join(self.description)
+    def save(self, save_path, title):
+        # title = '_'.join(self.description)
         name = save_path + title + '.svg'
         self.fig.suptitle(title)
         plt.savefig(name)
