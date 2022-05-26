@@ -2,7 +2,7 @@ import numpy as np
 import trimesh
 
 
-def csl_to_ply(csl, save_path, mesh_path, n_points_per_edge=3):
+def csl_to_point2mesh(csl, save_path, mesh_path, n_points_per_edge=3):
     pts = []
     for plane in csl.planes:
         for cc in plane.connected_components:

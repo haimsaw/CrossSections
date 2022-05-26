@@ -8,7 +8,7 @@ from stl import mesh as mesh2
 from  Renderer import *
 from meshcut import cross_section
 
-from csl_to_ply import csl_to_ply
+from csl_to_ply import csl_to_point2mesh
 from csl_to_xyz import csl_to_xyz
 
 

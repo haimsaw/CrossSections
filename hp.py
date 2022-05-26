@@ -19,12 +19,12 @@ def get_csl(bounding_planes_margin, save_path, name):
     # csl = CSL.from_csl_file("data/csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("data/csl-files/Brain.csl")
 
-    # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
+    csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
 
 
     # csl = make_csl_from_mesh('./data/eight.obj', save_path)
     # csl = make_csl_from_mesh('data/armadillo.obj', save_path)
-    csl = make_csl_from_mesh('data/obj/lamp004_fixed.obj', save_path)
+    # csl = make_csl_from_mesh('data/obj/lamp004_fixed.obj', save_path)
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
     return csl

@@ -10,15 +10,18 @@ from Renderer import *
 from Mesher import *
 from Comperator import hausdorff_distance
 from time import time
+from CSL import CSL
+import pickle
 
 
-def train_cycle(csl, hp, trainer, should_calc_density, save_path, model_name):
+def train_cycle(csl, hp, trainer, save_path, model_name):
     total_time = 0
+    cells_list = []
     with Pool(processes=cpu_count()//2) as pool:
 
         ts = time()
         slices_dataset = SlicesDataset.from_csl(csl, pool=pool, sampling_resolution=hp.root_sampling_resolution_2d,
-                                                sampling_margin=hp.sampling_margin, should_calc_density=should_calc_density)
+                                                sampling_margin=hp.sampling_margin)
         contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
 
         trainer.prepare_for_training(slices_dataset, contour_dataset)
@@ -26,6 +29,8 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path, model_name):
         total_time += ts - te
         for i, epochs in enumerate(hp.epochs_batches):
             print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
+            trainer.slices_dataset.to_ply(save_path + f"datast_gen_{i}.ply")
+            cells_list.append(trainer.slices_dataset.cells)
 
             ts = time()
             new_cells, promise = trainer.get_refined_cells(pool)
@@ -52,6 +57,7 @@ def train_cycle(csl, hp, trainer, should_calc_density, save_path, model_name):
             te = time()
             total_time += ts - te
     print(f'\n\n done train_cycle time = {total_time} sec')
+    return cells_list
 
 
 def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
@@ -113,14 +119,35 @@ def main(model_name):
 
         train_cycle(csl, hp, trainer, True, save_path, model_name)
 
-        mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
+        # 1 based
+        plane_id = 26
+        for height, cells in enumerate(cells_list[::-1]):
+            plane = csl.planes[plane_id - 1]
+            if not plane.is_empty:
+                r = Renderer2D()
+                r.draw_plane(plane)
+                r.draw_cells([cell for cell in cells if cell.plane_id == plane_id])
+                r.show()
+                # r.save(save_path, f'plane_{plane_id}_height{height}')
+                # r.clear()
 
-        save_heatmaps(trainer, save_path, 'last')
+
+
+
+        # mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
+
+        # save_heatmaps(trainer, save_path, 'last')
 
         print(f'DONE {"=" * 50} {save_path}\n\n')
 
 
 if __name__ == "__main__":
+    main('armadillo')
+
+    '''
+    for model in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
+
+
     hp = HP()
     csl = CSL.from_csl_file("data/csl-files/Heart-25-even-better.csl")
     trainer = ChainTrainer(csl, hp)
@@ -145,4 +172,4 @@ if __name__ == "__main__":
     # model.set_radius(model.get_radius() * 1)
 
     # ps.show()
-    ps.screenshot()
+    ps.screenshot()'''

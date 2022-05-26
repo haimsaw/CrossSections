@@ -1,11 +1,11 @@
-import pickle
-
-import torch
-from matplotlib.path import Path
 from abc import ABCMeta, abstractmethod
+
+import numpy as np
+from matplotlib.path import Path
+
 from CSL import Plane
-from Helpers import *
-from torch.utils.data import Dataset
+from Helpers import add_margin, get_top_bottom
+from sampling.Cell import Cell
 
 INSIDE_LABEL = 0.0
 OUTSIDE_LABEL = 1.0
@@ -30,55 +30,6 @@ class Labler:
             mask &= np.logical_not(pixels_in_hole)
         labels = np.where(mask, np.full(mask.shape, INSIDE_LABEL), np.full(mask.shape, OUTSIDE_LABEL))
         return labels
-
-
-class Cell:
-    def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer, plane_id, generation=0):
-        assert min(pixel_radius) > 0
-        self._label = None
-
-        self.pixel_center = pixel_center
-        self.pixel_radius = pixel_radius
-
-        self.labeler = labeler
-        self.xyz_transformer = xyz_transformer
-        self.xyz = xyz_transformer(np.array([self.pixel_center]))[0]
-        self.plane_id = plane_id
-        self.generation = generation
-
-    @property
-    def density(self):
-        if self._label is None:
-            self._label = self._get_label()
-        return self._label
-
-    @property
-    def boundary(self):
-        return np.array([[1, 1],
-                        [1, -1],
-                        [-1, -1],
-                        [-1, 1]]) * self.pixel_radius + self.pixel_center
-
-    '''
-    using Hoeffding's inequality we get that for the result to be in range of +- eps=0.1 from actual value
-    w.p 1-alpha=1-0.001=99.9%
-    we need 380=math.log(2/alpha)/(2*eps*eps) samples 
-    '''
-    def _get_label(self, accuracy=400):
-        rnd = np.random.random_sample((accuracy, 2))
-        sampels = self.pixel_radius * (2 * rnd - 1) + self.pixel_center
-        labels = self.labeler(sampels)
-        return sum(labels) / accuracy
-
-    def split_cell(self):
-        new_cell_radius = self.pixel_radius / 2
-        new_centers = np.array([[1, 1],
-                                [1, -1],
-                                [-1, 1],
-                                [-1, -1]]) * new_cell_radius + self.pixel_center
-
-        # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
-        return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer, self.plane_id, self.generation+1) for xy in new_centers]
 
 
 class IRasterizer:
@@ -198,50 +149,3 @@ class PlaneRasterizer(IRasterizer):
         labeler = self._get_labeler()
 
         return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys]
-
-
-class SlicesDataset(Dataset):
-    def __init__(self, csl, cells):
-        self.csl = csl
-
-        self.cells = cells
-
-    @classmethod
-    def from_cells(cls, csl, cells):
-        return cls(csl, np.array(cells))
-
-    @classmethod
-    def from_csl(cls, csl, pool, sampling_resolution=(256, 256), sampling_margin=0.2):
-        cells = []
-        for plane in csl.planes:
-            cells += slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
-
-        cells = np.array(cells)
-
-        # calculate density in pool
-        ret = pool.imap_unordered(lambda cell: cell.density, cells)
-        return cls(csl, cells)
-
-    def __len__(self):
-        return self.cells.size
-
-    def __getitem__(self, idx):
-        cell = self.cells[idx]
-        xyz = torch.tensor(cell.xyz)
-        density = torch.tensor([cell.density])
-
-        return xyz, density
-
-    def pickle(self, file_name):
-        pickle.dump(self.cells, open(file_name, 'wb'))
-
-    def to_ply(self, file_name):
-        header = f'ply\nformat ascii 1.0\nelement vertex {len(self.cells)}\n' \
-                 f'property float x\nproperty float y\nproperty float z\n' \
-                 f'property int generation\nproperty float quality\n' \
-                 f'element face 0\nproperty list uchar int vertex_index\nend_header\n'
-
-        with open(file_name, 'w') as f:
-            f.write(header)
-            for cell in self.cells:
-                f.write('{:.10f} {:.10f} {:.10f} {} {:.10f}\n'.format(*cell.xyz, cell.generation, cell.density))
