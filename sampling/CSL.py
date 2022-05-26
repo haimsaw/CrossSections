@@ -73,6 +73,12 @@ class ConnectedComponent:
     def is_hole(self):
         return self.parent_cc_index >= 0
 
+    @property
+    def edges_indices(self):
+        e1 = self.vertices_indices
+        e2 = np.concatenate((self.vertices_indices[1:], self.vertices_indices[0:1]))
+        return np.stack((e1, e2)).T
+
 
 class Plane:
     def __init__(self, plane_id: int, plane_params: tuple, vertices: np.array, connected_components: list, csl):
@@ -210,6 +216,13 @@ class Plane:
         pca.fit(self.vertices)
         return pca.transform(self.vertices), pca
 
+    @property
+    def edges_verts(self):
+        edges = np.empty((0, 2))
+        for cc in self.connected_components:
+            edges = np.concatenate((edges, cc.edges_indices))
+        return edges, self.vertices
+
     def project(self, points):
         # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
         dists = (points - self.plane_origin) @ self.normal
@@ -285,15 +298,12 @@ class CSL:
         scene_verts = np.empty((0, 3))
         scene_edges = np.empty((0, 2))
         for plane in self.planes:
-
             plane_vert_start = len(scene_verts)
-            scene_verts = np.concatenate((scene_verts, plane.vertices))
+            plane_edges, plane_verts = plane.edges_verts
 
-            for cc in plane.connected_components:
-                e1 = cc.vertices_indices + plane_vert_start
-                e2 = np.concatenate((cc.vertices_indices[1:], cc.vertices_indices[0:1])) + plane_vert_start
+            scene_verts = np.concatenate((scene_verts, plane_verts))
+            scene_edges = np.concatenate((scene_edges, plane_edges + plane_vert_start))
 
-                scene_edges = np.concatenate((scene_edges, np.stack((e1, e2)).T))
         return scene_edges, scene_verts
 
     def _add_empty_plane(self, plane_params):
