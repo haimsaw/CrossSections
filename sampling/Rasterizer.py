@@ -109,15 +109,20 @@ class PlaneRasterizer(IRasterizer):
         self.plane = plane
 
     def _get_voxels(self, resolution, margin):
-        epsilon = 1/64 # todo add to hp
-        n_samples = 3 # todo add to hp
+        epsilon = 1/64  # todo add to hp
+        n_samples = 3  # todo add to hp
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
         edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
         edges_directions /= np.linalg.norm(edges_directions, axis=1)
         edge_normals = np.array([[0, -1], [1, 0]]) * edges_directions
 
-        np.linspace(0, 1, n_samples)
+        dist = np.linspace(0, 1, n_samples, endpoint=False)
+
+        points = dist * edges_2d[:, 0, :] + (1-dist) * edges_2d[:, 1, :]  # todo this is not working
+
+        xys = np.concatenate(points + edge_normals * epsilon, points - edge_normals * epsilon)
+
 
 
 
