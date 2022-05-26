@@ -217,11 +217,11 @@ class Plane:
         return pca.transform(self.vertices), pca
 
     @property
-    def edges_verts(self):
+    def edges(self):
         edges = np.empty((0, 2))
         for cc in self.connected_components:
             edges = np.concatenate((edges, cc.edges_indices))
-        return edges, self.vertices
+        return edges
 
     def project(self, points):
         # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
@@ -299,10 +299,9 @@ class CSL:
         scene_edges = np.empty((0, 2))
         for plane in self.planes:
             plane_vert_start = len(scene_verts)
-            plane_edges, plane_verts = plane.edges_verts
 
-            scene_verts = np.concatenate((scene_verts, plane_verts))
-            scene_edges = np.concatenate((scene_edges, plane_edges + plane_vert_start))
+            scene_verts = np.concatenate((scene_verts, plane.vertices))
+            scene_edges = np.concatenate((scene_edges, plane.edges + plane_vert_start))
 
         return scene_edges, scene_verts
 
