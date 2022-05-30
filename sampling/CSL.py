@@ -218,7 +218,7 @@ class Plane:
 
     @property
     def edges(self):
-        edges = np.empty((0, 2))
+        edges = np.empty((0, 2), dtype=int)
         for cc in self.connected_components:
             edges = np.concatenate((edges, cc.edges_indices))
         return edges

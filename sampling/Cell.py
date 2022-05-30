@@ -3,7 +3,7 @@ import numpy as np
 
 class Cell:
     def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer, plane_id, generation=0):
-        assert min(pixel_radius) > 0
+        #assert pixel_radius > 0
         self._label = None
 
         self.pixel_center = pixel_center

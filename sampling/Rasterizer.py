@@ -114,8 +114,8 @@ class PlaneRasterizer(IRasterizer):
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
         edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
-        edges_directions /= np.linalg.norm(edges_directions, axis=1)
-        edge_normals = np.array([[0, -1], [1, 0]]) * edges_directions
+        edge_normals = edges_directions @ np.array([[0, 1], [-1, 0]])
+        edge_normals /= np.linalg.norm(edge_normals, axis=1)[:, None]
 
         dist = np.linspace(0, 1, n_samples, endpoint=False)
 
