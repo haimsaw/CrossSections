@@ -1,9 +1,9 @@
 import json
 from datetime import datetime
 import numpy as np
-from CSL import CSL
-from Slicer import make_csl_from_mesh
-from csl_to_xyz import csl_to_xyz
+from sampling.CSL import CSL
+from sampling.Slicer import make_csl_from_mesh
+from sampling.csl_to_xyz import csl_to_xyz
 
 
 def get_csl(bounding_planes_margin, save_path, name):

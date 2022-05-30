@@ -2,14 +2,14 @@ from multiprocessing import Pool, cpu_count
 
 import numpy as np
 
-from CSL import *
+from sampling.CSL import *
 import pywavefront
 from stl import mesh as mesh2
 from  Renderer import *
 from meshcut import cross_section
 
-from csl_to_ply import csl_to_point2mesh
-from csl_to_xyz import csl_to_xyz
+from sampling.csl_to_point2mesh import csl_to_point2mesh
+from sampling.csl_to_xyz import csl_to_xyz
 
 
 class GetCcs:

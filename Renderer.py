@@ -3,8 +3,9 @@ import pymeshlab
 from Helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
-from CSL import CSL
-from SlicesDataset import slices_rasterizer_factory, INSIDE_LABEL, OUTSIDE_LABEL
+from sampling.CSL import CSL
+from sampling.SlicesDataset import slices_rasterizer_factory
+from sampling.Rasterizer import INSIDE_LABEL, OUTSIDE_LABEL
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import matplotlib.animation as animation
@@ -305,8 +306,9 @@ class Renderer2D:
             xys = np.delete(xyzs, around_ax, axis=1)
             self.ax.quiver(*xys.T, *grads_2d.T, color='black', alpha=1.0)
 
-    def save(self, save_path, title):
-        # title = '_'.join(self.description)
+    def save(self, save_path, title=None):
+        if title is None:
+            title = '_'.join(self.description)
         name = save_path + title + '.svg'
         self.fig.suptitle(title)
         plt.savefig(name)

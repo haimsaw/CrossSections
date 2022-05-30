@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from matplotlib.path import Path
 
-from CSL import Plane
+from sampling.CSL import Plane
 from Helpers import add_margin, get_top_bottom
 from sampling.Cell import Cell
 
@@ -110,7 +110,7 @@ class PlaneRasterizer(IRasterizer):
 
     def _get_voxels(self, resolution, margin):
         epsilon = 1/64  # todo add to hp
-        n_samples = 3  # todo add to hp
+        n_samples = 5  # todo add to hp
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
         edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
@@ -119,23 +119,27 @@ class PlaneRasterizer(IRasterizer):
 
         dist = np.linspace(0, 1, n_samples, endpoint=False)
 
-        points = dist * edges_2d[:, 0, :] + (1-dist) * edges_2d[:, 1, :]  # todo this is not working
+        xys = np.empty((0, 2))
+        for edge, normal in zip(edges_2d, edge_normals):
 
-        xys = np.concatenate(points + edge_normals * epsilon, points - edge_normals * epsilon)
+            points_on_edge = np.array([d * edge[0] + (1-d) * edge[1] for d in dist])
+            xys = np.concatenate((xys, points_on_edge + normal * epsilon, points_on_edge - normal * epsilon))
 
+        pixel_radius = epsilon
 
 
 
         '''
         :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
         '''
-        top, bottom = add_margin(np.array([1, 1]), np.array([-1, -1]), margin)
+
+        '''top, bottom = add_margin(np.array([1, 1]), np.array([-1, -1]), margin)
 
         xs = np.linspace(bottom[0], top[0], resolution[0], endpoint=False)
         ys = np.linspace(bottom[1], top[1], resolution[1], endpoint=False)
         pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]]) / 2
 
-        xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius
+        xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius'''
         xyzs = self.pca.inverse_transform(xys)
 
         return xys, xyzs, pixel_radius

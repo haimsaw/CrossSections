@@ -1,16 +1,16 @@
 import os
 from multiprocessing import Pool, cpu_count
 
-from Slicer import make_csl_from_mesh
-from csl_to_ply import csl_to_ply
+from sampling.Slicer import make_csl_from_mesh
+from sampling.csl_to_point2mesh import csl_to_point2mesh
 from hp import get_csl, HP
 from ChainTrainer import ChainTrainer
-from SlicesDataset import SlicesDataset
+from sampling.SlicesDataset import SlicesDataset
 from Renderer import *
 from Mesher import *
 from Comperator import hausdorff_distance
 from time import time
-from CSL import CSL
+from sampling.CSL import CSL
 import pickle
 
 
@@ -117,7 +117,7 @@ def main(model_name):
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
 
-        train_cycle(csl, hp, trainer, True, save_path, model_name)
+        cells_list = train_cycle(csl, hp, trainer, save_path, model_name)
 
         # 1 based
         plane_id = 26

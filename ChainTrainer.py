@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from Helpers import timing
 from Modules import HaimNetWithState
-from SlicesDataset import SlicesDataset
+from sampling.SlicesDataset import SlicesDataset
 
 
 class ChainTrainer:
