@@ -26,7 +26,7 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
 
         trainer.prepare_for_training(slices_dataset, contour_dataset)
         te = time()
-        total_time += ts - te
+        total_time += te - ts
         for i, epochs in enumerate(hp.epochs_batches):
             print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
             trainer.slices_dataset.to_ply(save_path + f"datast_gen_{i}.ply")
@@ -36,7 +36,7 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
             new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             te = time()
-            total_time += ts - te
+            total_time += te - ts
 
             trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
             # trainer.show_train_losses(save_path)
@@ -131,9 +131,6 @@ def main(model_name):
                 # r.save(save_path, f'plane_{plane_id}_height{height}')
                 # r.clear()
 
-
-
-
         # mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
 
         # save_heatmaps(trainer, save_path, 'last')
@@ -142,11 +139,11 @@ def main(model_name):
 
 
 if __name__ == "__main__":
-    main('armadillo')
+
+    for model in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
+        main(model)
 
     '''
-    for model in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
-
 
     hp = HP()
     csl = CSL.from_csl_file("data/csl-files/Heart-25-even-better.csl")

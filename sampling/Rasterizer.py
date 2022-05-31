@@ -109,8 +109,8 @@ class PlaneRasterizer(IRasterizer):
         self.plane = plane
 
     def _get_voxels(self, resolution, margin):
-        epsilon = 1/64  # todo add to hp
-        n_samples = 5  # todo add to hp
+        epsilon = 1/32  # todo add to hp
+        n_samples = 2  # todo add to hp
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
         edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
@@ -127,6 +127,8 @@ class PlaneRasterizer(IRasterizer):
 
         pixel_radius = epsilon
 
+        # todo haim add noise
+
 
 
         '''
@@ -140,9 +142,8 @@ class PlaneRasterizer(IRasterizer):
         pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]]) / 2
 
         xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius'''
-        xyzs = self.pca.inverse_transform(xys)
 
-        return xys, xyzs, pixel_radius
+        return xys, pixel_radius
 
     def _get_labeler(self):
         shape_vertices = []
@@ -166,7 +167,7 @@ class PlaneRasterizer(IRasterizer):
         return Labler(path, hole_path)
 
     def get_rasterazation_cells(self, resolution, margin):
-        xys, _, pixel_radius = self._get_voxels(resolution, margin)
+        xys, pixel_radius = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
 
         return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys]
