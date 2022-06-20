@@ -193,7 +193,10 @@ class ChainTrainer:
         plt.bar(range(len(self.train_losses)), self.train_losses)
         if save_path is not None:
             plt.savefig(save_path + f"losses")
-        plt.show()
+        # plt.show()
+        plt.close()
+        plt.cla()
+        plt.clf()
 
     def load_from_disk(self, save_path):
         self.module.load_state_dict(torch.load(save_path, map_location=torch.device('cpu')))

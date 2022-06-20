@@ -126,8 +126,8 @@ class PlaneRasterizer(IRasterizer):
 
             points_on_edge = np.array([d * edge[0] + (1-d) * edge[1] for d in dist])
 
-            #xys_around_edges = np.concatenate((xys_around_edges, points_on_edge + normal * radius, points_on_edge - normal * radius))
-            #xys_on_edge = np.concatenate((xys_on_edge, points_on_edge))
+            xys_around_edges = np.concatenate((xys_around_edges, points_on_edge + normal * radius, points_on_edge - normal * radius))
+            xys_on_edge = np.concatenate((xys_on_edge, points_on_edge))
 
         thetas = np.linspace(-np.pi, np.pi, n_samples, endpoint=False)
         points_on_unit_spere = radius * np.stack((np.cos(thetas), np.sin(thetas))).T

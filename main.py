@@ -33,17 +33,18 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
             cells_list.append(trainer.slices_dataset.cells)
 
             ts = time()
-            new_cells, promise = trainer.get_refined_cells(pool)
+            # new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             te = time()
             total_time += te - ts
 
             trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
+            trainer.show_train_losses(save_path)
             # trainer.show_train_losses(save_path)
 
             try:
                 print('meshing')
-                #handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
+                # handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
                 pass
             except Exception as e:
                 print(e)
@@ -52,8 +53,8 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
             print('waiting for cell density calculation...')
 
             ts = time()
-            promise.wait()
-            trainer.update_data_loaders(new_cells)
+            # promise.wait()
+            # trainer.update_data_loaders(new_cells)
             te = time()
             total_time += ts - te
     print(f'\n\n done train_cycle time = {total_time} sec')
@@ -112,8 +113,6 @@ def main(model_name):
 
         trainer = ChainTrainer(csl, hp)
 
-        print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
-
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
 
@@ -131,7 +130,7 @@ def main(model_name):
                 # r.save(save_path, f'plane_{plane_id}_height{height}')
                 # r.clear()
 
-        # mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
+        mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
 
         # save_heatmaps(trainer, save_path, 'last')
 
@@ -140,8 +139,8 @@ def main(model_name):
 
 if __name__ == "__main__":
 
-    for model in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
-        main(model)
+    for model_name in ['eight_15']:#, 'armadillo', 'lamp004_fixed',  'eight_20']:
+        main(model_name)
 
     '''
 
