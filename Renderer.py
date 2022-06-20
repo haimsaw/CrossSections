@@ -246,10 +246,15 @@ class Renderer2D:
 
     def draw_rasterized_plane(self, plane, resolution=(256, 256), margin=0.2):
         cells = slices_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)
+
         is_inside = np.array([cell.density == INSIDE_LABEL for cell in cells])
+        is_on = np.array([cell.is_on_edge for cell in cells])
+
         xyz = np.array([cell.pixel_center for cell in cells])
         self.ax.scatter(*xyz[is_inside].T, color='red')
-        self.ax.scatter(*xyz[np.logical_not(is_inside)].T, color='blue')
+        self.ax.scatter(*xyz[is_on].T, color='purple')
+        self.ax.scatter(*xyz[np.logical_not(np.logical_or(is_inside, is_on))].T, color='blue')
+
         self.description.append("draw_rasterized_plane")
 
     def draw_cells(self, cells):

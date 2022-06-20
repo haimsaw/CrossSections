@@ -110,7 +110,7 @@ class PlaneRasterizer(IRasterizer):
 
     def _get_voxels(self, resolution, margin):
         radius = 1/32  # todo add to hp
-        n_samples = 2  # todo add to hp
+        n_samples = 5  # todo add to hp
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
         edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
@@ -126,23 +126,22 @@ class PlaneRasterizer(IRasterizer):
 
             points_on_edge = np.array([d * edge[0] + (1-d) * edge[1] for d in dist])
 
-            xys_around_edges = np.concatenate((xys_around_edges, points_on_edge + normal * radius, points_on_edge - normal * radius))
-            xys_on_edge = np.concatenate((xys_on_edge, points_on_edge))
+            #xys_around_edges = np.concatenate((xys_around_edges, points_on_edge + normal * radius, points_on_edge - normal * radius))
+            #xys_on_edge = np.concatenate((xys_on_edge, points_on_edge))
 
         thetas = np.linspace(-np.pi, np.pi, n_samples, endpoint=False)
-        points_on_unit_spere = np.stack(np.cos(thetas), np.sin(thetas)).T
+        points_on_unit_spere = radius * np.stack((np.cos(thetas), np.sin(thetas))).T
 
-        xys_on_vert = self.pca_projected_vertices
         xys_around_vert = np.empty((0, 2))
+        xyz_on_vert = self.pca_projected_vertices
 
-        for vert in xys_on_vert:
-            xys_around_vert = np.concatenate(xys_around_vert, radius * points_on_unit_spere + vert)
+        for vert in xyz_on_vert:
+            xys_around_vert = np.concatenate((xys_around_vert, points_on_unit_spere + vert))
 
         # todo haim add noise
 
-        return np.concatenate((xys_around_vert, xys_around_edges)),\
-               np.concatenate((xys_on_vert, xys_on_edge))
-
+        # no nees to return xys_on_vert, it's contained on xys_on_edge
+        return np.concatenate((xys_around_vert, xys_around_edges)), xys_on_edge
 
     def _get_labeler(self):
         shape_vertices = []

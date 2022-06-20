@@ -36,8 +36,8 @@ class Cell:
     '''
     def _get_label(self, accuracy=400):
         if self.is_on_edge:
-            return
-        return self.labeler(self.pixel_center)
+            return 0.5
+        return self.labeler([self.pixel_center])[0]
 
         '''
         rnd = np.random.random_sample((accuracy, 2))
