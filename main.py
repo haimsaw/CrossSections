@@ -111,6 +111,11 @@ def main(model_name):
         csl = get_csl(hp.bounding_planes_margin, save_path, model_name)
         print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
+        r = Renderer2D()
+        r.draw_plane(csl.planes[5])
+        r.draw_rasterized_plane(csl.planes[5])
+        r.show()
+
         trainer = ChainTrainer(csl, hp)
 
         with open(save_path + 'hyperparams.json', 'w') as f:
@@ -139,7 +144,7 @@ def main(model_name):
 
 if __name__ == "__main__":
 
-    for model_name in ['eight_15']:#, 'armadillo', 'lamp004_fixed',  'eight_20']:
+    for model_name in ['eight_15', 'armadillo', 'lamp004_fixed',  'eight_20']:
         main(model_name)
 
     '''
