@@ -111,6 +111,7 @@ class PlaneRasterizer(IRasterizer):
     def _get_voxels(self, resolution, margin):
         radius = 1/32  # todo add to hp
         n_samples = 5  # todo add to hp
+        n_white_noise = 100
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
         edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
@@ -138,10 +139,10 @@ class PlaneRasterizer(IRasterizer):
         for vert in xyz_on_vert:
             xys_around_vert = np.concatenate((xys_around_vert, points_on_unit_spere + vert))
 
-        # todo haim add noise
+        noise = 2 * np.random.random_sample((n_white_noise, 2)) - 1
 
         # no nees to return xys_on_vert, it's contained on xys_on_edge
-        return np.concatenate((xys_around_vert, xys_around_edges)), xys_on_edge
+        return np.concatenate((xys_around_vert, xys_around_edges, noise)), xys_on_edge
 
     def _get_labeler(self):
         shape_vertices = []
