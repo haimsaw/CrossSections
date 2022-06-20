@@ -40,16 +40,15 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
 
             trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
             trainer.show_train_losses(save_path)
-            # trainer.show_train_losses(save_path)
 
             try:
                 print('meshing')
-                # handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
+                handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
                 pass
             except Exception as e:
                 print(e)
-            # print('heatmaps')
-            # save_heatmaps(trainer, save_path, i)
+            print('heatmaps')
+            save_heatmaps(trainer, save_path, i)
             print('waiting for cell density calculation...')
 
             ts = time()
@@ -137,7 +136,7 @@ def main(model_name):
 
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
 
-        # save_heatmaps(trainer, save_path, 'last')
+        save_heatmaps(trainer, save_path, 'last')
 
         print(f'DONE {"=" * 50} {save_path}\n\n')
 
