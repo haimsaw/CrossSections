@@ -2,7 +2,7 @@ import numpy as np
 
 
 class Cell:
-    def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer, plane_id, generation=0):
+    def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer, plane_id, is_on_edge=False, generation=0):
         #assert pixel_radius > 0
         self._label = None
 
@@ -13,6 +13,7 @@ class Cell:
         self.xyz_transformer = xyz_transformer
         self.xyz = xyz_transformer(np.array([self.pixel_center]))[0]
         self.plane_id = plane_id
+        self.is_on_edge = is_on_edge
         self.generation = generation
 
     @property
@@ -34,11 +35,18 @@ class Cell:
     we need 380=math.log(2/alpha)/(2*eps*eps) samples 
     '''
     def _get_label(self, accuracy=400):
+        if self.is_on_edge:
+            return
+        return self.labeler(self.pixel_center)
+
+        '''
         rnd = np.random.random_sample((accuracy, 2))
         sampels = self.pixel_radius * (2 * rnd - 1) + self.pixel_center
         labels = self.labeler(sampels)
         return sum(labels) / accuracy
+        '''
 
+    '''
     def split_cell(self):
         new_cell_radius = self.pixel_radius / 2
         new_centers = np.array([[1, 1],
@@ -48,3 +56,4 @@ class Cell:
 
         # its ok to use self.labeler and self.xyz_transformer since the new cells are on the same plane
         return [Cell(xy, new_cell_radius, self.labeler, self.xyz_transformer, self.plane_id, self.generation+1) for xy in new_centers]
+    '''

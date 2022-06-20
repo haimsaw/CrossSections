@@ -109,7 +109,7 @@ class PlaneRasterizer(IRasterizer):
         self.plane = plane
 
     def _get_voxels(self, resolution, margin):
-        epsilon = 1/32  # todo add to hp
+        radius = 1/32  # todo add to hp
         n_samples = 2  # todo add to hp
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
@@ -119,31 +119,30 @@ class PlaneRasterizer(IRasterizer):
 
         dist = np.linspace(0, 1, n_samples, endpoint=False)
 
-        xys = np.empty((0, 2))
+        xys_around_edges = np.empty((0, 2))
+        xys_on_edge = np.empty((0, 2))
+
         for edge, normal in zip(edges_2d, edge_normals):
 
             points_on_edge = np.array([d * edge[0] + (1-d) * edge[1] for d in dist])
-            xys = np.concatenate((xys, points_on_edge + normal * epsilon, points_on_edge - normal * epsilon))
 
-        pixel_radius = epsilon
+            xys_around_edges = np.concatenate((xys_around_edges, points_on_edge + normal * radius, points_on_edge - normal * radius))
+            xys_on_edge = np.concatenate((xys_on_edge, points_on_edge))
+
+        thetas = np.linspace(-np.pi, np.pi, n_samples, endpoint=False)
+        points_on_unit_spere = np.stack(np.cos(thetas), np.sin(thetas)).T
+
+        xys_on_vert = self.pca_projected_vertices
+        xys_around_vert = np.empty((0, 2))
+
+        for vert in xys_on_vert:
+            xys_around_vert = np.concatenate(xys_around_vert, radius * points_on_unit_spere + vert)
 
         # todo haim add noise
 
+        return np.concatenate((xys_around_vert, xys_around_edges)),\
+               np.concatenate((xys_on_vert, xys_on_edge))
 
-
-        '''
-        :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
-        '''
-
-        '''top, bottom = add_margin(np.array([1, 1]), np.array([-1, -1]), margin)
-
-        xs = np.linspace(bottom[0], top[0], resolution[0], endpoint=False)
-        ys = np.linspace(bottom[1], top[1], resolution[1], endpoint=False)
-        pixel_radius = np.array([xs[1] - xs[0], ys[1] - ys[0]]) / 2
-
-        xys = np.stack(np.meshgrid(xs, ys), axis=-1).reshape((-1, 2)) + pixel_radius'''
-
-        return xys, pixel_radius
 
     def _get_labeler(self):
         shape_vertices = []
@@ -167,7 +166,10 @@ class PlaneRasterizer(IRasterizer):
         return Labler(path, hole_path)
 
     def get_rasterazation_cells(self, resolution, margin):
-        xys, pixel_radius = self._get_voxels(resolution, margin)
+        xys_around_conture, xys_on_conture = self._get_voxels(resolution, margin)
         labeler = self._get_labeler()
+        pixel_radius = 0  # todo haim remove this
+        cells = [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys_around_conture] + \
+                [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id, is_on_edge=True) for xy in xys_on_conture]
 
-        return [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys]
+        return cells

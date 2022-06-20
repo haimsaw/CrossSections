@@ -43,7 +43,7 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
 
             try:
                 print('meshing')
-                handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
+                #handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
                 pass
             except Exception as e:
                 print(e)
