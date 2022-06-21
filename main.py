@@ -122,18 +122,6 @@ def main(model_name):
 
         cells_list = train_cycle(csl, hp, trainer, save_path, model_name)
 
-        # 1 based
-        plane_id = 26
-        for height, cells in enumerate(cells_list[::-1]):
-            plane = csl.planes[plane_id - 1]
-            if not plane.is_empty:
-                r = Renderer2D()
-                r.draw_plane(plane)
-                r.draw_cells([cell for cell in cells if cell.plane_id == plane_id])
-                # r.show()
-                r.save(save_path, f'plane_{plane_id}_height{height}')
-                r.clear()
-
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
 
         save_heatmaps(trainer, save_path, 'last')
