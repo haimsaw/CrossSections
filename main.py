@@ -130,9 +130,9 @@ def main(model_name):
                 r = Renderer2D()
                 r.draw_plane(plane)
                 r.draw_cells([cell for cell in cells if cell.plane_id == plane_id])
-                r.show()
-                # r.save(save_path, f'plane_{plane_id}_height{height}')
-                # r.clear()
+                # r.show()
+                r.save(save_path, f'plane_{plane_id}_height{height}')
+                r.clear()
 
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
 
