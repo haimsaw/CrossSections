@@ -11,11 +11,6 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.animation as animation
 import polyscope as ps
 
-# region polyscope
-
-# endregion
-
-
 
 def render_mesh_and_scene(csl, mesh_verts, mesh_faces):
     ms = pymeshlab.MeshSet()
@@ -79,7 +74,7 @@ def render_mid_res(csl, trainer, samplig_res_3d):
 class RendererPoly:
 
     @staticmethod
-    def init():
+    def __init__():
         ps.init()
         # ps.set_ground_plane_height_factor(-0.25)
         # ps.set_transparency_mode('pretty')

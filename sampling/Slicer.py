@@ -70,8 +70,8 @@ def make_csl_from_mesh(filename, save_path):
     # RendererPoly.add_scene(csl)
     # RendererPoly.show()
 
-    # csl_to_ply(csl, './data/for_pt2mesh', verts, faces, normals  )
-    # csl_to_xyz(csl, save_path, 1)
+    csl_to_point2mesh(csl, './data/for_pt2mesh', mesh_path,)
+    csl_to_xyz(csl, './data/for_vipss', 1)
     return csl
 
 
@@ -133,6 +133,7 @@ def get_shell_planes(scale, top, bottom):
     ds = -1 * (np.random.random_sample(n_slices) * 2 * scale - scale)
     return plane_normals, ds
 
+
 def get_eight_15_planes(scale, top, bottom):
     n_slices = 15
 
@@ -145,6 +146,7 @@ def get_eight_15_planes(scale, top, bottom):
                               np.linspace(bottom[0], top[0], n_slices_x)))
 
     return plane_normals, ds
+
 
 def get_eight_20_planes(scale, top, bottom):
     n_slices = 20
@@ -169,13 +171,13 @@ def get_armadillo_planes(scale, top, bottom):
 
     plane_normals = np.array([(0, 1.0, 0)] * n_slices_y +
                              [(0,  1.3,  -1.0)] * n_slices2 +
-                             [(0, 1.0, 1.5)] * n_slices3)
-                             # [(-0.024,  0.050,  0.200)]*n_slices3) # this samples his fingers
+                             # [(0, 1.0, 1.5)] * n_slices3)
+                             [(-0.024,  0.050,  0.200)]*n_slices3) # this samples his fingers
 
     ds = -1 * np.concatenate((np.linspace(bottom[1], top[1], n_slices_y),
                               np.linspace(-0.5, 0.5, n_slices2),
-                              np.linspace(-0.62, 0.62, n_slices3)))
-                              # [0.511, 0.566, 0.622]))  # this samples his fingers
+                              # np.linspace(-0.62, 0.62, n_slices3)))
+                              [0.511, 0.566, 0.622]))  # this samples his fingers
 
     return plane_normals, ds
 
