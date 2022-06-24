@@ -239,8 +239,8 @@ class Renderer2D:
 
         self.description = []
 
-    def draw_rasterized_plane(self, plane, resolution=(256, 256), margin=0.2):
-        cells = slices_rasterizer_factory(plane).get_rasterazation_cells(resolution, margin)
+    def draw_rasterized_plane(self, plane, hp, gen):
+        cells = slices_rasterizer_factory(plane, hp).get_rasterazation_cells(gen)
 
         is_inside = np.array([cell.density == INSIDE_LABEL for cell in cells])
         is_on = np.array([cell.is_on_edge for cell in cells])

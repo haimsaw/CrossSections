@@ -149,6 +149,16 @@ class PlaneRasterizer(IRasterizer):
 
         noise = 2 * np.random.random_sample((n_white_noise, 2)) - 1
 
+        perturbation = np.random.randn(2, len(xys_around_vert))
+        perturbation /= np.linalg.norm(perturbation, axis=0)
+        perturbation = perturbation.T * (radius/4)
+        xys_around_vert += perturbation
+
+        perturbation = np.random.randn(2, len(xys_around_edges))
+        perturbation /= np.linalg.norm(perturbation, axis=0)
+        perturbation = perturbation.T * (radius/4)
+        xys_around_edges += perturbation
+
         # no nees to return xys_on_vert, it's contained on xys_on_edge
         return np.concatenate((xys_around_vert, xys_around_edges, noise)), xys_on_edge
 
