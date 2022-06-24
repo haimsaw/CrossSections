@@ -11,8 +11,8 @@ INSIDE_LABEL = 0.0
 OUTSIDE_LABEL = 1.0
 
 
-def slices_rasterizer_factory(plane: Plane):
-    return EmptyPlaneRasterizer(plane) if plane.is_empty else PlaneRasterizer(plane)
+def slices_rasterizer_factory(plane: Plane, hp):
+    return EmptyPlaneRasterizer(plane, hp) if plane.is_empty else PlaneRasterizer(plane, hp)
 
 
 class Labler:
@@ -35,12 +35,16 @@ class Labler:
 class IRasterizer:
     __metaclass__ = ABCMeta
 
+    def __init__(self, hp):
+        self.hp = hp
+
     @abstractmethod
-    def get_rasterazation_cells(self, resolution, margin): raise NotImplementedError
+    def get_rasterazation_cells(self, gen): raise NotImplementedError
 
 
 class EmptyPlaneRasterizer(IRasterizer):
-    def __init__(self, plane: Plane):
+    def __init__(self, plane: Plane, hp):
+        super().__init__(hp)
         assert plane.is_empty
         self.csl = plane.csl
         self.plane = plane
@@ -49,8 +53,8 @@ class EmptyPlaneRasterizer(IRasterizer):
     def vertices_boundaries(self):
         return self.csl.vertices_boundaries
 
-    def _get_voxels(self, resolution, margin):
-        d2_points = self._get_pixels(resolution, margin)
+    def _get_voxels(self):
+        d2_points = self._get_pixels()
 
         if self.plane.normal[0] != 0:
             xyzs = self.plane.get_xs(d2_points)
@@ -65,10 +69,13 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
         return xyzs
 
-    def _get_pixels(self, resolution, margin):
+    def _get_pixels(self):
         '''
         :return: samples the plane and returns coordidane representing the midpoint of the pixels and the pixel radius
         '''
+        resolution = self.hp.root_sampling_resolution_2d
+        margin = self.hp.sampling_margin
+
         projected_vertices = self.plane.project(self.csl.all_vertices)
         top, bottom = add_margin(*get_top_bottom(projected_vertices), margin)
 
@@ -85,8 +92,8 @@ class EmptyPlaneRasterizer(IRasterizer):
 
         return xys, pixel_radius
 
-    def get_rasterazation_cells(self, resolution, margin):
-        xys, pixel_radius = self._get_pixels(resolution, margin)
+    def get_rasterazation_cells(self, gen):
+        xys, pixel_radius = self._get_pixels()
 
         if self.plane.normal[0] != 0:
             xyz_transformer = self.plane.get_xs
@@ -103,15 +110,16 @@ class EmptyPlaneRasterizer(IRasterizer):
 
 
 class PlaneRasterizer(IRasterizer):
-    def __init__(self, plane: Plane):
+    def __init__(self, plane: Plane, hp):
+        super().__init__(hp)
         assert not plane.is_empty
         self.pca_projected_vertices, self.pca = plane.pca_projection  # todo should be on the plane
         self.plane = plane
 
-    def _get_voxels(self, resolution, margin):
-        radius = 1/32  # todo add to hp
-        n_samples = 5  # todo add to hp
-        n_white_noise = 100
+    def _get_voxels(self, gen):
+        radius = self.hp.sampling_radius[gen]
+        n_samples = self.hp.n_samples[gen]
+        n_white_noise = self.hp.n_white_noise
 
         edges_2d = self.pca_projected_vertices[self.plane.edges]
         edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
@@ -165,8 +173,8 @@ class PlaneRasterizer(IRasterizer):
 
         return Labler(path, hole_path)
 
-    def get_rasterazation_cells(self, resolution, margin):
-        xys_around_conture, xys_on_conture = self._get_voxels(resolution, margin)
+    def get_rasterazation_cells(self, gen):
+        xys_around_conture, xys_on_conture = self._get_voxels(gen)
         labeler = self._get_labeler()
         pixel_radius = 0  # todo haim remove this
         cells = [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys_around_conture] + \

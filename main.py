@@ -16,24 +16,22 @@ import pickle
 
 def train_cycle(csl, hp, trainer, save_path, model_name):
     total_time = 0
-    cells_list = []
     with Pool(processes=cpu_count()//2) as pool:
+        data_sets = []
 
         ts = time()
-        slices_dataset = SlicesDataset.from_csl(csl, pool=pool, sampling_resolution=hp.root_sampling_resolution_2d,
-                                                sampling_margin=hp.sampling_margin)
-        contour_dataset = None  # ContourDataset(csl, hp.n_samples_per_edge)
-
-        trainer.prepare_for_training(slices_dataset, contour_dataset)
+        trainer.prepare_for_training()
         te = time()
+
         total_time += te - ts
         for i, epochs in enumerate(hp.epochs_batches):
             print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
-            trainer.slices_dataset.to_ply(save_path + f"datast_gen_{i}.ply")
-            cells_list.append(trainer.slices_dataset.cells)
+
+            data_sets.append(SlicesDataset.from_csl(csl, pool=pool, hp=hp, gen=i))
+            data_sets[-1].to_ply(save_path + f"datast_gen_{i}.ply")
+            trainer.update_data_loaders(data_sets)
 
             ts = time()
-            # new_cells, promise = trainer.get_refined_cells(pool)
             trainer.train_epochs_batch(epochs)
             te = time()
             total_time += te - ts
@@ -52,12 +50,9 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
             print('waiting for cell density calculation...')
 
             ts = time()
-            # promise.wait()
-            # trainer.update_data_loaders(new_cells)
             te = time()
             total_time += ts - te
     print(f'\n\n done train_cycle time = {total_time} sec')
-    return cells_list
 
 
 def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
@@ -115,7 +110,7 @@ def main(model_name):
         with open(save_path + 'hyperparams.json', 'w') as f:
             f.write(hp.to_json())
 
-        cells_list = train_cycle(csl, hp, trainer, save_path, model_name)
+        train_cycle(csl, hp, trainer, save_path, model_name)
 
         mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', model_name)
 
@@ -156,3 +151,9 @@ if __name__ == "__main__":
 
     # ps.show()
     ps.screenshot()'''
+
+
+    '''todo:
+    1. refine
+    2. petrube pooints proportional to to dist
+    3. run meny examples'''

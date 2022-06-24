@@ -12,18 +12,18 @@ def get_csl(bounding_planes_margin, save_path, name):
     # csl = CSL.from_csl_file("data/csl-files/SideBishop.csl")
     # csl = CSL.from_csl_file("data/csl-files/Heart-25-even-better.csl")
     # csl = CSL.from_csl_file("data/csl-files/Armadillo-23-better.csl")
-    # csl = CSL.from_csl_file("data/csl-files/Horsers.csl")
+    csl = CSL.from_csl_file("data/csl-files/Horsers.csl")
     # csl = CSL.from_csl_file("data/csl-files/rocker-arm.csl")
     # csl = CSL.from_csl_file("data/csl-files/Abdomen.csl")
     # csl = CSL.from_csl_file("data/csl-files/Vetebrae.csl")
     # csl = CSL.from_csl_file("data/csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("data/csl-files/Brain.csl")
 
-    csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
+    # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
 
 
     # csl = make_csl_from_mesh('./data/eight.obj', save_path)
-    # csl = make_csl_from_mesh('data/armadillo.obj', save_path)
+    # csl = make_csl_from_mesh('data/obj/armadillo.obj', save_path)
     # csl = make_csl_from_mesh('data/obj/lamp004_fixed.obj', save_path)
 
     csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
@@ -35,8 +35,9 @@ class HP:
         # sampling
         self.bounding_planes_margin = 0.05
         self.sampling_margin = 0.05  # same as bounding_planes_margin
-        self.oct_overlap_margin = 0.25
-        self.refinement_type = 'edge'  # ['errors', 'edge', 'none']
+        self.sampling_radius = [(1/2)**4, (1/2)**5, (1/2)**6, (1/2)**7, (1/2)**8, (1/2)**9]
+        self.n_samples = [2, 2, 3, 3, 4, 5]
+        self.n_white_noise = 128
 
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
@@ -61,6 +62,8 @@ class HP:
         self.scheduler_gamma = 0.9
         self.lr = 1e-2
         self.batch_size = 2 ** 13
+
+        assert len(self.epochs_batches) >= len(self.sampling_radius) and len(self.epochs_batches) >= len(self.n_samples)
 
         self.now = str(datetime.now())
 

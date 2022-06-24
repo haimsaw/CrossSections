@@ -5,6 +5,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from torch.utils.data import DataLoader, WeightedRandomSampler
+from torch.utils.data.dataset import ConcatDataset
 
 from Helpers import timing
 from Modules import HaimNetWithState
@@ -28,7 +29,6 @@ class ChainTrainer:
 
         self.bce_loss = None
 
-        self.contour_dataset = None
         self.slices_dataset = None
 
         self.optimizer = None
@@ -118,13 +118,8 @@ class ChainTrainer:
     def predict_batch(self, xyzs, loop=-1):
         return self._forward_loop(xyzs)[loop]
 
-    def prepare_for_training(self, slices_dataset, contour_dataset):
+    def prepare_for_training(self):
         # todo haim samplers
-
-        self.slices_dataset = slices_dataset
-        self.contour_dataset = contour_dataset
-
-        self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
 
         self.module.init_weights()
 
@@ -136,14 +131,14 @@ class ChainTrainer:
 
         self.is_training_ready = True
 
-    def update_data_loaders(self, new_cells):
+    def update_data_loaders(self, data_sets):
         # todo haim samplers
-        print(f'update_data_loaders dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }'
-              f' new={len(new_cells)}')
-        self.slices_dataset = SlicesDataset.from_cells(self.csl, new_cells)
+
+        old_dataset = self.slices_dataset
+        self.slices_dataset = ConcatDataset(data_sets)
         self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
-        # contour_sampler = WeightedRandomSampler([1] * len(self.contour_dataset), len(self.slices_dataset) * 2)
-        # self.contour_data_loader = DataLoader(self.contour_dataset, batch_size=self.hp.batch_size, sampler=contour_sampler)
+        print(f'update_data_loaders dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }'
+              f' new={len(old_dataset) if old_dataset is not None else 0}')
 
     @torch.no_grad()
     def get_refined_cells(self, pool):

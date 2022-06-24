@@ -18,10 +18,10 @@ class SlicesDataset(Dataset):
         return cls(csl, np.array(cells))
 
     @classmethod
-    def from_csl(cls, csl, pool, sampling_resolution=(256, 256), sampling_margin=0.2):
+    def from_csl(cls, csl, pool, hp, gen):
         cells = []
         for plane in csl.planes:
-            cells += slices_rasterizer_factory(plane).get_rasterazation_cells(sampling_resolution, sampling_margin)
+            cells += slices_rasterizer_factory(plane, hp).get_rasterazation_cells(gen)
 
         cells = np.array(cells)
 
