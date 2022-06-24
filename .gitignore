@@ -1,5 +1,6 @@
 /.idea/
 /venv/
+/env/
 /mesh.stl
 /trained_model.pt
 /Octree_ref.py
