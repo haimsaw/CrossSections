@@ -12,15 +12,14 @@ def get_csl(bounding_planes_margin, save_path, name):
     # csl = CSL.from_csl_file("data/csl-files/SideBishop.csl")
     # csl = CSL.from_csl_file("data/csl-files/Heart-25-even-better.csl")
     # csl = CSL.from_csl_file("data/csl-files/Armadillo-23-better.csl")
-    csl = CSL.from_csl_file("data/csl-files/Horsers.csl")
+    # csl = CSL.from_csl_file("data/csl-files/Horsers.csl")
     # csl = CSL.from_csl_file("data/csl-files/rocker-arm.csl")
     # csl = CSL.from_csl_file("data/csl-files/Abdomen.csl")
     # csl = CSL.from_csl_file("data/csl-files/Vetebrae.csl")
     # csl = CSL.from_csl_file("data/csl-files/Skull-20.csl")
     # csl = CSL.from_csl_file("data/csl-files/Brain.csl")
 
-    # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
-
+    csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
 
     # csl = make_csl_from_mesh('./data/eight.obj', save_path)
     # csl = make_csl_from_mesh('data/obj/armadillo.obj', save_path)
