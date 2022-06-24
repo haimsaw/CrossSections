@@ -21,12 +21,14 @@ class SlicesDataset(Dataset):
     def from_csl(cls, csl, pool, hp, gen):
         cells = []
         for plane in csl.planes:
-            cells += slices_rasterizer_factory(plane, hp).get_rasterazation_cells(gen)
+            # since we concat datasets - rester empty planes only once
+            if not plane.is_empty or gen == 0:
+                cells += slices_rasterizer_factory(plane, hp).get_rasterazation_cells(gen)
 
         cells = np.array(cells)
 
         # calculate density in pool
-        ret = pool.imap_unordered(lambda cell: cell.density, cells)
+        # ret = pool.imap_unordered(lambda cell: cell.density, cells)
         return cls(csl, cells)
 
     def __len__(self):
