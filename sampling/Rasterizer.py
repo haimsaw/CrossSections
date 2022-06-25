@@ -121,22 +121,7 @@ class PlaneRasterizer(IRasterizer):
         n_samples = self.hp.n_samples[gen]
         n_white_noise = self.hp.n_white_noise
 
-        edges_2d = self.pca_projected_vertices[self.plane.edges]
-        edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
-        edge_normals = edges_directions @ np.array([[0, 1], [-1, 0]])
-        edge_normals /= np.linalg.norm(edge_normals, axis=1)[:, None]
-
-        dist = np.linspace(0, 1, n_samples, endpoint=False)
-
-        xys_around_edges = np.empty((0, 2))
-        xys_on_edge = np.empty((0, 2))
-
-        for edge, normal in zip(edges_2d, edge_normals):
-
-            points_on_edge = np.array([d * edge[0] + (1-d) * edge[1] for d in dist])
-
-            xys_around_edges = np.concatenate((xys_around_edges, points_on_edge + normal * radius, points_on_edge - normal * radius))
-            xys_on_edge = np.concatenate((xys_on_edge, points_on_edge))
+        xys_around_edges, xys_on_edge = self.sample_around_edge(n_samples, radius)
 
         thetas = np.linspace(-np.pi, np.pi, n_samples, endpoint=False)
         points_on_unit_spere = radius * np.stack((np.cos(thetas), np.sin(thetas))).T
@@ -149,18 +134,37 @@ class PlaneRasterizer(IRasterizer):
 
         noise = 2 * np.random.random_sample((n_white_noise, 2)) - 1
 
-        perturbation = np.random.randn(2, len(xys_around_vert))
-        perturbation /= np.linalg.norm(perturbation, axis=0)
-        perturbation = perturbation.T * (radius/4)
-        xys_around_vert += perturbation
-
-        perturbation = np.random.randn(2, len(xys_around_edges))
-        perturbation /= np.linalg.norm(perturbation, axis=0)
-        perturbation = perturbation.T * (radius/4)
-        xys_around_edges += perturbation
+        xys_around_edges, xys_around_vert = self.pertub_samples(radius, xys_around_edges, xys_around_vert)
 
         # no nees to return xys_on_vert, it's contained on xys_on_edge
         return np.concatenate((xys_around_vert, xys_around_edges, noise)), xys_on_edge
+
+    def sample_around_edge(self, n_samples, radius):
+        edges_2d = self.pca_projected_vertices[self.plane.edges]
+        edges_directions = edges_2d[:, 0, :] - edges_2d[:, 1, :]
+        edge_normals = edges_directions @ np.array([[0, 1], [-1, 0]])
+        edge_normals /= np.linalg.norm(edge_normals, axis=1)[:, None]
+        dist = np.linspace(0, 1, n_samples, endpoint=False)
+        xys_around_edges = np.empty((0, 2))
+        xys_on_edge = np.empty((0, 2))
+        for edge, normal in zip(edges_2d, edge_normals):
+            points_on_edge = np.array([d * edge[0] + (1 - d) * edge[1] for d in dist])
+
+            xys_around_edges = np.concatenate(
+                (xys_around_edges, points_on_edge + normal * radius, points_on_edge - normal * radius))
+            xys_on_edge = np.concatenate((xys_on_edge, points_on_edge))
+        return xys_around_edges, xys_on_edge
+
+    def pertub_samples(self, radius, xys_around_edges, xys_around_vert):
+        perturbation = np.random.randn(2, len(xys_around_vert))
+        perturbation /= np.linalg.norm(perturbation, axis=0)
+        perturbation = perturbation.T * (radius / 4)
+        xys_around_vert += perturbation
+        perturbation = np.random.randn(2, len(xys_around_edges))
+        perturbation /= np.linalg.norm(perturbation, axis=0)
+        perturbation = perturbation.T * (radius / 4)
+        xys_around_edges += perturbation
+        return xys_around_edges, xys_around_vert
 
     def _get_labeler(self):
         shape_vertices = []

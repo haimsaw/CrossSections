@@ -16,42 +16,42 @@ import pickle
 
 def train_cycle(csl, hp, trainer, save_path, model_name):
     total_time = 0
-    with Pool(processes=cpu_count()//2) as pool:
-        data_sets = []
+    # with Pool(processes=cpu_count()//2) as pool:
+    data_sets = []
+
+    ts = time()
+    trainer.prepare_for_training()
+    te = time()
+
+    total_time += te - ts
+    for i, epochs in enumerate(hp.epochs_batches):
+        print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
+
+        data_sets.append(SlicesDataset.from_csl(csl, pool=None, hp=hp, gen=i))
+        data_sets[-1].to_ply(save_path + f"datast_gen_{i}.ply")
+        trainer.update_data_loaders(data_sets)
 
         ts = time()
-        trainer.prepare_for_training()
+        trainer.train_epochs_batch(epochs)
         te = time()
-
         total_time += te - ts
-        for i, epochs in enumerate(hp.epochs_batches):
-            print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
 
-            data_sets.append(SlicesDataset.from_csl(csl, pool=pool, hp=hp, gen=i))
-            data_sets[-1].to_ply(save_path + f"datast_gen_{i}.ply")
-            trainer.update_data_loaders(data_sets)
+        trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
+        trainer.show_train_losses(save_path)
 
-            ts = time()
-            trainer.train_epochs_batch(epochs)
-            te = time()
-            total_time += te - ts
+        try:
+            print('meshing')
+            handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
+            pass
+        except Exception as e:
+            print(e)
+        print('heatmaps')
+        save_heatmaps(trainer, save_path, i)
+        print('waiting for cell density calculation...')
 
-            trainer.save_to_disk(save_path+f"trained_model_{i}.pt")
-            trainer.show_train_losses(save_path)
-
-            try:
-                print('meshing')
-                handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, model_name)
-                pass
-            except Exception as e:
-                print(e)
-            print('heatmaps')
-            save_heatmaps(trainer, save_path, i)
-            print('waiting for cell density calculation...')
-
-            ts = time()
-            te = time()
-            total_time += ts - te
+        ts = time()
+        te = time()
+        total_time += ts - te
     print(f'\n\n done train_cycle time = {total_time} sec')
 
 
