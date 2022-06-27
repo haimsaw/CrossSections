@@ -121,7 +121,9 @@ def main(model_name):
 
 if __name__ == "__main__":
 
-    for model_name in ['eight_15', 'armadillo', 'lamp004_fixed',  'eight_20']:
+    # for model_name in ['eight_15', 'armadillo', 'lamp004_fixed',  'eight_20']:
+    for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
+
         main(model_name)
 
     '''
