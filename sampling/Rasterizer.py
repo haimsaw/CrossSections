@@ -134,7 +134,7 @@ class PlaneRasterizer(IRasterizer):
 
         noise = 2 * np.random.random_sample((n_white_noise, 2)) - 1
 
-        xys_around_edges, xys_around_vert = self.pertub_samples(radius, xys_around_edges, xys_around_vert)
+        # xys_around_edges, xys_around_vert = self.pertub_samples(radius, xys_around_edges, xys_around_vert)
 
         # no nees to return xys_on_vert, it's contained on xys_on_edge
         return np.concatenate((xys_around_vert, xys_around_edges, noise)), xys_on_edge
