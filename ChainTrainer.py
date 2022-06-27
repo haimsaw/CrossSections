@@ -135,7 +135,7 @@ class ChainTrainer:
         # todo haim samplers
 
         old_dataset = self.slices_dataset
-        self.slices_dataset = ConcatDataset(data_sets)
+        self.slices_dataset = ConcatDataset(data_sets[-2:])
         self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
         print(f'update_data_loaders dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }'
               f' new={len(old_dataset) if old_dataset is not None else 0}')
