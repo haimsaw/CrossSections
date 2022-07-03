@@ -64,15 +64,19 @@ def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
 
     ts = time()
     mesh_dc_no_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=False)
+    mesh_dc_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=True)
     te = time()
 
     print(f'meshing time of {label}= {te - ts} sec')
 
     mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
+    mesh_dc_grad.save(save_path + f'mesh{label}_mesh_dc_grad.obj')
 
-    hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.stl", save_path + f'mesh{label}_dc_no_grad.obj',
-                       f'{save_path}/hausdorff_distance{label}.json')
-
+    try:
+        hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.stl", save_path + f'mesh{label}_dc_no_grad.obj',
+                           f'{save_path}/hausdorff_distance{label}.json')
+    except BaseException as e:
+        print(f"unable to calc hausdorff_distance: {e}")
     '''
     for loop in [-1, -2, 5, 1]:
         mesh_dc_no_grad = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=False, loop=loop)

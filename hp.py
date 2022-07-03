@@ -52,7 +52,7 @@ class HP:
         self.lr = 1e-2
         self.batch_size = 2 ** 13
 
-        assert len(self.epochs_batches) >= len(self.sampling_radius) and len(self.epochs_batches) >= len(self.n_samples)
+        assert len(self.epochs_batches) <= len(self.sampling_radius) and len(self.epochs_batches) <= len(self.n_samples)
 
         self.now = str(datetime.now())
 
