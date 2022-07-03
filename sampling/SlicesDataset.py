@@ -22,8 +22,8 @@ class SlicesDataset(Dataset):
         cells = []
         for plane in csl.planes:
             # since we concat datasets - rester empty planes only once
-            if not plane.is_empty or gen == 0:
-                cells += slices_rasterizer_factory(plane, hp).get_rasterazation_cells(gen)
+            # if not plane.is_empty or gen == 0:
+            cells += slices_rasterizer_factory(plane, hp).get_rasterazation_cells(gen)
 
         cells = np.array(cells)
 
