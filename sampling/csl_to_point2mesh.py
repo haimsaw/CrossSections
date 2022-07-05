@@ -18,7 +18,10 @@ def csl_to_point2mesh(csl, save_path, mesh_path, n_points_per_edge=5):
     closest_points, distances, triangle_ids = scaled_mesh.nearest.on_surface(pts)
     normals = scaled_mesh.face_normals[triangle_ids]
 
-    header = f'ply\nformat ascii 1.0\nelement vertex {len(pts)}\n' \
+    header = f'ply\n' \
+             f'format ascii 1.0\n' \
+             f'comment n_points_per_edge={n_points_per_edge} \n' \
+             f'element vertex {len(pts)}\n' \
              f'property float x\nproperty float y\nproperty float z\n' \
              f'property float nx\nproperty float ny\nproperty float nz\n' \
              f'element face 0\nproperty list uchar int vertex_index\nend_header\n'
