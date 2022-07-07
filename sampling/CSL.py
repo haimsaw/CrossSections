@@ -79,6 +79,13 @@ class ConnectedComponent:
         e2 = np.concatenate((self.vertices_indices[1:], self.vertices_indices[0:1]))
         return np.stack((e1, e2)).T
 
+    @property
+    def simplified_edges_indices(self):
+        # todo smarter simplification
+        e1 = self.vertices_indices[::2]
+        e2 = np.concatenate((e1[1:], e1[0:1]))
+        return np.stack((e1, e2)).T
+
 
 class Plane:
     def __init__(self, plane_id: int, plane_params: tuple, vertices: np.array, connected_components: list, csl):
@@ -222,6 +229,17 @@ class Plane:
         for cc in self.connected_components:
             edges = np.concatenate((edges, cc.edges_indices))
         return edges
+
+    @property
+    def simplified(self):
+        simplified_edges = np.empty((0, 2), dtype=int)
+        for cc in self.connected_components:
+            simplified_edges = np.concatenate((simplified_edges, cc.simplified_edges_indices))
+        new_verts = self.vertices[simplified_edges[:, 0]]
+        e1 = np.arange(len(new_verts))
+        e2 = np.concatenate((e1[1:], e1[0:1]))
+        new_edges = np.stack((e1, e2))
+        return new_verts, new_edges
 
     def project(self, points):
         # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d

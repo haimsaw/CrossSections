@@ -1,5 +1,5 @@
 import numpy as np
-import trimesh
+from simplification.cutil import simplify_coords
 
 
 def csl_to_contour(csl, save_path):
@@ -12,11 +12,12 @@ def csl_to_contour(csl, save_path):
         for plane in non_empty_planes:
             f.write(f'{plane.plane_params[0]:.10f} {plane.plane_params[1]:.10f} {plane.plane_params[2]:.10f} {-1*plane.plane_params[3]:.10f}\n')
 
-            verts = plane.vertices
-            edges = plane.edges
+            # todo remove redundent verts
+            edges, verts = plane.simplified
+
             f.write(f'{len(verts)} {len(edges)}\n')
             for v in verts:
                 f.write('{:.10f} {:.10f} {:.10f}\n'.format(*v))
             for e in edges:
                 # todo this only deals with single label csl
-                f.write('{} {} 0 1\n'.format(*e))
+                f.write('{} {} 1 0\n'.format(*e))
