@@ -159,7 +159,7 @@ class Plane:
             # todo haim - this does not handles non empty holes
             is_hole, parent_cc_idx = cls._is_cc_hole(cc, ccs, to_plane_cords)
 
-            oriented_cc = cls._orient_cc(cc, is_hole, to_plane_cords)
+            oriented_cc = cls._orient_polyline(cc, is_hole, to_plane_cords)
 
             vert_start = len(vertices)
             if is_hole:
@@ -184,12 +184,12 @@ class Plane:
         return to_plane_cords
 
     @classmethod
-    def _orient_cc(cls, cc, is_hole, to_plane_cords):
-        if is_hole == LinearRing(to_plane_cords(cc)).is_ccw:
-            oriented_cc = cc[::-1]
+    def _orient_polyline(cls, verts, is_hole, to_plane_cords):
+        if is_hole == LinearRing(to_plane_cords(verts)).is_ccw:
+            oriented_verts = verts[::-1]
         else:
-            oriented_cc = cc
-        return oriented_cc
+            oriented_verts = verts
+        return oriented_verts
 
     @classmethod
     def _is_cc_hole(cls, cc, ccs, transform):
@@ -246,18 +246,21 @@ class Plane:
         return new_verts, new_edges
 
     def simplify_RDP(self):
-        simplified_verts = np.empty((0, 3), dtype=int)
+        simplified_verts = np.empty((0, 3))
         ccs = []
         to_plane_cords = self._get_to_plane_cords(self.vertices[0], self.normal, self.plane_origin)
+
         for cc in self.connected_components:
-            cc_verts = self.vertices[np.concatenate((cc.edges_indices, cc.edges_indices[:1]))]
-            simplified_cc = simplify_coords(cc_verts, 0.001)[:-1]
-            if len(simplified_cc) > 0:
-                start = len(simplified_verts)
-                simplified_verts = np.append(simplified_verts, simplified_cc)
-                ccs.append(self._orient_cc(
-                    ConnectedComponent(cc.parent_cc_index, cc.label, list(range(start, len(simplified_verts)))),
-                    cc.is_hole, to_plane_cords))
+            polygon_verts_3d = self.vertices[np.concatenate((cc.vertices_indices, cc.vertices_indices[:1]))]
+
+            simplified_cc_idx = simplify_coords_idx(to_plane_cords(polygon_verts_3d), 0.001)[:-1]
+
+            if len(simplified_cc_idx) > 0:
+                simplified_cc_idx = self._orient_polyline(polygon_verts_3d[simplified_cc_idx], cc.is_hole, to_plane_cords)
+
+                new_idx_start = len(simplified_verts)
+                simplified_verts = np.append(simplified_verts, simplified_cc_idx, axis=0)
+                ccs.append(ConnectedComponent(cc.parent_cc_index, cc.label, list(range(new_idx_start, len(simplified_verts)))))
 
         self.vertices = simplified_verts
         self.connected_components = ccs

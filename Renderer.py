@@ -95,7 +95,7 @@ class RendererPoly:
                 e2 = np.concatenate((cc.vertices_indices[1:], cc.vertices_indices[0:1])) + plane_vert_start
 
                 edges = np.concatenate((edges, np.stack((e1, e2)).T))
-        ps_net = ps.register_curve_network(f"scene", verts, edges)
+        ps_net = ps.register_curve_network(f"scene_{len(verts)}", verts, edges)
 
     @staticmethod
     def add_model_hard_prediction(network_manager, sampling_resolution_3d):
