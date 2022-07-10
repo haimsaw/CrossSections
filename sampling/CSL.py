@@ -3,6 +3,7 @@ from itertools import chain
 import numpy as np
 from parse import parse
 from shapely.geometry.polygon import LinearRing
+from simplification.cutil import simplify_coords, simplify_coords_idx
 from sklearn.decomposition import PCA
 from matplotlib.path import Path
 
@@ -96,7 +97,6 @@ class Plane:
 
         self.vertices = vertices  # should be on the plane
         self.connected_components = connected_components
-        self.mean = np.mean(self.vertices, axis=0) if len(self.vertices) > 0 else np.zeros((3,))
 
         # self.plane_params = plane_params  # Ax+By+Cz+D=0
         self.plane_params = plane_params
@@ -153,16 +153,7 @@ class Plane:
         connected_components = []
         vertices = np.empty(shape=(0, 3))
 
-        b0 = ccs[0][0] - origin
-        b0 /= np.linalg.norm(b0)
-
-        b1 = np.cross(normal, b0)
-
-        transformation_matrix = np.array([b0, b1])
-
-        def to_plane_cords(xyzs):
-            alinged = xyzs - origin
-            return np.array([transformation_matrix @ v for v in alinged])
+        to_plane_cords = cls._get_to_plane_cords(ccs[0][0], normal, origin)
 
         for cc in ccs:
             # todo haim - this does not handles non empty holes
@@ -178,6 +169,19 @@ class Plane:
             vertices = np.concatenate((vertices, oriented_cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
+
+    @classmethod
+    def _get_to_plane_cords(cls, point_on_plane, normal, origin):
+        b0 = point_on_plane - origin
+        b0 /= np.linalg.norm(b0)
+        b1 = np.cross(normal, b0)
+        transformation_matrix = np.array([b0, b1])
+
+        def to_plane_cords(xyzs):
+            alinged = xyzs - origin
+            return np.array([transformation_matrix @ v for v in alinged])
+
+        return to_plane_cords
 
     @classmethod
     def _orient_cc(cls, cc, is_hole, to_plane_cords):
@@ -238,8 +242,25 @@ class Plane:
         new_verts = self.vertices[simplified_edges[:, 0]]
         e1 = np.arange(len(new_verts))
         e2 = np.concatenate((e1[1:], e1[0:1]))
-        new_edges = np.stack((e1, e2))
+        new_edges = np.stack((e1, e2)).T
         return new_verts, new_edges
+
+    def simplify_RDP(self):
+        simplified_verts = np.empty((0, 3), dtype=int)
+        ccs = []
+        to_plane_cords = self._get_to_plane_cords(self.vertices[0], self.normal, self.plane_origin)
+        for cc in self.connected_components:
+            cc_verts = self.vertices[np.concatenate((cc.edges_indices, cc.edges_indices[:1]))]
+            simplified_cc = simplify_coords(cc_verts, 0.001)[:-1]
+            if len(simplified_cc) > 0:
+                start = len(simplified_verts)
+                simplified_verts = np.append(simplified_verts, simplified_cc)
+                ccs.append(self._orient_cc(
+                    ConnectedComponent(cc.parent_cc_index, cc.label, list(range(start, len(simplified_verts)))),
+                    cc.is_hole, to_plane_cords))
+
+        self.vertices = simplified_verts
+        self.connected_components = ccs
 
     def project(self, points):
         # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
@@ -322,6 +343,12 @@ class CSL:
             scene_edges = np.concatenate((scene_edges, plane.edges + plane_vert_start))
 
         return scene_edges, scene_verts
+
+    def simplify_in_place_RDP(self):
+        for plane in self.planes:
+            if not plane.is_empty:
+                plane.simplify_RDP()
+
 
     def _add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1

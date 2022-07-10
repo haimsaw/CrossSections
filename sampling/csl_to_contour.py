@@ -12,8 +12,7 @@ def csl_to_contour(csl, save_path):
         for plane in non_empty_planes:
             f.write(f'{plane.plane_params[0]:.10f} {plane.plane_params[1]:.10f} {plane.plane_params[2]:.10f} {-1*plane.plane_params[3]:.10f}\n')
 
-            # todo remove redundent verts
-            edges, verts = plane.simplified
+            verts, edges = plane.simplified
 
             f.write(f'{len(verts)} {len(edges)}\n')
             for v in verts:

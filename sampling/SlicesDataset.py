@@ -3,6 +3,7 @@ import pickle
 import torch
 from Helpers import *
 from torch.utils.data import Dataset
+from multiprocessing import Pool, cpu_count
 
 from sampling.Rasterizer import slices_rasterizer_factory
 
@@ -28,7 +29,8 @@ class SlicesDataset(Dataset):
         cells = np.array(cells)
 
         # calculate density in pool
-        # ret = pool.imap_unordered(lambda cell: cell.density, cells)
+        with Pool(cpu_count()//2) as pool:
+            pool.map(lambda cell: cell.density, cells)
         return cls(csl, cells)
 
     def __len__(self):
