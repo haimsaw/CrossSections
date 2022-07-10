@@ -245,7 +245,7 @@ class Plane:
         new_edges = np.stack((e1, e2)).T
         return new_verts, new_edges
 
-    def simplify_RDP(self):
+    def simplify_RDP(self, epsilon):
         simplified_verts = np.empty((0, 3))
         ccs = []
         to_plane_cords = self._get_to_plane_cords(self.vertices[0], self.normal, self.plane_origin)
@@ -253,7 +253,7 @@ class Plane:
         for cc in self.connected_components:
             polygon_verts_3d = self.vertices[np.concatenate((cc.vertices_indices, cc.vertices_indices[:1]))]
 
-            simplified_cc_idx = simplify_coords_idx(to_plane_cords(polygon_verts_3d), 0.001)[:-1]
+            simplified_cc_idx = simplify_coords_idx(to_plane_cords(polygon_verts_3d), epsilon)[:-1]
 
             if len(simplified_cc_idx) > 0:
                 simplified_cc_idx = self._orient_polyline(polygon_verts_3d[simplified_cc_idx], cc.is_hole, to_plane_cords)
@@ -347,10 +347,11 @@ class CSL:
 
         return scene_edges, scene_verts
 
-    def simplify_in_place_RDP(self):
+    def simplify_in_place_RDP(self, epsilon):
+        self.model_name += "_simplified"
         for plane in self.planes:
             if not plane.is_empty:
-                plane.simplify_RDP()
+                plane.simplify_RDP(epsilon)
 
 
     def _add_empty_plane(self, plane_params):
