@@ -255,7 +255,7 @@ class Plane:
 
             simplified_cc_idx = simplify_coords_idx(to_plane_cords(polygon_verts_3d), epsilon)[:-1]
 
-            if len(simplified_cc_idx) > 0:
+            if len(simplified_cc_idx) > 2:
                 simplified_cc_idx = self._orient_polyline(polygon_verts_3d[simplified_cc_idx], cc.is_hole, to_plane_cords)
 
                 new_idx_start = len(simplified_verts)
