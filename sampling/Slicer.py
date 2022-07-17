@@ -30,17 +30,17 @@ def make_csl_from_mesh(filename, save_path):
     top = top * 0.97
     bottom = bottom * 0.97
 
-    if model_name == 'armadillo':
+    if 'armadillo' in model_name:
         plane_normals, ds = get_armadillo_planes(scale, top, bottom)
-    elif model_name == "eight_15":
+    elif "eight_15" in model_name:
         plane_normals, ds = get_eight_15_planes(scale, top, bottom)
-    elif model_name == "eight_20":
+    elif "eight_20" in model_name:
         plane_normals, ds = get_eight_20_planes(scale, top, bottom)
-    elif model_name == "brain":
+    elif "brain" in model_name:
         plane_normals, ds = get_brain_planes(scale, top, bottom)
-    elif model_name == 'lamp004_fixed':
+    elif 'lamp004_fixed' in model_name:
         plane_normals, ds = get_lamp_planes(scale, top, bottom)
-    elif model_name == 'SeaShell_4_fixed':
+    elif 'SeaShell_4_fixed' in model_name:
         plane_normals, ds = get_shell_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)

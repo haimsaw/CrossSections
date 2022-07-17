@@ -6,9 +6,12 @@ def csl_to_contour(csl, save_path):
     # format: https://www.cse.wustl.edu/~taoju/lliu/paper/ctr2suf/program.html
     file_name = f'{save_path}{csl.model_name}.contour'
 
+    # emptyplanes are added by cycle grouping
+    planes = [p for p in csl.planes if not p.is_empty]
+
     with open(file_name, 'w') as f:
-        f.write(f'{len(csl.planes)}\n')
-        for plane in csl.planes:
+        f.write(f'{len(planes)}\n')
+        for plane in planes:
             f.write(f'{plane.plane_params[0]:.10f} {plane.plane_params[1]:.10f} {plane.plane_params[2]:.10f} {-1*plane.plane_params[3]:.10f}\n')
 
             verts, edges = plane.vertices, plane.edges

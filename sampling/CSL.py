@@ -157,16 +157,17 @@ class Plane:
 
         for cc in ccs:
             # todo haim - this does not handles non empty holes
-            is_hole, parent_cc_idx = cls._is_cc_hole(cc, ccs, to_plane_cords)
+            if len(cc) > 2:
+                is_hole, parent_cc_idx = cls._is_cc_hole(cc, ccs, to_plane_cords)
 
-            oriented_cc = cls._orient_polyline(cc, is_hole, to_plane_cords)
+                oriented_cc = cls._orient_polyline(cc, is_hole, to_plane_cords)
 
-            vert_start = len(vertices)
-            if is_hole:
-                connected_components.append(ConnectedComponent(parent_cc_idx, 2, list(range(vert_start, vert_start+len(cc)))))
-            else:
-                connected_components.append(ConnectedComponent(-1, 1, list(range(vert_start, vert_start+len(cc)))))
-            vertices = np.concatenate((vertices, oriented_cc))
+                vert_start = len(vertices)
+                if is_hole:
+                    connected_components.append(ConnectedComponent(parent_cc_idx, 2, list(range(vert_start, vert_start+len(cc)))))
+                else:
+                    connected_components.append(ConnectedComponent(-1, 1, list(range(vert_start, vert_start+len(cc)))))
+                vertices = np.concatenate((vertices, oriented_cc))
 
         return cls(plane_id, plane_params, vertices, connected_components, csl)
 
