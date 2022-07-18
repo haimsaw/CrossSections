@@ -5,7 +5,7 @@ from multiprocessing import Pool, cpu_count
 from sampling.Slicer import make_csl_from_mesh
 from sampling.csl_to_contour import csl_to_contour
 from sampling.csl_to_point2mesh import csl_to_point2mesh
-from hp import HP, args
+from hp import *
 from ChainTrainer import ChainTrainer
 from sampling.SlicesDataset import SlicesDataset
 from Renderer import *
@@ -132,7 +132,9 @@ def main(model_name):
 if __name__ == "__main__":
 
     # for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
-    for model_name in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
+    models = from_mesh_models if args.model == 'all' else [args.model]
+
+    for model_name in models:
         try:
             main(model_name)
         except Exception as e:

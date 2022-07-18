@@ -7,10 +7,13 @@ from sampling.csl_to_xyz import csl_to_xyz
 
 import argparse
 
+from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
 
-parser.add_argument('--out', type=str, dest='out_dir', required=True, help='out dir to save artifacts')
+parser.add_argument('out', type=str, dest='out_dir', required=True, help='out dir to save artifacts')
+parser.add_argument('model', type=str, dest='model_name', default='all', choices=from_mesh_models+['all'], help='model name to run')
+
 parser.add_argument('--gpu', type=int, default=0, help='an integer for the accumulator')
 
 
