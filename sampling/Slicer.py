@@ -42,6 +42,8 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_lamp_planes(scale, top, bottom)
     elif 'SeaShell_4_fixed' in model_name:
         plane_normals, ds = get_shell_planes(scale, top, bottom)
+    elif 'astronaut' in model_name:
+        plane_normals, ds = get_astronaut_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)
 
@@ -114,7 +116,7 @@ def get_random_planes(scale, top, bottom):
     n_slices = 50
     plane_normals = np.random.randn(n_slices, 3)
 
-    ds = -1 * (np.random.random_sample(n_slices) * 2* scale - scale)
+    ds = -1 * (np.random.random_sample(n_slices) * 2 * scale - scale)
     return plane_normals, ds
 
 
@@ -123,6 +125,14 @@ def get_lamp_planes(scale, top, bottom):
     plane_normals = np.random.randn(n_slices, 3)
 
     ds = -1 * np.random.normal(size=n_slices)
+    return plane_normals, ds
+
+
+def get_astronaut_planes(scale, top, bottom):
+    n_slices = 25
+    plane_normals = np.random.randn(n_slices, 3)
+
+    ds = -1 * (np.random.random_sample(n_slices) * 2 * scale - scale)
     return plane_normals, ds
 
 

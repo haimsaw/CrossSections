@@ -7,12 +7,12 @@ from sampling.csl_to_xyz import csl_to_xyz
 
 import argparse
 
-from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']
+from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20', 'astronaut']
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
 
-parser.add_argument('out', type=str, dest='out_dir', required=True, help='out dir to save artifacts')
-parser.add_argument('model', type=str, dest='model_name', default='all', choices=from_mesh_models+['all'], help='model name to run')
+parser.add_argument('out_dir', type=str, required=True, help='out dir to save artifacts')
+parser.add_argument('--shape', type=str, dest='model_name', default='all', choices=['all']+from_mesh_models, help='model name to run')
 
 parser.add_argument('--gpu', type=int, default=0, help='an integer for the accumulator')
 
@@ -30,7 +30,7 @@ parser.add_argument('--n_loops', type=int, default=10, dest='n_loops', help='n o
 
 # training
 
-args = parser.parse_args()
+args = parser.parse_known_args()
 
 
 class HP:
