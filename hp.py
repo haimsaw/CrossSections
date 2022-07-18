@@ -29,7 +29,7 @@ parser.add_argument('--n_loops', type=int, default=10, dest='n_loops', help='n o
 
 # training
 
-args = parser.parse_known_args()
+args = parser.parse_args()
 
 
 class HP:
