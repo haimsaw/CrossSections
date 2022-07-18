@@ -141,7 +141,7 @@ if __name__ == "__main__":
         # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
 
         print(f'csl_len = {len(csl)}')
-        csl.adjust_csl(bounding_planes_margin=hp.bounding_planes_margin)
+        csl.adjust_csl(args.bounding_planes_margin)
         '''csl.planes = csl.planes[15:16] + csl.planes[21:22]
 
         csl.planes[0].connected_components = csl.planes[0].connected_components[0:1]

@@ -32,7 +32,6 @@ args = parser.parse_args()
 class HP:
     def __init__(self):
         # sampling
-        self.bounding_planes_margin = 0.05
         self.sampling_margin = 0.05  # same as bounding_planes_margin
         self.sampling_radius = [(1/2)**4, (1/2)**5, (1/2)**6, (1/2)**7, (1/2)**8, (1/2)**9]
         self.n_samples = [2, 2, 3, 3, 4, 5]
