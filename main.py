@@ -133,7 +133,7 @@ if __name__ == "__main__":
         try:
             main(model_name)
         except Exception as e:
-            print("an error has occurred, continuing")
+            print(f"an error has occurred, continuing: {e}")
 
         continue
 
