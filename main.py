@@ -1,9 +1,11 @@
+import json
 import os
 from multiprocessing import Pool, cpu_count
 
 from sampling.Slicer import make_csl_from_mesh
+from sampling.csl_to_contour import csl_to_contour
 from sampling.csl_to_point2mesh import csl_to_point2mesh
-from hp import get_csl, HP
+from hp import HP, args
 from ChainTrainer import ChainTrainer
 from sampling.SlicesDataset import SlicesDataset
 from Renderer import *
@@ -64,13 +66,11 @@ def handle_meshes(trainer, sampling_resolution_3d, save_path, label, name):
 
     ts = time()
     mesh_dc_no_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=False)
-    mesh_dc_grad = dual_contouring(trainer, sampling_resolution_3d, use_grads=True)
     te = time()
 
     print(f'meshing time of {label}= {te - ts} sec')
 
     mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
-    mesh_dc_grad.save(save_path + f'mesh{label}_mesh_dc_grad.obj')
 
     try:
         hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.stl", save_path + f'mesh{label}_dc_no_grad.obj',
@@ -106,13 +106,18 @@ def main(model_name):
 
         print(f'{"=" * 50} {save_path}')
 
-        csl = get_csl(hp.bounding_planes_margin, save_path, model_name)
+        csl = CSL.from_csl_file(f"./data/csl-files/{model_name}.csl")
+        # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
+
+        csl.adjust_csl(args.bounding_planes_margin)
+
         print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
         trainer = ChainTrainer(csl, hp)
 
         with open(save_path + 'hyperparams.json', 'w') as f:
-            f.write(hp.to_json())
+            f.write(json.dumps(hp, default=lambda o: o.__dict__, sort_keys=True, indent=4))
+            f.write(json.dumps(args, default=lambda o: o.__dict__, sort_keys=True, indent=4))
 
         train_cycle(csl, hp, trainer, save_path, model_name)
 
@@ -125,9 +130,35 @@ def main(model_name):
 
 if __name__ == "__main__":
 
-    # for model_name in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
     for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
+    # for model_name in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
         main(model_name)
+        continue
+
+
+        hp = HP()
+        csl = make_csl_from_mesh(f'./data/obj/{model_name}.obj', './data/csl_from_mesh/')
+        # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
+
+        print(f'csl_len = {len(csl)}')
+        csl.adjust_csl(bounding_planes_margin=hp.bounding_planes_margin)
+        '''csl.planes = csl.planes[15:16] + csl.planes[21:22]
+
+        csl.planes[0].connected_components = csl.planes[0].connected_components[0:1]
+        csl.planes[0].vertices = csl.planes[0].vertices[:sum(map(len, csl.planes[0].connected_components))]
+
+        csl.planes[1].connected_components = csl.planes[1].connected_components[0::3]
+        vs = csl.planes[1].vertices
+        csl.planes[1].vertices = np.empty((0, 3))
+        for cc in csl.planes[1].connected_components:
+            start = len(csl.planes[1].vertices)
+            csl.planes[1].vertices = np.append(csl.planes[1].vertices, vs[cc.vertices_indices], axis=0)
+            cc.vertices_indices = np.array(range(start, len(csl.planes[1].vertices)))
+        '''
+        csl_to_contour(csl, "./data/for_CycleGrouping/")
+
+
+
 
     '''
 
@@ -160,5 +191,5 @@ if __name__ == "__main__":
 
     '''todo:
     1. refine
-    2. petrube pooints proportional to to dist
+    2. petrube points proportional to to dist
     3. run meny examples'''

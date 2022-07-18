@@ -7,30 +7,22 @@ from sampling.csl_to_xyz import csl_to_xyz
 
 import argparse
 
-def get_csl(bounding_planes_margin, save_path, name):
-    # csl = CSL.from_csl_file(f"./data/csl-files/{name}.csl")
-
-    # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
-
-    csl = make_csl_from_mesh(f'./data/{name}.obj', save_path)
-
-    csl.adjust_csl(bounding_planes_margin=bounding_planes_margin)
-    return csl
-
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
 
-parser.add_argument('gpu', type=int, default=0, help='an integer for the accumulator')
+parser.add_argument('--gpu', type=int, default=0, help='an integer for the accumulator')
 
 
 # sampling
+parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')
+
 
 # resolutions
 
 # architecture
-parser.add_argument('n_pe', type=int, default=4, dest='num_embedding_freqs', help='number of embedding freqs')
-parser.add_argument('hss', type=int, default=32, dest='hidden_state_size', help='hidden state size')
-parser.add_argument('n_loops', type=int, default=10, dest='n_loops', help='n of times we iterate')
+parser.add_argument('--n_pe', type=int, default=4, dest='num_embedding_freqs', help='number of embedding freqs')
+parser.add_argument('--hss', type=int, default=32, dest='hidden_state_size', help='hidden state size')
+parser.add_argument('--n_loops', type=int, default=10, dest='n_loops', help='n of times we iterate')
 
 # training
 
@@ -71,6 +63,3 @@ class HP:
         assert len(self.epochs_batches) <= len(self.sampling_radius) and len(self.epochs_batches) <= len(self.n_samples)
 
         self.now = str(datetime.now())
-
-    def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)

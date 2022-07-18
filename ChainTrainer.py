@@ -110,7 +110,7 @@ class ChainTrainer:
         logits = torch.zeros((len(xyzs), 1)).to(self.device)  # todo haim initial values?
         hidden_states = torch.zeros((len(xyzs), args.hidden_state_size)).to(self.device)
         ret = []
-        for i in range(self.hp.n_loops):
+        for i in range(args.n_loops):
             logits, hidden_states = self.module(xyzs, logits, hidden_states, torch.tensor([i]).to(self.device))
             ret.append(logits)
         return ret
