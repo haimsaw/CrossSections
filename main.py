@@ -130,7 +130,11 @@ if __name__ == "__main__":
 
     for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
     # for model_name in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
-        main(model_name)
+        try:
+            main(model_name)
+        except Exception as e:
+            print("an error has occurred, continuing")
+
         continue
 
 
