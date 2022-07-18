@@ -132,7 +132,7 @@ def main(model_name):
 if __name__ == "__main__":
 
     # for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
-    models = from_mesh_models if args.model == 'all' else [args.model]
+    models = from_mesh_models if args.model_name == 'all' else [args.model_name]
 
     for model_name in models:
         try:
