@@ -8,6 +8,10 @@ from multiprocessing import Pool, cpu_count
 from sampling.Rasterizer import slices_rasterizer_factory
 
 
+def get_d(cell):
+    return cell.density
+
+
 class SlicesDataset(Dataset):
     def __init__(self, csl, cells):
         self.csl = csl
@@ -30,7 +34,7 @@ class SlicesDataset(Dataset):
 
         # calculate density in pool
         with Pool(cpu_count()//2) as pool:
-            pool.map(lambda cell: cell.density, cells)
+            pool.map(get_d, cells)
         return cls(csl, cells)
 
     def __len__(self):

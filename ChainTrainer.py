@@ -137,8 +137,9 @@ class ChainTrainer:
         old_dataset = self.slices_dataset
         self.slices_dataset = ConcatDataset(data_sets[-3:])  # todo haim
         self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
-        print(f'update_data_loaders dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }'
-              f' old={len(old_dataset) if old_dataset is not None else 0}')
+        print(f'update_data_loaders '
+              f'old={len(old_dataset) if old_dataset is not None else 0} '
+              f'dataset={len(self.slices_dataset) if self.slices_dataset is not None else 0 }')
 
     @torch.no_grad()
     def get_refined_cells(self, pool):
