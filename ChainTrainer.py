@@ -10,12 +10,12 @@ from torch.utils.data.dataset import ConcatDataset
 from Helpers import timing
 from Modules import HaimNetWithState
 from sampling.SlicesDataset import SlicesDataset
-
+from hp import args
 
 class ChainTrainer:
     def __init__(self, csl, hp, verbose=False):
 
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu"
         print(f'device={self.device}')
 
         self.csl = csl
@@ -108,7 +108,7 @@ class ChainTrainer:
 
     def _forward_loop(self, xyzs):
         logits = torch.zeros((len(xyzs), 1)).to(self.device)  # todo haim initial values?
-        hidden_states = torch.zeros((len(xyzs), self.hp.hidden_state_size)).to(self.device)
+        hidden_states = torch.zeros((len(xyzs), args.hidden_state_size)).to(self.device)
         ret = []
         for i in range(self.hp.n_loops):
             logits, hidden_states = self.module(xyzs, logits, hidden_states, torch.tensor([i]).to(self.device))

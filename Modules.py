@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from itertools import chain
 from math import pi as PI
+from hp import args
 
 
 def initializer(m):
@@ -52,13 +53,13 @@ class HaimNetWithState(BaseModule):
     def __init__(self, hp):
         super().__init__()
 
-        self.xyz_embedder = get_embedder(hp.num_embedding_freqs, hp.spherical_coordinates)
-        n_freqs = int(hp.hidden_state_size/2)
+        self.xyz_embedder = get_embedder(args.num_embedding_freqs, hp.spherical_coordinates)
+        n_freqs = int(args.hidden_state_size/2)
         self.hidden_state_embedder = get_embedder(n_freqs, input_dims=1, include_input=False)\
             if hp.hidden_state_embedder else None
 
-        assert self.hidden_state_embedder is None or self.hidden_state_embedder.out_dim == hp.hidden_state_size
-        n_neurons = [self.xyz_embedder.out_dim + 1 + hp.hidden_state_size] + hp.hidden_layers + [1 + hp.hidden_state_size]
+        assert self.hidden_state_embedder is None or self.hidden_state_embedder.out_dim == args.hidden_state_size
+        n_neurons = [self.xyz_embedder.out_dim + 1 + args.hidden_state_size] + hp.hidden_layers + [1 + args.hidden_state_size]
 
         self.MLP = nn.Sequential(*get_MLP_layers(n_neurons))
 

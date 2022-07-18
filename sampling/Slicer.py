@@ -5,7 +5,7 @@ import numpy as np
 from sampling.CSL import *
 import pywavefront
 from stl import mesh as mesh2
-from  Renderer import *
+from Renderer import *
 from meshcut import cross_section
 
 from sampling.csl_to_point2mesh import csl_to_point2mesh
