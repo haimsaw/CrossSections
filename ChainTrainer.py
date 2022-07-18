@@ -177,10 +177,10 @@ class ChainTrainer:
 
         if not self.verbose:
             print('n_epochs' + '.' * epochs)
-            print('_running', end="", flush=True)
+            print('_running', end="")
         for epoch in range(epochs):
             if not self.verbose:
-                print('.', end='')
+                print('.', end='', flush=True)
             self._train_epoch(epoch, self.hp.density_lambda)
             self.total_epochs += 1
         print('')
