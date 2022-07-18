@@ -138,7 +138,9 @@ if __name__ == "__main__":
         try:
             main(model_name)
         except Exception as e:
+            print('X'*50)
             print(f"an error has occurred, continuing: {e}")
+            print('X'*50)
 
         continue
 
