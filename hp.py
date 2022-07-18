@@ -10,6 +10,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
 
+parser.add_argument('--out', type=str, help='out dir to save artifacts')
 parser.add_argument('--gpu', type=int, default=0, help='an integer for the accumulator')
 
 

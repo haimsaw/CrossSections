@@ -99,7 +99,7 @@ def save_heatmaps(trainer, save_path, label):
 
 def main(model_name):
         hp = HP()
-        save_path = f'./artifacts/{model_name}/'
+        save_path = f'{args.out_dir}/{model_name}/'
         os.makedirs(save_path, exist_ok=True)
 
         print(f'{"=" * 50} {save_path}')
