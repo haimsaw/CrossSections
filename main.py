@@ -107,8 +107,8 @@ def main(model_name):
 
         print(f'{"=" * 50} {save_path}')
 
-        csl = CSL.from_csl_file(f"./data/csl-files/{model_name}.csl")
-        # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
+        # csl = CSL.from_csl_file(f"./data/csl-files/{model_name}.csl")
+        csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
 
         csl.adjust_csl(args.bounding_planes_margin)
 
@@ -131,8 +131,8 @@ def main(model_name):
 
 if __name__ == "__main__":
 
-    for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
-    # for model_name in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
+    # for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
+    for model_name in ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20']:
         try:
             main(model_name)
         except Exception as e:
