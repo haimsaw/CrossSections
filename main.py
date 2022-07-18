@@ -108,7 +108,7 @@ def main(model_name):
         print(f'{"=" * 50} {save_path}')
 
         # csl = CSL.from_csl_file(f"./data/csl-files/{model_name}.csl")
-        csl = CSL.from_csl_file(f"./data/csl_from_mesh/{name}_from_mesh.csl")
+        csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
 
         csl.adjust_csl(args.bounding_planes_margin)
 
