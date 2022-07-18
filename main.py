@@ -18,7 +18,7 @@ import pickle
 
 def train_cycle(csl, hp, trainer, save_path, model_name):
     total_time = 0
-    # with Pool(processes=cpu_count()//2) as pool:
+
     data_sets = []
 
     ts = time()
@@ -29,9 +29,12 @@ def train_cycle(csl, hp, trainer, save_path, model_name):
     for i, epochs in enumerate(hp.epochs_batches):
         print(f'\n\n{"="*10} epochs batch {i+1}/{len(hp.epochs_batches)}:')
 
+        ts = time()
         data_sets.append(SlicesDataset.from_csl(csl, pool=None, hp=hp, gen=i))
         data_sets[-1].to_ply(save_path + f"datast_gen_{i}.ply")
         trainer.update_data_loaders(data_sets)
+        te = time()
+        total_time += te - ts
 
         ts = time()
         trainer.train_epochs_batch(epochs)

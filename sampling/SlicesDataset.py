@@ -23,6 +23,7 @@ class SlicesDataset(Dataset):
         return cls(csl, np.array(cells))
 
     @classmethod
+    @timing
     def from_csl(cls, csl, pool, hp, gen):
         cells = []
         for plane in csl.planes:

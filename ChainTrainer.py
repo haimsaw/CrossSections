@@ -177,7 +177,7 @@ class ChainTrainer:
 
         if not self.verbose:
             print('n_epochs' + '.' * epochs)
-            print('_running', end="")
+            print('_running', end="", flush=True)
         for epoch in range(epochs):
             if not self.verbose:
                 print('.', end='')
