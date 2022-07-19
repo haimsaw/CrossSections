@@ -14,6 +14,9 @@ from Comperator import hausdorff_distance
 from time import time
 from sampling.CSL import CSL
 import pickle
+import random
+import numpy as np
+import torch
 
 
 def train_cycle(csl, hp, trainer, save_path, stats):
