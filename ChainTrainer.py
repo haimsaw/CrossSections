@@ -190,7 +190,7 @@ class ChainTrainer:
         print('')
 
     def show_train_losses(self, save_path):
-        plt.bar(range(len(self.train_losses)), self.train_losses)
+        plt.bar(range(len(self.train_losses)), np.clip(self.train_losses, 0, 0.005))
         if save_path is not None:
             plt.savefig(save_path + f"losses.png", dpi=300)
         # plt.show()
