@@ -18,7 +18,7 @@ parser.add_argument('--gpu', type=int, default=0, help='an integer for the accum
 # sampling
 parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')
 parser.add_argument('--nrd', type=int, default=None, dest='n_refined_datasets', help='n of refined datasets to use')
-parser.add_argument('-perturb', type=bool, default=False, dest='should_perturb_samples', help='perturb samples')
+parser.add_argument('-perturb', action='store_true', dest='should_perturb_samples', help='perturb samples')
 
 # resolutions
 
@@ -29,6 +29,8 @@ parser.add_argument('--n_loops', type=int, default=10, dest='n_loops', help='n o
 parser.add_argument('-learnable_embed', type=bool, default=False, help='learn embedded freqs')
 
 # training
+parser.add_argument('--n_samples', nargs='*',type=int, default= [2, 2, 3, 3, 4, 5])
+
 
 args = parser.parse_args()
 
@@ -38,7 +40,6 @@ class HP:
         # sampling
         self.sampling_margin = 0.05  # same as bounding_planes_margin
         self.sampling_radius = [(1/2)**4, (1/2)**5, (1/2)**6, (1/2)**7, (1/2)**8, (1/2)**9]
-        self.n_samples = [2, 2, 3, 3, 4, 5]
         self.n_white_noise = 128
 
         # resolutions
@@ -63,6 +64,6 @@ class HP:
         self.lr = 1e-2
         self.batch_size = 2 ** 13
 
-        assert len(self.epochs_batches) <= len(self.sampling_radius) and len(self.epochs_batches) <= len(self.n_samples)
+        assert len(self.epochs_batches) <= len(self.sampling_radius) and len(self.epochs_batches) <= len(args.n_samples)
 
         self.now = str(datetime.now())
