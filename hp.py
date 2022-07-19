@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description='Run NeRP.')
 parser.add_argument('out_dir', type=str, help='out dir to save artifacts')
 parser.add_argument('--model', type=str, dest='model_name', default='all', choices=['all']+from_mesh_models, help='model name to run')
 
-parser.add_argument('--gpu', type=int, default=0, help='an integer for the accumulator')
+parser.add_argument('--gpu', type=int, default=0, help='which gpu device to use')
 
 # sampling
 parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')

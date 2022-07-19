@@ -35,10 +35,11 @@ def train_cycle(csl, hp, trainer, save_path, stats):
         stats['rasterize'].append(time() - ts)
 
         data_sets[-1].to_ply(save_path + f"datast_gen_{i}.ply")
-        stats['train'].append(time() - ts)
 
         ts = time()
         trainer.train_epochs_batch(epochs)
+        stats['train'].append(time() - ts)
+
         stats['dataset_size'].append(len(data_sets[-1]))
 
         trainer.save_to_disk(save_path + f"trained_model_{i}.pt")
