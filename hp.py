@@ -29,7 +29,7 @@ parser.add_argument('--n_loops', type=int, default=10, dest='n_loops', help='n o
 parser.add_argument('-learnable_embed', type=bool, default=False, help='learn embedded freqs')
 
 # training
-parser.add_argument('--n_samples', nargs='*',type=int, default= [2, 2, 3, 3, 4, 5])
+parser.add_argument('--n_samples', nargs='*', type=int, default=[2, 2, 3, 3, 4, 5])
 
 
 args = parser.parse_args()

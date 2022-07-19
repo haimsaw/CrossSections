@@ -137,6 +137,11 @@ if __name__ == "__main__":
     models = from_mesh_models if args.model_name == 'all' else [args.model_name]
 
     for model_name in models:
+
+        random.seed(11)
+        np.random.seed(11)
+        torch.manual_seed(11)
+
         save_path = f'{args.out_dir}/{model_name}/'
 
         stats = {'name': model_name,
