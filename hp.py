@@ -20,6 +20,7 @@ parser.add_argument('--gpu', type=int, default=0, help='an integer for the accum
 # sampling
 parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')
 parser.add_argument('--nrd', type=int, default=None, dest='n_refined_datasets', help='n of refined datasets to use')
+parser.add_argument('-perturb', type=bool, default=False, dest='should_perturb_samples', help='perturb samples')
 
 # resolutions
 

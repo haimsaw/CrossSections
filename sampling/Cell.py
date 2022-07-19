@@ -2,12 +2,11 @@ import numpy as np
 
 
 class Cell:
-    def __init__(self, pixel_center, pixel_radius, labeler, xyz_transformer, plane_id, is_on_edge=False, generation=0):
+    def __init__(self, pixel_center, labeler, xyz_transformer, plane_id, is_on_edge=False, generation=0):
         #assert pixel_radius > 0
         self._label = None
 
         self.pixel_center = pixel_center
-        self.pixel_radius = pixel_radius
 
         self.labeler = labeler
         self.xyz_transformer = xyz_transformer
@@ -22,12 +21,6 @@ class Cell:
             self._label = self._get_label()
         return self._label
 
-    @property
-    def boundary(self):
-        return np.array([[1, 1],
-                        [1, -1],
-                        [-1, -1],
-                        [-1, 1]]) * self.pixel_radius + self.pixel_center
 
     '''
     using Hoeffding's inequality we get that for the result to be in range of +- eps=0.1 from actual value

@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from matplotlib.path import Path
 
+from hp import args
 from sampling.CSL import Plane
 from Helpers import add_margin, get_top_bottom
 from sampling.Cell import Cell
@@ -134,7 +135,8 @@ class PlaneRasterizer(IRasterizer):
 
         noise = 2 * np.random.random_sample((n_white_noise, 2)) - 1
 
-        # xys_around_edges, xys_around_vert = self.perturb_samples(radius, xys_around_edges, xys_around_vert)
+        if args.should_perturb_samples:
+            xys_around_edges, xys_around_vert = self.perturb_samples(radius, xys_around_edges, xys_around_vert)
 
         # no nees to return xys_on_vert, it's contained on xys_on_edge
         return np.concatenate((xys_around_vert, xys_around_edges, noise)), xys_on_edge
@@ -158,11 +160,11 @@ class PlaneRasterizer(IRasterizer):
     def perturb_samples(self, radius, xys_around_edges, xys_around_vert):
         perturbation = np.random.randn(2, len(xys_around_vert))
         perturbation /= np.linalg.norm(perturbation, axis=0)
-        perturbation = perturbation.T * (radius / 4)
+        perturbation = perturbation.T * (radius / 2)
         xys_around_vert += perturbation
         perturbation = np.random.randn(2, len(xys_around_edges))
         perturbation /= np.linalg.norm(perturbation, axis=0)
-        perturbation = perturbation.T * (radius / 4)
+        perturbation = perturbation.T * (radius / 2)
         xys_around_edges += perturbation
         return xys_around_edges, xys_around_vert
 
@@ -190,8 +192,7 @@ class PlaneRasterizer(IRasterizer):
     def get_rasterazation_cells(self, gen):
         xys_around_conture, xys_on_conture = self._get_voxels(gen)
         labeler = self._get_labeler()
-        pixel_radius = 0  # todo haim remove this
-        cells = [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys_around_conture] + \
-                [Cell(xy, pixel_radius, labeler, self.pca.inverse_transform, self.plane.plane_id, is_on_edge=True) for xy in xys_on_conture]
+        cells = [Cell(xy, labeler, self.pca.inverse_transform, self.plane.plane_id) for xy in xys_around_conture] + \
+                [Cell(xy, labeler, self.pca.inverse_transform, self.plane.plane_id, is_on_edge=True) for xy in xys_on_conture]
 
         return cells
