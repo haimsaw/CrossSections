@@ -127,6 +127,9 @@ def main(model_name, stats, save_path):
 
     train_cycle(csl, hp, trainer, save_path, stats)
 
+    with open(save_path + 'losses.json', 'w') as f:
+        f.write(json.dumps(trainer.train_losses, default=lambda o: o.__dict__, indent=4))
+
     mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', stats)
 
     save_heatmaps(trainer, save_path, 'last')
