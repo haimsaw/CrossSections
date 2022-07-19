@@ -42,7 +42,7 @@ def train_cycle(csl, hp, trainer, save_path, stats):
         trainer.show_train_losses(save_path)
 
         try:
-            handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i)
+            handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, stats)
             pass
         except Exception as e:
             print(e)
@@ -53,7 +53,7 @@ def train_cycle(csl, hp, trainer, save_path, stats):
     print(f'\n\n done train_cycle time = {total_time} sec')
 
 
-def handle_meshes(trainer, sampling_resolution_3d, save_path, label, stats=None):
+def handle_meshes(trainer, sampling_resolution_3d, save_path, label, stats):
     # mesh_mc = marching_cubes(trainer, hp.sampling_resolution_3d)
     # mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
@@ -97,14 +97,9 @@ def save_heatmaps(trainer, save_path, label):
             renderer.clear()
 
 
-def main(model_name):
-    stats = {'rasterize': [],
-             'train': [],
-             'dataset_size': [],
-             'meshing': {}}
+def main(model_name, stats, save_path):
 
     hp = HP()
-    save_path = f'{args.out_dir}/{model_name}/'
     os.makedirs(save_path, exist_ok=True)
 
     print(f'{"=" * 50} {save_path}')
@@ -123,8 +118,8 @@ def main(model_name):
     trainer = ChainTrainer(csl, hp)
 
     with open(save_path + 'hyperparams.json', 'w') as f:
-        f.write(json.dumps(hp, default=lambda o: o.__dict__, sort_keys=True, indent=4))
-        f.write(json.dumps(args, default=lambda o: o.__dict__, sort_keys=True, indent=4))
+        f.write(json.dumps(hp, default=lambda o: o.__dict__, indent=4))
+        f.write(json.dumps(args, default=lambda o: o.__dict__, indent=4))
 
     train_cycle(csl, hp, trainer, save_path, stats)
 
@@ -134,11 +129,6 @@ def main(model_name):
 
     stats['total_rastarization'] = sum(stats['rasterize'])
     stats['total_train'] = sum(stats['train'])
-    with open(save_path + 'stats.json', 'w') as f:
-        f.write(json.dumps(stats, default=lambda o: o.__dict__, sort_keys=True, indent=4))
-
-    print(stats)
-    print(f'DONE {"=" * 50} {save_path}\n\n')
 
 
 if __name__ == "__main__":
@@ -147,12 +137,28 @@ if __name__ == "__main__":
     models = from_mesh_models if args.model_name == 'all' else [args.model_name]
 
     for model_name in models:
+        save_path = f'{args.out_dir}/{model_name}/'
+
+        stats = {'name': model_name,
+                 'rasterize': [],
+                 'train': [],
+                 'dataset_size': [],
+                 'meshing': {}}
         try:
-            main(model_name)
+            main(model_name, stats, save_path)
+
         except Exception as e:
             print('X' * 50)
             print(f"an error has occurred, continuing: {e}")
             print('X' * 50)
+
+        finally:
+            stats_str = json.dumps(stats, indent=4)
+            with open(save_path + 'stats.json', 'w') as f:
+                f.write(stats_str)
+
+            print(stats_str)
+            print(f'DONE {"=" * 50}\n\n')
 
         continue
 
