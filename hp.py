@@ -1,9 +1,7 @@
 import json
 from datetime import datetime
 import numpy as np
-from sampling.CSL import CSL
-from sampling.Slicer import make_csl_from_mesh
-from sampling.csl_to_xyz import csl_to_xyz
+
 
 import argparse
 
@@ -28,6 +26,7 @@ parser.add_argument('-perturb', type=bool, default=False, dest='should_perturb_s
 parser.add_argument('--n_pe', type=int, default=4, dest='num_embedding_freqs', help='number of embedding freqs')
 parser.add_argument('--hss', type=int, default=32, dest='hidden_state_size', help='hidden state size')
 parser.add_argument('--n_loops', type=int, default=10, dest='n_loops', help='n of times we iterate')
+parser.add_argument('-learnable_embed', type=bool, default=False, help='learn embedded freqs')
 
 # training
 
