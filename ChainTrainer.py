@@ -136,8 +136,8 @@ class ChainTrainer:
 
         old_dataset = self.slices_dataset
 
-        self.slices_dataset = ConcatDataset(data_sets[-3:]) if args.n_refined_datasets is None \
-            else ConcatDataset(data_sets[-1*args.n_refined_datasets:])
+        self.slices_dataset = ConcatDataset(data_sets) if args.n_refined_datasets is None \
+            else ConcatDataset(data_sets[-1 * args.n_refined_datasets:])
 
         self.slices_data_loader = DataLoader(self.slices_dataset, batch_size=self.hp.batch_size, shuffle=True)
         print(f'update_data_loaders '
