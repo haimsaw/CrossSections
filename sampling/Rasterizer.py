@@ -107,7 +107,7 @@ class EmptyPlaneRasterizer(IRasterizer):
             raise Exception("invalid plane")
 
         labler = Labler(None, None)
-        return [Cell(xy, pixel_radius, labler, xyz_transformer, -1) for xy in xys]
+        return [Cell(xy, labler, xyz_transformer, -1) for xy in xys]
 
 
 class PlaneRasterizer(IRasterizer):
