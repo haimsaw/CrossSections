@@ -17,7 +17,7 @@ parser.add_argument('--gpu', type=int, default=0, help='which gpu device to use'
 
 # sampling
 parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')
-parser.add_argument('--nrd', type=int, default=None, dest='n_refined_datasets', help='n of refined datasets to use')
+parser.add_argument('--nrd', type=int, default=3, dest='n_refined_datasets', help='n of refined datasets to use (none for all)')
 parser.add_argument('-perturb', action='store_true', dest='should_perturb_samples', help='perturb samples')
 
 # resolutions
@@ -30,6 +30,7 @@ parser.add_argument('-learnable_embed', type=bool, default=False, help='learn em
 
 # training
 parser.add_argument('--n_samples', nargs='*', type=int, default=[2, 2, 3, 3, 4, 5])
+parser.add_argument('--scheduler_step', type=int, default=10, help='in how many iterations should we reduce lr')
 
 
 args = parser.parse_args()
@@ -59,7 +60,6 @@ class HP:
         # training
         self.weight_decay = 1e-3  # l2 regularization
         self.epochs_batches = [20, 50, 50, 100, 100, 100]
-        self.scheduler_step = 10
         self.scheduler_gamma = 0.9
         self.lr = 1e-2
         self.batch_size = 2 ** 13

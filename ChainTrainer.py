@@ -33,7 +33,6 @@ class ChainTrainer:
 
         self.optimizer = None
         self.lr_scheduler = None
-        self.scheduler_step = 0
 
         self.slices_data_loader = None
         self.contour_data_loader = None
@@ -97,7 +96,7 @@ class ChainTrainer:
                 bce_loss, current = loss.item(), batch * len(slices_xyzs)
                 print(f"\tloss: {loss:>7f}, running: {running_loss}  [{current:>5d}/{size:>5d}]")
 
-        if epoch > 0 and epoch % self.scheduler_step == 0:
+        if epoch > 0 and epoch % args.scheduler_step == 0:
             self.lr_scheduler.step()
 
         loss = running_loss / size
@@ -127,7 +126,6 @@ class ChainTrainer:
 
         self.optimizer = torch.optim.Adam(self.module.parameters(), lr=self.hp.lr, weight_decay=self.hp.weight_decay)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=self.hp.scheduler_gamma)
-        self.scheduler_step = self.hp.scheduler_step
 
         self.is_training_ready = True
 
