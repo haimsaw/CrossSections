@@ -5,7 +5,7 @@ import numpy as np
 
 import argparse
 
-from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20', 'astronaut', 'balloondog']
+from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20', 'astronaut', 'balloondog', 'Flexi-Rex']
 mri_models = ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Abdomen', 'Brain']
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
@@ -15,7 +15,7 @@ parser.add_argument('out_dir', type=str, help='out dir to save artifacts')
 parser.add_argument('--model', type=str, dest='model_name', default='all', choices=['all']+from_mesh_models, help='model name to run')
 parser.add_argument('-run_mri', action='store_true',  help='run all mri models (ignores --model)')
 
-parser.add_argument('--gpu', type=int, required=True, help='which gpu device to use')
+parser.add_argument('--gpu', type=int, default=-1, help='which gpu device to use')
 
 # sampling
 parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')
@@ -37,7 +37,7 @@ parser.add_argument('--n_samples', nargs='*', type=int, default=[2, 2, 3, 3, 4, 
 parser.add_argument('--scheduler_step', type=int, default=10, help='in how many iterations should we reduce lr')
 
 
-args = parser.parse_args()
+args = parser.parse_args(['hdsc'])
 
 
 class HP:

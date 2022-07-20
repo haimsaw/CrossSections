@@ -45,7 +45,9 @@ def make_csl_from_mesh(filename, save_path):
     elif 'astronaut' in model_name:
         plane_normals, ds = get_astronaut_planes(scale, top, bottom)
     elif 'ballondog' in model_name:
-        plane_normals, ds = get_ballondog_planes(scale, top, bottom)
+        plane_normals, ds = get_balloondog_planes(scale, top, bottom)
+    elif 'Flexi-Rex' in model_name:
+        plane_normals, ds = get_flexi_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)
 
@@ -130,11 +132,23 @@ def get_lamp_planes(scale, top, bottom):
     return plane_normals, ds
 
 
-def get_ballondog_planes(scale, top, bottom):
+def get_balloondog_planes(scale, top, bottom):
     n_slices = 15
     plane_normals = np.array([[0.0, 0.0, 1.0]] * n_slices)
 
     ds = -1 * np.linspace(bottom[2], top[2], n_slices)
+    return plane_normals, ds
+
+
+def get_flexi_planes(scale, top, bottom):
+    n_slices1 = 3
+    n_slices2 = 15
+
+    plane_normals = np.array([(0.0, 0.0, 1.0)] * n_slices1 +
+                             [(-1.0,  1.0, 0.0)] * n_slices2)
+
+    ds = -1 * np.concatenate((np.linspace(bottom[2], top[2], n_slices1),
+                              np.linspace(-1.0, 1.0, n_slices2)))
     return plane_normals, ds
 
 
