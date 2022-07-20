@@ -22,6 +22,7 @@ parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='
 parser.add_argument('--nrd', type=int, default=3, dest='n_refined_datasets', help='n of refined datasets to use (none for all)')
 parser.add_argument('-perturb', action='store_true', dest='should_perturb_samples', help='perturb samples')
 parser.add_argument('--n_white_noise', type=int, default=1024, dest='n_white_noise', help='n of random points to sample at each plane')
+parser.add_argument('-no_refine', action='store_true',  help='run all datadets') # todo remove this
 
 # resolutions
 

@@ -24,7 +24,7 @@ class SlicesDataset(Dataset):
 
     @classmethod
     @timing
-    def from_csl(cls, csl, pool, hp, gen):
+    def from_csl(cls, csl, hp, gen):
         cells = []
         for plane in csl.planes:
             # since we concat datasets - rester empty planes only once

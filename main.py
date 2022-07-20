@@ -30,11 +30,14 @@ def train_cycle(csl, hp, trainer, save_path, stats):
         print(f'\n\n{"=" * 10} epochs batch {i + 1}/{len(hp.epochs_batches)}:')
 
         ts = time()
-        data_sets.append(SlicesDataset.from_csl(csl, pool=None, hp=hp, gen=i))
+        if args.no_refine and len(data_sets) == 0:
+            data_sets = [SlicesDataset.from_csl(csl, hp=hp, gen=j) for j in range(len(hp.epochs_batches))]
+        else:
+            data_sets.append(SlicesDataset.from_csl(csl, hp=hp, gen=i))
         trainer.update_data_loaders(data_sets)
         stats['rasterize'].append(time() - ts)
 
-        data_sets[-1].to_ply(save_path + f"datast_gen_{i}.ply")
+        data_sets[i].to_ply(save_path + f"datast_gen_{i}.ply")
 
         ts = time()
         trainer.train_epochs_batch(epochs)
