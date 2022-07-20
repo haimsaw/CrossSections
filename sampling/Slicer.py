@@ -44,6 +44,8 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_shell_planes(scale, top, bottom)
     elif 'astronaut' in model_name:
         plane_normals, ds = get_astronaut_planes(scale, top, bottom)
+    elif 'ballondog' in model_name:
+        plane_normals, ds = get_ballondog_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)
 
@@ -67,10 +69,10 @@ def make_csl_from_mesh(filename, save_path):
     my_mesh.save(mesh_path)
     print(f'csl={csl.model_name} slices={len([p for p in csl.planes if not p.is_empty])}, n edges={len(csl)}')
 
-    # RendererPoly.init()
-    # RendererPoly.add_mesh(verts,faces)
-    # RendererPoly.add_scene(csl)
-    # RendererPoly.show()
+    RendererPoly()
+    RendererPoly.add_mesh(verts, faces)
+    RendererPoly.add_scene(csl)
+    RendererPoly.show()
 
     csl_to_point2mesh(csl, './data/for_pt2mesh/', mesh_path,)
     # csl_to_xyz(csl, './data/for_vipss/', 1)
@@ -125,6 +127,14 @@ def get_lamp_planes(scale, top, bottom):
     plane_normals = np.random.randn(n_slices, 3)
 
     ds = -1 * np.random.normal(size=n_slices)
+    return plane_normals, ds
+
+
+def get_ballondog_planes(scale, top, bottom):
+    n_slices = 15
+    plane_normals = np.array([[0.0, 0.0, 1.0]] * n_slices)
+
+    ds = -1 * np.linspace(bottom[2], top[2], n_slices)
     return plane_normals, ds
 
 
