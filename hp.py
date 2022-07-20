@@ -26,7 +26,7 @@ parser.add_argument('-perturb', action='store_true', dest='should_perturb_sample
 parser.add_argument('--n_pe', type=int, default=4, dest='num_embedding_freqs', help='number of embedding freqs')
 parser.add_argument('--hss', type=int, default=32, dest='hidden_state_size', help='hidden state size')
 parser.add_argument('--n_loops', type=int, default=10, dest='n_loops', help='n of times we iterate')
-parser.add_argument('-learnable_embed', action='store_true', help='learn embedded freqs')
+parser.add_argument('-disable_learnable_embed', action='store_true', help='learn embedded freqs')
 
 # training
 parser.add_argument('--n_samples', nargs='*', type=int, default=[2, 2, 3, 3, 4, 5])

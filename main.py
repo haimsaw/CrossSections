@@ -136,6 +136,7 @@ def main(model_name, stats, save_path):
 
     stats['total_rastarization'] = sum(stats['rasterize'])
     stats['total_train'] = sum(stats['train'])
+    stats['total_time'] = stats['total_train'] + stats['total_rastarization'] + stats['meshing']['last']
 
 
 if __name__ == "__main__":

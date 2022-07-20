@@ -23,7 +23,7 @@ def get_MLP_layers(n_neurons):
 class HaimNetWithState(nn.Module):
     def __init__(self, hp):
         super().__init__()
-        self.xyz_embedder = get_embedder(args.num_embedding_freqs, hp.spherical_coordinates, Lernable=args.learnable_embed)
+        self.xyz_embedder = get_embedder(args.num_embedding_freqs, hp.spherical_coordinates, disable_learnable=args.disable_learnable_embed)
         n_freqs = int(args.hidden_state_size/2)
         self.hidden_state_embedder = get_embedder(n_freqs, input_dims=1, include_input=False)\
             if hp.hidden_state_embedder else None
@@ -124,7 +124,7 @@ class LearnableEmbedder(nn.Module):
         return torch.cat((inputs, cos, sin), -1)
 
 
-def get_embedder(multires, use_spherical_coordinates=False, input_dims=3, include_input=True, Lernable=False):
+def get_embedder(multires, use_spherical_coordinates=False, input_dims=3, include_input=True, disable_learnable=True):
 
     embed_kwargs = {
         'include_input': include_input,
@@ -136,5 +136,5 @@ def get_embedder(multires, use_spherical_coordinates=False, input_dims=3, includ
         'spherical_coordinates': use_spherical_coordinates
     }
 
-    embedder_obj = LearnableEmbedder(**embed_kwargs) if Lernable else Embedder(**embed_kwargs)
+    embedder_obj = Embedder(**embed_kwargs) if disable_learnable else LearnableEmbedder(**embed_kwargs)
     return embedder_obj
