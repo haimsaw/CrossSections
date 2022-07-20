@@ -37,7 +37,7 @@ parser.add_argument('--n_samples', nargs='*', type=int, default=[2, 2, 3, 3, 4, 
 parser.add_argument('--scheduler_step', type=int, default=10, help='in how many iterations should we reduce lr')
 
 
-args = parser.parse_args(['hdsc'])
+args = parser.parse_args()
 
 
 class HP:
