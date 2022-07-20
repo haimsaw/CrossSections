@@ -5,7 +5,7 @@ import numpy as np
 
 import argparse
 
-from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20', 'astronaut']
+from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20', 'astronaut', 'ballondog']
 mri_models = ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Abdomen', 'Brain']
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
@@ -21,6 +21,7 @@ parser.add_argument('--gpu', type=int, required=True, help='which gpu device to 
 parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')
 parser.add_argument('--nrd', type=int, default=3, dest='n_refined_datasets', help='n of refined datasets to use (none for all)')
 parser.add_argument('-perturb', action='store_true', dest='should_perturb_samples', help='perturb samples')
+parser.add_argument('--n_white_noise', type=int, default=1024, dest='n_white_noise', help='n of random points to sample at each plane')
 
 # resolutions
 
@@ -43,7 +44,6 @@ class HP:
         # sampling
         self.sampling_margin = 0.05  # same as bounding_planes_margin
         self.sampling_radius = [(1/2)**4, (1/2)**5, (1/2)**6, (1/2)**7, (1/2)**8, (1/2)**9]
-        self.n_white_noise = 128
 
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)

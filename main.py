@@ -142,7 +142,6 @@ def main(model_name, stats, save_path):
 
 if __name__ == "__main__":
 
-    # for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
     if args.run_mri:
         models = mri_models
     else:
