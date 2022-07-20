@@ -108,10 +108,11 @@ def main(model_name, stats, save_path):
 
     print(f'{"=" * 50} {save_path}')
 
-    # csl = CSL.from_csl_file(f"./data/csl-files/{model_name}.csl")
-
     ts = time()
-    csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
+    if args.run_mri:
+        csl = CSL.from_csl_file(f"./data/csl-files/{model_name}.csl")
+    else:
+        csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
     csl.adjust_csl(args.bounding_planes_margin)
     stats['load_data'] = time() - ts
 
@@ -142,7 +143,10 @@ def main(model_name, stats, save_path):
 if __name__ == "__main__":
 
     # for model_name in ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Brain']:
-    models = from_mesh_models if args.model_name == 'all' else [args.model_name]
+    if args.run_mri:
+        models = mri_models
+    else:
+        models = from_mesh_models if args.model_name == 'all' else [args.model_name]
 
     for model_name in models:
 
