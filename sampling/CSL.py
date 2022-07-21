@@ -339,7 +339,7 @@ class CSL:
     @property
     def edges_verts(self):
         scene_verts = np.empty((0, 3))
-        scene_edges = np.empty((0, 2))
+        scene_edges = np.empty((0, 2), dtype=np.int32)
         for plane in self.planes:
             plane_vert_start = len(scene_verts)
 
@@ -348,12 +348,35 @@ class CSL:
 
         return scene_edges, scene_verts
 
+    def to_ply(self, save_path):
+        edges, verts = self.edges_verts
+
+        header = f'ply\n' \
+                 f'format ascii 1.0\n' \
+                 f'element vertex {len(verts)}\n' \
+                 f'property float x\nproperty float y\nproperty float z\n' \
+                 f'element edge {len(edges)}\n' \
+                 f'property int vertex1\n' \
+                 f'property int vertex2\n' \
+                 f'property uchar red\n' \
+                 f'property uchar green\n' \
+                 f'property uchar blue\n' \
+                 f'end_header\n'
+
+        file_name = f'{save_path}/{self.model_name}_sliced.ply'
+
+        with open(file_name, 'w') as f:
+            f.write(header)
+            for v in verts:
+                f.write('{:.10f} {:.10f} {:.10f}\n'.format(*v))
+            for e in edges:
+                f.write('{:d} {:d} 0 255 0\n'.format(*e))
+
     def simplify_in_place_RDP(self, epsilon):
         self.model_name += "_simplified"
         for plane in self.planes:
             if not plane.is_empty:
                 plane.simplify_RDP(epsilon)
-
 
     def _add_empty_plane(self, plane_params):
         plane_id = len(self.planes) + 1

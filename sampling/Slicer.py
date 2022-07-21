@@ -79,6 +79,7 @@ def make_csl_from_mesh(filename, save_path):
     RendererPoly.show()
 
     csl_to_point2mesh(csl, './data/for_pt2mesh/', mesh_path,)
+    csl.to_ply(save_path)
     # csl_to_xyz(csl, './data/for_vipss/', 1)
     return csl
 
