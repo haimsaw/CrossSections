@@ -48,6 +48,8 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_balloondog_planes(scale, top, bottom)
     elif 'FlexiRex' in model_name:
         plane_normals, ds = get_flexi_planes(scale, top, bottom)
+    elif 'dice' in model_name:
+        plane_normals, ds = get_dice_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)
 
@@ -149,6 +151,18 @@ def get_flexi_planes(scale, top, bottom):
 
     ds = -1 * np.concatenate((np.linspace(bottom[2], top[2], n_slices1),
                               np.linspace(-1.0, 1.0, n_slices2)))
+    return plane_normals, ds
+
+
+def get_dice_planes(scale, top, bottom):
+    n_slices1 = 10
+    n_slices2 = 5
+
+    plane_normals = np.array([(1.0, 0.0, 0.0)] * n_slices1 +
+                             [(0.0,  0.0, 1.0)] * n_slices2)
+
+    ds = -1 * np.concatenate((np.linspace(bottom[0], top[0], n_slices1),
+                              np.linspace(bottom[2], top[2], n_slices2)))
     return plane_normals, ds
 
 

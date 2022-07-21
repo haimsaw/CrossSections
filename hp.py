@@ -5,7 +5,8 @@ import numpy as np
 
 import argparse
 
-from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20', 'astronaut', 'balloondog', 'FlexiRex']
+from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20',
+                    'astronaut', 'balloondog', 'FlexiRex', 'dice']
 mri_models = ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Abdomen', 'Brain']
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
@@ -39,7 +40,7 @@ parser.add_argument('--sampling_radius_exp', nargs='*', type=int, default=[4, 5,
 parser.add_argument('--scheduler_step', type=int, default=10, help='in how many iterations should we reduce lr')
 
 
-args = parser.parse_args()
+args = parser.parse_args(['gvhg'])
 
 
 class HP:

@@ -136,5 +136,4 @@ def get_embedder(multires, use_spherical_coordinates=False, input_dims=3, includ
         'spherical_coordinates': use_spherical_coordinates
     }
 
-    embedder_obj = Embedder(**embed_kwargs) if disable_learnable else LearnableEmbedder(**embed_kwargs)
-    return embedder_obj
+    return Embedder(**embed_kwargs) if disable_learnable else LearnableEmbedder(**embed_kwargs)

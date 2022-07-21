@@ -150,6 +150,8 @@ if __name__ == "__main__":
     else:
         models = from_mesh_models if args.model_name == 'all' else [args.model_name]
 
+    errored = []
+
     for model_name in models:
 
         random.seed(11)
@@ -171,6 +173,7 @@ if __name__ == "__main__":
             print(f"an error has occurred, continuing: {e}")
             print(save_path)
             print('X' * 50)
+            errored.append(model_name)
 
         finally:
             stats_str = json.dumps(stats, indent=4)
@@ -180,28 +183,30 @@ if __name__ == "__main__":
             print(stats_str)
             print(f'DONE {"=" * 70}\n{save_path}\n\n')
 
-        continue
+    print(f'errord={errored}')
 
-        hp = HP()
-        csl = make_csl_from_mesh(f'./data/obj/{model_name}.obj', './data/csl_from_mesh/')
-        # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
+    '''
+    hp = HP()
+    csl = make_csl_from_mesh(f'./data/obj/{model_name}.obj', './data/csl_from_mesh/')
+    # csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
 
-        print(f'csl_len = {len(csl)}')
-        csl.adjust_csl(args.bounding_planes_margin)
-        '''csl.planes = csl.planes[15:16] + csl.planes[21:22]
+    print(f'csl_len = {len(csl)}')
+    csl.adjust_csl(args.bounding_planes_margin)
+    csl.planes = csl.planes[15:16] + csl.planes[21:22]
 
-        csl.planes[0].connected_components = csl.planes[0].connected_components[0:1]
-        csl.planes[0].vertices = csl.planes[0].vertices[:sum(map(len, csl.planes[0].connected_components))]
+    csl.planes[0].connected_components = csl.planes[0].connected_components[0:1]
+    csl.planes[0].vertices = csl.planes[0].vertices[:sum(map(len, csl.planes[0].connected_components))]
 
-        csl.planes[1].connected_components = csl.planes[1].connected_components[0::3]
-        vs = csl.planes[1].vertices
-        csl.planes[1].vertices = np.empty((0, 3))
-        for cc in csl.planes[1].connected_components:
-            start = len(csl.planes[1].vertices)
-            csl.planes[1].vertices = np.append(csl.planes[1].vertices, vs[cc.vertices_indices], axis=0)
-            cc.vertices_indices = np.array(range(start, len(csl.planes[1].vertices)))
-        '''
-        csl_to_contour(csl, "./data/for_CycleGrouping/")
+    csl.planes[1].connected_components = csl.planes[1].connected_components[0::3]
+    vs = csl.planes[1].vertices
+    csl.planes[1].vertices = np.empty((0, 3))
+    for cc in csl.planes[1].connected_components:
+        start = len(csl.planes[1].vertices)
+        csl.planes[1].vertices = np.append(csl.planes[1].vertices, vs[cc.vertices_indices], axis=0)
+        cc.vertices_indices = np.array(range(start, len(csl.planes[1].vertices)))
+   
+    csl_to_contour(csl, "./data/for_CycleGrouping/")
+     '''
 
     '''
 
@@ -230,8 +235,3 @@ if __name__ == "__main__":
 
     # ps.show()
     ps.screenshot()'''
-
-    '''todo:
-    1. refine
-    2. petrube points proportional to to dist
-    3. run meny examples'''
