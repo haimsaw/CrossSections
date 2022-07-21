@@ -46,7 +46,7 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_astronaut_planes(scale, top, bottom)
     elif 'ballondog' in model_name:
         plane_normals, ds = get_balloondog_planes(scale, top, bottom)
-    elif 'Flexi-Rex' in model_name:
+    elif 'FlexiRex' in model_name:
         plane_normals, ds = get_flexi_planes(scale, top, bottom)
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)

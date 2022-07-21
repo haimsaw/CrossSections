@@ -169,6 +169,7 @@ if __name__ == "__main__":
         except Exception as e:
             print('X' * 50)
             print(f"an error has occurred, continuing: {e}")
+            print(save_path)
             print('X' * 50)
 
         finally:
