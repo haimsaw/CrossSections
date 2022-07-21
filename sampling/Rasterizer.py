@@ -118,7 +118,7 @@ class PlaneRasterizer(IRasterizer):
         self.plane = plane
 
     def _get_voxels(self, gen):
-        radius = self.hp.sampling_radius[gen]
+        radius = 0.5 ** args.sampling_radius_exp[gen]
         n_samples = args.n_samples[gen]
 
         xys_around_edges, xys_on_edge = self.sample_around_edge(n_samples, radius)

@@ -177,7 +177,7 @@ if __name__ == "__main__":
                 f.write(stats_str)
 
             print(stats_str)
-            print(f'DONE {"=" * 50}\n\n')
+            print(f'DONE {"=" * 70}\n{save_path}\n\n')
 
         continue
 

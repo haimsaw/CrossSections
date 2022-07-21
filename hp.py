@@ -34,6 +34,8 @@ parser.add_argument('-disable_learnable_embed', action='store_true', help='learn
 
 # training
 parser.add_argument('--n_samples', nargs='*', type=int, default=[2, 2, 3, 3, 4, 5])
+parser.add_argument('--sampling_radius_exp', nargs='*', type=int, default=[4, 5, 6, 7, 8, 9], help='the exp of sampling radius (base 0.5)')
+
 parser.add_argument('--scheduler_step', type=int, default=10, help='in how many iterations should we reduce lr')
 
 
@@ -44,7 +46,6 @@ class HP:
     def __init__(self):
         # sampling
         self.sampling_margin = 0.05  # same as bounding_planes_margin
-        self.sampling_radius = [(1/2)**4, (1/2)**5, (1/2)**6, (1/2)**7, (1/2)**8, (1/2)**9]
 
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
@@ -67,6 +68,6 @@ class HP:
         self.lr = 1e-2
         self.batch_size = 2 ** 13
 
-        assert len(self.epochs_batches) <= len(self.sampling_radius) and len(self.epochs_batches) <= len(args.n_samples)
+        assert len(self.epochs_batches) <= len(args.sampling_radius_exp) and len(self.epochs_batches) <= len(args.n_samples)
 
         self.now = str(datetime.now())
