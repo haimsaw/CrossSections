@@ -1,0 +1,10 @@
+{
+    "name": "armadillo",
+    "rasterize": [],
+    "train": [],
+    "dataset_size": [],
+    "meshing": {},
+    "load_data": 0.23026800155639648,
+    "n_slices": 26,
+    "n_edges": 11039
+}

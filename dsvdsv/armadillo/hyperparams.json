@@ -1,0 +1,72 @@
+{
+    "sampling_margin": 0.05,
+    "root_sampling_resolution_2d": [
+        64,
+        64
+    ],
+    "sampling_resolution_3d": [
+        128,
+        128,
+        128
+    ],
+    "intermediate_sampling_resolution_3d": [
+        64,
+        64,
+        64
+    ],
+    "spherical_coordinates": false,
+    "hidden_layers": [
+        64,
+        64,
+        64,
+        64,
+        64
+    ],
+    "hidden_state_size": 32,
+    "hidden_state_embedder": true,
+    "density_lambda": 1,
+    "weight_decay": 0.001,
+    "epochs_batches": [
+        20,
+        50,
+        50,
+        100,
+        100,
+        100
+    ],
+    "scheduler_gamma": 0.9,
+    "lr": 0.01,
+    "batch_size": 8192,
+    "now": "2022-07-21 16:09:25.916987"
+}{
+    "out_dir": "dsvdsv",
+    "model_name": "all",
+    "run_mri": false,
+    "gpu": -1,
+    "bounding_planes_margin": 0.05,
+    "n_refined_datasets": 3,
+    "should_perturb_samples": false,
+    "n_white_noise": 1024,
+    "no_refine": false,
+    "num_embedding_freqs": 4,
+    "hidden_state_size": 32,
+    "n_loops": 10,
+    "disable_learnable_embed": false,
+    "n_samples": [
+        2,
+        2,
+        3,
+        3,
+        4,
+        5
+    ],
+    "sampling_radius_exp": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+    ],
+    "scheduler_step": 10
+}

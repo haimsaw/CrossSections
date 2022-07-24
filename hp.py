@@ -50,7 +50,7 @@ class HP:
 
         # resolutions
         self.root_sampling_resolution_2d = (64, 64)
-        self.sampling_resolution_3d = (128, 128, 128)
+        self.sampling_resolution_3d = (300, 300, 300)
         self.intermediate_sampling_resolution_3d = (64, 64, 64)
 
         # architecture
