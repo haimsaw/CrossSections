@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 
-def train_cycle(csl, hp, trainer, save_path, stats):
+def train_cycle(csl, model_name, hp, trainer, save_path, stats):
     total_time = 0
 
     data_sets = []
@@ -49,7 +49,7 @@ def train_cycle(csl, hp, trainer, save_path, stats):
         trainer.show_train_losses(save_path)
 
         try:
-            handle_meshes(trainer, hp.intermediate_sampling_resolution_3d, save_path, i, stats)
+            handle_meshes(model_name, trainer, hp.intermediate_sampling_resolution_3d, save_path, i, stats)
             pass
         except Exception as e:
             print(e)
@@ -60,7 +60,7 @@ def train_cycle(csl, hp, trainer, save_path, stats):
     print(f'\n\n done train_cycle time = {total_time} sec')
 
 
-def handle_meshes(trainer, sampling_resolution_3d, save_path, label, stats):
+def handle_meshes(model_name, trainer, sampling_resolution_3d, save_path, label, stats):
     # mesh_mc = marching_cubes(trainer, hp.sampling_resolution_3d)
     # mesh_mc.save(save_path + f'mesh_l{0}_mc.stl')
 
@@ -76,9 +76,8 @@ def handle_meshes(trainer, sampling_resolution_3d, save_path, label, stats):
 
     mesh_dc_no_grad.save(save_path + f'mesh{label}_dc_no_grad.obj')
 
-    '''
     try:
-        hausdorff_distance(f"data/csl_from_mesh/{name}_scaled.stl", save_path + f'mesh{label}_dc_no_grad.obj',
+        hausdorff_distance(f"data/csl_from_mesh/{model_name}_scaled.stl", save_path + f'mesh{label}_dc_no_grad.obj',
                            f'{save_path}/hausdorff_distance{label}.json')
     except BaseException as e:
         print(f"unable to calc hausdorff_distance: {e}")
@@ -86,7 +85,6 @@ def handle_meshes(trainer, sampling_resolution_3d, save_path, label, stats):
     for loop in [-1, -2, 5, 1]:
         mesh_dc_no_grad = dual_contouring(trainer, hp.sampling_resolution_3d, use_grads=False, loop=loop)
         mesh_dc_no_grad.save(save_path + f'mesh_loop{loop}_dc_no_grad.obj')
-    '''
 
     return mesh_dc_no_grad
 
@@ -116,10 +114,11 @@ def main(model_name, stats, save_path):
         csl = CSL.from_csl_file(f"./data/csl-files/{model_name}.csl")
     else:
         csl = CSL.from_csl_file(f"./data/csl_from_mesh/{model_name}_from_mesh.csl")
+
     csl.adjust_csl(args.bounding_planes_margin)
     stats['load_data'] = time() - ts
 
-    stats['n_slices']= len([p for p in csl.planes if not p.is_empty])
+    stats['n_slices'] = len([p for p in csl.planes if not p.is_empty])
     stats['n_edges'] = len(csl)
     print(f'csl={csl.model_name} slices={stats["n_slices"]}, n edges={stats["n_edges"]}')
 
@@ -129,12 +128,12 @@ def main(model_name, stats, save_path):
         f.write(json.dumps(hp, default=lambda o: o.__dict__, indent=4))
         f.write(json.dumps(args, default=lambda o: o.__dict__, indent=4))
 
-    train_cycle(csl, hp, trainer, save_path, stats)
+    train_cycle(csl, model_name, hp, trainer, save_path, stats)
 
     with open(save_path + 'losses.json', 'w') as f:
         f.write(json.dumps(trainer.train_losses, default=lambda o: o.__dict__, indent=4))
 
-    mesh_dc = handle_meshes(trainer, hp.sampling_resolution_3d, save_path, 'last', stats)
+    mesh_dc = handle_meshes(model_name, trainer, hp.sampling_resolution_3d, save_path, 'last', stats)
 
     save_heatmaps(trainer, save_path, 'last')
 
