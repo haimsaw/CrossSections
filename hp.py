@@ -17,6 +17,8 @@ parser.add_argument('--model', type=str, dest='model_name', default='all', choic
 parser.add_argument('-run_mri', action='store_true',  help='run all mri models (ignores --model)')
 
 parser.add_argument('--gpu', type=int, default=-1, help='which gpu device to use')
+parser.add_argument('--seed', type=int, default=11, help='random seed to use (-1 for random)')
+
 
 # sampling
 parser.add_argument('--bounding_planes_margin', type=float, default=0.05, dest='bounding_planes_margin', help='the margin of bbox')

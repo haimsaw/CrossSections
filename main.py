@@ -154,9 +154,10 @@ if __name__ == "__main__":
 
     for model_name in models:
 
-        random.seed(11)
-        np.random.seed(11)
-        torch.manual_seed(11)
+        if args.seed > 0:
+            random.seed(args.seed)
+            np.random.seed(args.seed)
+            torch.manual_seed(args.seed)
 
         save_path = f'{args.out_dir}/{model_name}/'
 
