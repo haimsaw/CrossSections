@@ -17,6 +17,7 @@ import pickle
 import random
 import numpy as np
 import torch
+import traceback
 
 
 def train_cycle(csl, model_name, hp, trainer, save_path, stats):
@@ -167,13 +168,13 @@ if __name__ == "__main__":
                  'train': [],
                  'dataset_size': [],
                  'meshing': {}}
-        main(model_name, stats, save_path)
         try:
             main(model_name, stats, save_path)
 
         except Exception as e:
             print('X' * 50)
             print(f"an error has occurred, continuing: {e}")
+            traceback.print_exc()
             print(save_path)
             print('X' * 50)
             errored.append(model_name)
