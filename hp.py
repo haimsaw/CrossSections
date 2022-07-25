@@ -47,6 +47,7 @@ if sys.argv[1] != '--mode=client':
 else:
     args = parser.parse_args(['null'])
 
+
 class HP:
     def __init__(self):
         # sampling
