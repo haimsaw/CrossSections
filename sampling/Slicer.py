@@ -22,6 +22,23 @@ class GetCcs:
         return cross_section(self.verts, self.faces, plane_orig=o, plane_normal=n)
 
 
+def get_verts_faces(filename):
+    scene = pywavefront.Wavefront(filename, collect_faces=True)
+    assert len(scene.mesh_list) == 1
+
+    verts = np.array(scene.vertices)
+    verts -= np.mean(verts, axis=0)
+    scale = 1.1
+
+    verts /= scale * np.max(np.absolute(verts))
+
+    faces = scene.mesh_list[0].faces
+    normals = np.array(scene.parser.normals)
+
+    assert normals.shape == verts.shape
+    return verts, faces, normals, 1/scale
+
+
 def make_csl_from_mesh(filename, save_path):
     verts, faces, normals, scale = get_verts_faces(filename)
     model_name = filename.split('/')[-1].split('.')[0]
@@ -50,6 +67,9 @@ def make_csl_from_mesh(filename, save_path):
         plane_normals, ds = get_flexi_planes(scale, top, bottom)
     elif 'dice' in model_name:
         plane_normals, ds = get_dice_planes(scale, top, bottom)
+    elif 'Elephant' in model_name:
+        plane_normals, ds = get_elephant_planes(scale, top, bottom)
+
     else:
         plane_normals, ds = get_random_planes(scale, top, bottom)
 
@@ -83,22 +103,6 @@ def make_csl_from_mesh(filename, save_path):
     # csl_to_xyz(csl, './data/for_vipss/', 1)
     return csl
 
-
-def get_verts_faces(filename):
-    scene = pywavefront.Wavefront(filename, collect_faces=True)
-    assert len(scene.mesh_list) == 1
-
-    verts = np.array(scene.vertices)
-    verts -= np.mean(verts, axis=0)
-    scale = 1.1
-
-    verts /= scale * np.max(np.absolute(verts))
-
-    faces = scene.mesh_list[0].faces
-    normals = np.array(scene.parser.normals)
-
-    assert normals.shape == verts.shape
-    return verts, faces, normals, 1/scale
 
 
 def get_brain_planes(scale, top, bottom):
@@ -228,5 +232,13 @@ def get_armadillo_planes(scale, top, bottom):
                               # np.linspace(-0.62, 0.62, n_slices3)))
                               [0.511, 0.566, 0.622]))  # this samples his fingers
 
+    return plane_normals, ds
+
+
+def get_elephant_planes(scale, top, bottom):
+    n_slices = 30
+    plane_normals = np.random.randn(n_slices, 3)
+
+    ds = -1 * (np.random.random_sample(n_slices) * 2 * scale - scale)
     return plane_normals, ds
 
