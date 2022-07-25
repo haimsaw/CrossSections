@@ -42,7 +42,7 @@ parser.add_argument('--sampling_radius_exp', nargs='*', type=int, default=[4, 5,
 parser.add_argument('--scheduler_step', type=int, default=10, help='in how many iterations should we reduce lr')
 
 
-args = parser.parse_args(["jijoijo"])
+args = parser.parse_args()
 
 
 class HP:
