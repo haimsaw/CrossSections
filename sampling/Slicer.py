@@ -160,7 +160,7 @@ def get_flexi_planes(scale, top, bottom):
 
 
 def get_dice_planes(scale, top, bottom):
-    n_slices1 = 10
+    n_slices1 = 20
     n_slices2 = 5
 
     plane_normals = np.array([(1.0, 0.0, 0.0)] * n_slices1 +

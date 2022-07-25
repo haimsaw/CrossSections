@@ -1,4 +1,5 @@
 import json
+import sys
 from datetime import datetime
 import numpy as np
 
@@ -41,9 +42,10 @@ parser.add_argument('--sampling_radius_exp', nargs='*', type=int, default=[4, 5,
 
 parser.add_argument('--scheduler_step', type=int, default=10, help='in how many iterations should we reduce lr')
 
-
-args = parser.parse_args()
-
+if sys.argv[1] != '--mode=client':
+    args = parser.parse_args()
+else:
+    args = parser.parse_args(['null'])
 
 class HP:
     def __init__(self):
