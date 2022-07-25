@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 
 from_mesh_models = ['armadillo', 'lamp004_fixed', 'eight_15', 'eight_20',
-                    'astronaut', 'balloondog', 'FlexiRex', 'dice']
+                    'balloondog', 'FlexiRex', 'dice', 'astronaut']
 mri_models = ['Heart-25-even-better', 'Vetebrae', 'Skull-20', 'Abdomen', 'Brain']
 
 parser = argparse.ArgumentParser(description='Run NeRP.')
